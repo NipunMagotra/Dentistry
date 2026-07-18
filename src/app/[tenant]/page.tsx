@@ -7,6 +7,7 @@ import { PatientDirectory } from "@/components/PatientDirectory"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, User, CalendarRange, FileText } from "lucide-react"
+import Image from "next/image"
 
 type Appointment = {
   id: string
@@ -32,7 +33,14 @@ export default function Dashboard() {
         {/* Header (Hidden on print) */}
         <div className="flex items-center justify-between mb-8 print:hidden">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Clinic OS</h1>
+            <Image 
+              src="/horizontal-logo.png" 
+              alt="Clinic OS Logo" 
+              width={200} 
+              height={50} 
+              className="h-12 w-auto object-contain mb-1"
+              priority 
+            />
             <p className="text-slate-500">Manage your entire clinic from one place.</p>
           </div>
           <User className="h-10 w-10 p-2 bg-slate-200 rounded-full text-slate-600" />
