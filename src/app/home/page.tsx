@@ -35,7 +35,7 @@ export default function HomePage() {
           Run your clinic without the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">chaos.</span>
         </h1>
         <p className="text-xl text-slate-500 max-w-2xl leading-relaxed">
-          The ultra-fast, receptionist-proof clinic management platform. Book appointments, generate prescriptions, and send WhatsApp reminders in 3 clicks.
+          The ultra-fast, intuitive clinic management platform. Book appointments, generate prescriptions, and send WhatsApp reminders in 3 clicks.
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
           <AuthModal triggerText="Start your 14-day free trial" triggerVariant="default" defaultTab="signup" />
@@ -71,7 +71,7 @@ export default function HomePage() {
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
                 <ShieldCheck className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900">Receptionist-Proof</h3>
+              <h3 className="text-xl font-bold text-slate-900">Intuitive & Simple</h3>
               <p className="text-slate-600">A clean, single-screen booking wizard. Zero learning curve for your front-desk staff.</p>
             </div>
             

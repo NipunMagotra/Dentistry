@@ -1,6 +1,6 @@
 # Clinic OS - Multi-Tenant Medical Platform
 
-Clinic OS is a modern, ultra-fast, "receptionist-proof" clinic management platform built specifically for dental and medical practices. It prioritizes simplicity, minimal clicks, and a clean interface, while packing powerful features under the hood like multi-tenant routing, serverless background messaging, and native print generation.
+Clinic OS is a modern, ultra-fast, intuitive clinic management platform built specifically for dental and medical practices. It prioritizes simplicity, minimal clicks, and a clean interface, while packing powerful features under the hood like multi-tenant routing, serverless background messaging, and native print generation.
 
 ## 🚀 Tech Stack
 
