@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
 import { BookingWizard } from "@/components/BookingWizard"
 import { EPrescriptionForm } from "@/components/EPrescriptionForm"
 import { PatientDirectory } from "@/components/PatientDirectory"
@@ -21,6 +22,8 @@ type Appointment = {
 }
 
 export default function Dashboard() {
+  const params = useParams()
+  const tenant = params?.tenant as string || "default-clinic"
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [profile, setProfile] = useState({
     clinicName: "City Dental Clinic",
@@ -166,7 +169,7 @@ export default function Dashboard() {
                 </span>
               </div>
             )}
-            <ProfileModal />
+            <ProfileModal tenant={tenant} />
           </div>
         </div>
 

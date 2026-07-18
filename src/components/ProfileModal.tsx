@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Building2, User, Settings, Phone, MapPin, Award, ShieldAlert, Key } from "lucide-react"
+import { Building2, User, Settings, Phone, MapPin, Award, ShieldAlert, Key, Clock, Copy, Check } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,9 @@ interface ProfileSettings {
   clinicName: string
   clinicAddress: string
   clinicPhone: string
+  clinicBio?: string
+  clinicHours?: string
+  doctorHours?: string
   doctorName: string
   doctorDegrees: string
   doctorRegNo: string
@@ -25,6 +28,9 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   clinicName: "City Dental Clinic",
   clinicAddress: "123 Health Avenue, Medical District",
   clinicPhone: "+1 (555) 123-4567",
+  clinicBio: "Welcome to our patient booking portal. Schedule a consultation, dental check-up, or specialized treatment with our dental professionals in just a few clicks.",
+  clinicHours: "Mon - Sat: 9:00 AM - 7:00 PM",
+  doctorHours: "Mon - Fri: 10:00 AM - 5:00 PM",
   doctorName: "Dr. Sarah Jenkins",
   doctorDegrees: "BDS, MDS (Periodontics)",
   doctorRegNo: "849201",
@@ -34,9 +40,11 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   twilioToken: "",
 }
 
-export function ProfileModal() {
+export function ProfileModal({ tenant }: { tenant: string }) {
   const [isOpen, setIsOpen] = useState(false)
   const [settings, setSettings] = useState<ProfileSettings>(DEFAULT_SETTINGS)
+  const [bookingLink, setBookingLink] = useState("")
+  const [copied, setCopied] = useState(false)
 
   // Load settings on mount
   useEffect(() => {
@@ -49,6 +57,19 @@ export function ProfileModal() {
       }
     }
   }, [isOpen])
+
+  // Calculate dynamic link
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setBookingLink(`${window.location.origin}/${tenant}/book`)
+    }
+  }, [tenant, isOpen])
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(bookingLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -137,6 +158,46 @@ export function ProfileModal() {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="clinicHours">Clinic Operating Hours</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="clinicHours"
+                    value={settings.clinicHours}
+                    onChange={(e) => updateField("clinicHours", e.target.value)}
+                    className="pl-9 bg-slate-50/50"
+                    placeholder="e.g. Mon - Sat: 9:00 AM - 7:00 PM"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="clinicBio">Clinic Biography / Showcase Tagline</Label>
+                <textarea
+                  id="clinicBio"
+                  value={settings.clinicBio}
+                  onChange={(e) => updateField("clinicBio", e.target.value)}
+                  className="w-full min-h-[80px] p-3 border rounded-md bg-slate-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="Tell patients about your clinic, services, and core mission..."
+                />
+              </div>
+
+              <div className="mt-4 p-4 border border-dashed rounded-xl bg-blue-50/30 border-blue-100">
+                <Label className="text-primary font-semibold block mb-1.5 text-xs uppercase tracking-wider">Public Booking & Showcase Link</Label>
+                <div className="flex gap-2">
+                  <Input value={bookingLink} readOnly className="bg-white font-mono text-xs select-all text-slate-600 flex-1 h-9" />
+                  <Button type="button" onClick={copyToClipboard} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/95 shrink-0 text-xs flex items-center gap-1 h-9 px-3">
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? "Copied!" : "Copy Link"}
+                  </Button>
+                </div>
+                <span className="text-[10px] text-slate-400 block mt-1.5 leading-relaxed">
+                  Direct patients here from Google Maps (Google Business Profile), Instagram/Facebook bios, or SMS/WhatsApp cards.
+                </span>
+              </div>
             </TabsContent>
 
             {/* Doctor Settings Tab */}
@@ -181,6 +242,21 @@ export function ProfileModal() {
                     onChange={(e) => updateField("doctorRegNo", e.target.value)}
                     className="pl-9 bg-slate-50/50"
                     placeholder="e.g. 849201"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="doctorHours">Doctor Consultation Hours / Timings</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="doctorHours"
+                    value={settings.doctorHours}
+                    onChange={(e) => updateField("doctorHours", e.target.value)}
+                    className="pl-9 bg-slate-50/50"
+                    placeholder="e.g. Mon - Fri: 10:00 AM - 5:00 PM"
                     required
                   />
                 </div>

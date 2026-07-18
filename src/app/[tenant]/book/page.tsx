@@ -24,15 +24,18 @@ export default function PublicBookingPage() {
     clinicName: "City Dental Clinic",
     clinicAddress: "123 Health Avenue, Medical District",
     clinicPhone: "+1 (555) 123-4567",
+    clinicBio: "Welcome to our patient booking portal. Schedule a consultation, dental check-up, or specialized treatment with our dental professionals in just a few clicks.",
+    clinicHours: "Mon - Sat: 9:00 AM - 7:00 PM",
+    doctorHours: "Mon - Fri: 10:00 AM - 5:00 PM",
     doctorName: "Dr. Sarah Jenkins",
     doctorDegrees: "BDS, MDS (Periodontics)"
   })
 
   // Doctors list (merges customized doctor dynamically)
   const [doctorsList, setDoctorsList] = useState([
-    { id: "1", name: "Dr. Sarah Jenkins", specialty: "Periodontics & Implants" },
-    { id: "2", name: "Dr. Michael Chen", specialty: "Cosmetic Dentistry" },
-    { id: "3", name: "Dr. Emily Rodriguez", specialty: "Orthodontics" }
+    { id: "1", name: "Dr. Sarah Jenkins", specialty: "Periodontics & Implants (Mon - Fri: 10:00 AM - 5:00 PM)" },
+    { id: "2", name: "Dr. Michael Chen", specialty: "Cosmetic Dentistry (Mon - Fri: 9:00 AM - 6:00 PM)" },
+    { id: "3", name: "Dr. Emily Rodriguez", specialty: "Orthodontics (Mon, Wed, Fri: 11:00 AM - 4:00 PM)" }
   ])
 
   // Form State
@@ -56,6 +59,9 @@ export default function PublicBookingPage() {
           clinicName: parsed.clinicName || "City Dental Clinic",
           clinicAddress: parsed.clinicAddress || "123 Health Avenue, Medical District",
           clinicPhone: parsed.clinicPhone || "+1 (555) 123-4567",
+          clinicBio: parsed.clinicBio || "Welcome to our patient booking portal. Schedule a consultation, dental check-up, or specialized treatment with our dental professionals in just a few clicks.",
+          clinicHours: parsed.clinicHours || "Mon - Sat: 9:00 AM - 7:00 PM",
+          doctorHours: parsed.doctorHours || "Mon - Fri: 10:00 AM - 5:00 PM",
           doctorName: parsed.doctorName || "Dr. Sarah Jenkins",
           doctorDegrees: parsed.doctorDegrees || "BDS, MDS (Periodontics)"
         }
@@ -63,9 +69,9 @@ export default function PublicBookingPage() {
 
         // Update the primary doctor in the list
         setDoctorsList([
-          { id: "1", name: updatedProfile.doctorName, specialty: updatedProfile.doctorDegrees },
-          { id: "2", name: "Dr. Michael Chen", specialty: "Cosmetic Dentistry" },
-          { id: "3", name: "Dr. Emily Rodriguez", specialty: "Orthodontics" }
+          { id: "1", name: updatedProfile.doctorName, specialty: `${updatedProfile.doctorDegrees} (${updatedProfile.doctorHours})` },
+          { id: "2", name: "Dr. Michael Chen", specialty: "Cosmetic Dentistry (Mon - Fri: 9:00 AM - 6:00 PM)" },
+          { id: "3", name: "Dr. Emily Rodriguez", specialty: "Orthodontics (Mon, Wed, Fri: 11:00 AM - 4:00 PM)" }
         ])
       } catch (e) {
         console.error(e)
@@ -191,7 +197,7 @@ export default function PublicBookingPage() {
               {profile.clinicName}
             </h1>
             <p className="text-slate-100 text-sm leading-relaxed max-w-md">
-              Welcome to our patient booking portal. Schedule a consultation, dental check-up, or specialized treatment with our dental professionals in just a few clicks.
+              {profile.clinicBio}
             </p>
           </div>
 
@@ -207,7 +213,7 @@ export default function PublicBookingPage() {
             </div>
             <div className="flex items-center gap-3">
               <Clock className="h-5 w-5 shrink-0 text-white/70" />
-              <span>Mon - Sat: 9:00 AM - 7:00 PM</span>
+              <span>{profile.clinicHours}</span>
             </div>
           </div>
         </div>
