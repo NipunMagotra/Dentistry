@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import packageJson from "../../package.json";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -22,7 +23,12 @@ export default function RootLayout({
       lang="en"
       className={`${outfit.variable} font-sans h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col relative">
+        {children}
+        <div className="fixed bottom-2 right-2 text-[10px] text-slate-400/80 font-mono select-none pointer-events-none z-50">
+          v{packageJson.version}
+        </div>
+      </body>
     </html>
   );
 }
