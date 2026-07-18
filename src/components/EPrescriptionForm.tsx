@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -36,6 +36,38 @@ type SelectedDrug = {
 
 export function EPrescriptionForm() {
   const [selectedDrugs, setSelectedDrugs] = useState<SelectedDrug[]>([])
+  const [profile, setProfile] = useState({
+    clinicName: "City Dental Clinic",
+    clinicAddress: "123 Health Avenue, Medical District",
+    clinicPhone: "+1 (555) 123-4567",
+    doctorName: "Dr. Sarah Jenkins",
+    doctorDegrees: "BDS, MDS (Periodontics)",
+    doctorRegNo: "849201"
+  })
+
+  useEffect(() => {
+    const loadProfile = () => {
+      const saved = localStorage.getItem("clinic_profile_settings")
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          setProfile({
+            clinicName: parsed.clinicName || "City Dental Clinic",
+            clinicAddress: parsed.clinicAddress || "123 Health Avenue, Medical District",
+            clinicPhone: parsed.clinicPhone || "+1 (555) 123-4567",
+            doctorName: parsed.doctorName || "Dr. Sarah Jenkins",
+            doctorDegrees: parsed.doctorDegrees || "BDS, MDS (Periodontics)",
+            doctorRegNo: parsed.doctorRegNo || "849201"
+          })
+        } catch (e) {
+          console.error("Error loading profile in form", e)
+        }
+      }
+    }
+    loadProfile()
+    window.addEventListener("clinic-profile-updated", loadProfile)
+    return () => window.removeEventListener("clinic-profile-updated", loadProfile)
+  }, [])
   
   // State for custom drug input
   const [customName, setCustomName] = useState("")
@@ -229,14 +261,14 @@ export function EPrescriptionForm() {
         {/* Header */}
         <div className="border-b-2 border-slate-800 pb-6 mb-6 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold uppercase tracking-wider">City Dental Clinic</h1>
-            <p className="text-sm mt-1 text-slate-600">123 Health Avenue, Medical District</p>
-            <p className="text-sm text-slate-600">Phone: +1 (555) 123-4567</p>
+            <h1 className="text-3xl font-bold uppercase tracking-wider">{profile.clinicName}</h1>
+            <p className="text-sm mt-1 text-slate-600">{profile.clinicAddress}</p>
+            <p className="text-sm text-slate-600">Phone: {profile.clinicPhone}</p>
           </div>
           <div className="text-right">
-            <h2 className="text-xl font-bold">Dr. Sarah Jenkins</h2>
-            <p className="text-sm text-slate-600">BDS, MDS (Periodontics)</p>
-            <p className="text-sm text-slate-600">Reg No: 849201</p>
+            <h2 className="text-xl font-bold">{profile.doctorName}</h2>
+            <p className="text-sm text-slate-600">{profile.doctorDegrees}</p>
+            <p className="text-sm text-slate-600">Reg No: {profile.doctorRegNo}</p>
           </div>
         </div>
 

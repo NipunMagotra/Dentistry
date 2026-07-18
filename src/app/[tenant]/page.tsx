@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { BookingWizard } from "@/components/BookingWizard"
 import { EPrescriptionForm } from "@/components/EPrescriptionForm"
 import { PatientDirectory } from "@/components/PatientDirectory"
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, User, CalendarRange, FileText } from "lucide-react"
 import Image from "next/image"
+import { ProfileModal } from "@/components/ProfileModal"
 
 type Appointment = {
   id: string
@@ -19,6 +20,30 @@ type Appointment = {
 
 export default function Dashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [profile, setProfile] = useState({
+    clinicName: "City Dental Clinic",
+    doctorName: "Dr. Sarah Jenkins"
+  })
+
+  useEffect(() => {
+    const loadProfile = () => {
+      const saved = localStorage.getItem("clinic_profile_settings")
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          setProfile({
+            clinicName: parsed.clinicName || "City Dental Clinic",
+            doctorName: parsed.doctorName || "Dr. Sarah Jenkins"
+          })
+        } catch (e) {
+          console.error("Error loading profile in dashboard", e)
+        }
+      }
+    }
+    loadProfile()
+    window.addEventListener("clinic-profile-updated", loadProfile)
+    return () => window.removeEventListener("clinic-profile-updated", loadProfile)
+  }, [])
 
   const handleAddAppointment = (newApt: Omit<Appointment, "id">) => {
     setAppointments((prev) => [
@@ -41,9 +66,11 @@ export default function Dashboard() {
               className="h-12 w-auto object-contain mb-1"
               priority 
             />
-            <p className="text-slate-500">Manage your entire clinic from one place.</p>
+            <p className="text-slate-500">
+              Welcome, <span className="font-semibold text-slate-700">{profile.doctorName}</span>. Manage <span className="font-semibold text-slate-700">{profile.clinicName}</span> from one place.
+            </p>
           </div>
-          <User className="h-10 w-10 p-2 bg-slate-200 rounded-full text-slate-600" />
+          <ProfileModal />
         </div>
 
         {/* Tabs (Hidden on print) */}
