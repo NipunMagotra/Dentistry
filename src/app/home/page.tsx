@@ -133,7 +133,13 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="px-6 lg:px-12 py-12 bg-white border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-slate-500">
         <div className="flex items-center gap-2 font-bold text-slate-900">
-          <Building2 className="h-5 w-5 text-blue-600" /> Clinic OS
+          <Image 
+            src="/horizontal-logo.png" 
+            alt="Clinic OS Logo" 
+            width={140} 
+            height={35} 
+            className="h-7 w-auto object-contain"
+          />
         </div>
         <p className="text-sm">© {new Date().getFullYear()} Clinic OS Inc. All rights reserved.</p>
       </footer>
