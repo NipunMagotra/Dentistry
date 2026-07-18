@@ -25,7 +25,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col relative">
         {children}
-        <div className="fixed bottom-2 right-2 text-[10px] text-slate-400/80 font-mono select-none pointer-events-none z-50">
+        <div className="fixed bottom-2 right-2 text-[10px] text-slate-400/80 font-mono select-none pointer-events-none z-50 print:hidden">
           v{packageJson.version}
         </div>
       </body>
