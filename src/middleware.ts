@@ -34,18 +34,16 @@ export default async function middleware(req: NextRequest) {
       currentHost = hostname.replace(`.${rootDomain}`, "")
   }
 
+  // VERCEL MVP OVERRIDE:
+  // If we set NEXT_PUBLIC_DEMO_TENANT in Vercel, force everything to route to the dashboard.
+  const demoTenant = process.env.NEXT_PUBLIC_DEMO_TENANT
+  if (demoTenant) {
+    return NextResponse.rewrite(new URL(`/${demoTenant}${path === "/" ? "" : path}`, req.url))
+  }
+
   // Handle Root Domain & WWW
   // If the user visits 'localhost:3000' or 'www.yoursaas.com', route to the marketing/home page
-  if (currentHost === rootDomain || currentHost === "www" || currentHost === "localhost" || currentHost === "localhost:3000") {
-    // VERCEL MVP OVERRIDE:
-    // Vercel free tier does not support wildcard subdomains. 
-    // By setting NEXT_PUBLIC_DEMO_TENANT=apollo-dental in Vercel, 
-    // we force the root domain to serve the dashboard directly!
-    const demoTenant = process.env.NEXT_PUBLIC_DEMO_TENANT
-    if (demoTenant) {
-      return NextResponse.rewrite(new URL(`/${demoTenant}${path === "/" ? "" : path}`, req.url))
-    }
-
+  if (currentHost === rootDomain || currentHost === "www" || currentHost === "localhost" || currentHost === "localhost:3000" || currentHost.includes("vercel.app")) {
     // Rewrite to the (marketing) home folder
     return NextResponse.rewrite(new URL(`/home${path === "/" ? "" : path}`, req.url))
   }
