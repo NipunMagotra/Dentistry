@@ -35,10 +35,11 @@ export default async function middleware(req: NextRequest) {
   }
 
   // VERCEL MVP OVERRIDE:
-  // If we set NEXT_PUBLIC_DEMO_TENANT in Vercel, force everything to route to the dashboard.
+  // If we set NEXT_PUBLIC_DEMO_TENANT in Vercel and the user navigates to /demo-dashboard, 
+  // route them to the tenant dashboard so we can demo the complete auth flow.
   const demoTenant = process.env.NEXT_PUBLIC_DEMO_TENANT
-  if (demoTenant) {
-    return NextResponse.rewrite(new URL(`/${demoTenant}${path === "/" ? "" : path}`, req.url))
+  if (demoTenant && url.pathname.startsWith("/demo-dashboard")) {
+    return NextResponse.rewrite(new URL(`/${demoTenant}`, req.url))
   }
 
   // Handle Root Domain & WWW
