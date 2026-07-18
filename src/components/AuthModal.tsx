@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Building2, Mail, Lock, User as UserIcon } from "lucide-react"
+import { Building2, Mail, Lock, User as UserIcon, Eye, EyeOff } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,7 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
   const [isOpen, setIsOpen] = useState(false)
   const [tab, setTab] = useState<"login" | "signup">(defaultTab)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -89,7 +90,16 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <Input id="password" type="password" placeholder="••••••••" className="pl-9" required />
+              <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" className="pl-9 pr-10" required />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <span className="sr-only">Toggle password visibility</span>
+              </button>
             </div>
           </div>
 

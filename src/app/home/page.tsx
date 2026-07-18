@@ -111,7 +111,7 @@ export default function HomePage() {
             <div className="space-y-2">
               <h3 className="text-2xl font-semibold text-slate-300">Pro Clinic Plan</h3>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-5xl font-extrabold">$99</span>
+                <span className="text-5xl font-extrabold">₹999</span>
                 <span className="text-slate-400 font-medium">/month</span>
               </div>
             </div>
