@@ -436,7 +436,7 @@ export default function Dashboard() {
                   <Card className="h-[75vh] flex flex-col border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
                     <CardHeader className="pb-4 border-b">
                       <CardTitle className="text-xl font-bold text-slate-800">Today's Appointments</CardTitle>
-                      <CardDescription>You have {appointments.length} appointments today.</CardDescription>
+                    <CardDescription>You have {appointments.filter(a => a.status !== "Completed").length} appointment{appointments.filter(a => a.status !== "Completed").length !== 1 ? "s" : ""} today.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-auto p-4 flex flex-col space-y-4">
                       {appointments.length === 0 ? (

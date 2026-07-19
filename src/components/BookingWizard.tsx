@@ -41,8 +41,23 @@ const NATIONALITIES = [
   "Indian", "Emirati", "American", "British", "Saudi", "Omani", "Qatari", "Kuwaiti", "Bahraini", "Filipino", "Pakistani", "Egyptian", "Other"
 ]
 
+const COUNTRY_CODES = [
+  { code: "+91", label: "🇮🇳 +91", country: "India" },
+  { code: "+971", label: "🇦🇪 +971", country: "UAE" },
+  { code: "+1", label: "🇺🇸 +1", country: "US" },
+  { code: "+44", label: "🇬🇧 +44", country: "UK" },
+  { code: "+966", label: "🇸🇦 +966", country: "Saudi" },
+  { code: "+968", label: "🇴🇲 +968", country: "Oman" },
+  { code: "+974", label: "🇶🇦 +974", country: "Qatar" },
+  { code: "+965", label: "🇰🇼 +965", country: "Kuwait" },
+  { code: "+973", label: "🇧🇭 +973", country: "Bahrain" },
+  { code: "+63", label: "🇵🇭 +63", country: "Philippines" },
+  { code: "+92", label: "🇵🇰 +92", country: "Pakistan" },
+  { code: "+20", label: "🇪🇬 +20", country: "Egypt" },
+]
+
 type BookingWizardProps = {
-  onBookAppointment?: (apt: { time: string; patient: string; doctor: string; status: string }) => void
+  onBookAppointment?: (apt: { time: string; patient: string; phone?: string; doctor: string; status: string }) => void
 }
 
 export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
@@ -73,6 +88,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   // Form State
   const [patientData, setPatientData] = useState({
     name: "",
+    countryCode: "+91",
     phone: "",
     nationality: "",
     gender: "",
@@ -118,6 +134,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       onBookAppointment({
         time: selectedTime,
         patient: patientData.name,
+        phone: `${patientData.countryCode} ${patientData.phone}`,
         doctor: doctorsList.find(d => d.id === selectedDoctor)?.name || "Doctor",
         status: "Scheduled"
       })
@@ -132,7 +149,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        patientPhone: patientData.phone,
+        patientPhone: `${patientData.countryCode} ${patientData.phone}`,
         patientName: patientData.name,
         doctorName: doctorsList.find(d => d.id === selectedDoctor)?.name || "Doctor",
         appointmentDate: date?.toISOString(),
@@ -149,6 +166,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       setStep(1)
       setPatientData({
         name: "",
+        countryCode: "+91",
         phone: "",
         nationality: "",
         gender: "",
@@ -205,71 +223,87 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                 <Label htmlFor="phone" className={phoneTouched && !isPhoneValid ? "text-red-500 font-semibold" : ""}>
                   Phone Number
                 </Label>
-                <Input 
-                  id="phone" 
-                  placeholder="+1 234 567 890" 
-                  value={patientData.phone} 
-                  onBlur={() => setPhoneTouched(true)}
-                  onChange={(e) => {
-                    // Restrict input to digits, spaces, +, -, (, )
-                    const val = e.target.value.replace(/[^0-9\s+\-()]/g, "")
-                    setPatientData({...patientData, phone: val})
-                  }} 
-                  className={phoneTouched && !isPhoneValid ? "border-red-400 focus:ring-red-200" : ""}
-                />
+                <div className="flex gap-2">
+                  <Select 
+                    value={patientData.countryCode} 
+                    onValueChange={(val) => setPatientData({...patientData, countryCode: val || "+91"})}
+                  >
+                    <SelectTrigger className="w-[110px] shrink-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COUNTRY_CODES.map((cc) => (
+                        <SelectItem key={cc.code} value={cc.code}>{cc.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input 
+                    id="phone" 
+                    placeholder="98765 43210" 
+                    value={patientData.phone} 
+                    onBlur={() => setPhoneTouched(true)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9\s\-()]/g, "")
+                      setPatientData({...patientData, phone: val})
+                    }} 
+                    className={phoneTouched && !isPhoneValid ? "border-red-400 focus:ring-red-200" : ""}
+                  />
+                </div>
                 {phoneTouched && !isPhoneValid && (
                   <span className="text-[11px] text-red-500 font-medium">Please enter a valid phone number (minimum 7 digits).</span>
                 )}
               </div>
 
-              <div className="grid gap-1.5">
-                <Label className={nationalityTouched && !isNationalityValid ? "text-red-500 font-semibold" : ""}>
-                  Nationality
-                </Label>
-                <Select 
-                  value={patientData.nationality} 
-                  onValueChange={(val) => {
-                    setNationalityTouched(true)
-                    setPatientData({...patientData, nationality: val || ""})
-                  }}
-                >
-                  <SelectTrigger className={nationalityTouched && !isNationalityValid ? "border-red-400" : ""}>
-                    <SelectValue placeholder="Select nationality" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NATIONALITIES.map((nat) => (
-                      <SelectItem key={nat} value={nat}>{nat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {nationalityTouched && !isNationalityValid && (
-                  <span className="text-[11px] text-red-500 font-medium">Please select a nationality.</span>
-                )}
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                  <Label className={nationalityTouched && !isNationalityValid ? "text-red-500 font-semibold" : ""}>
+                    Nationality
+                  </Label>
+                  <Select 
+                    value={patientData.nationality} 
+                    onValueChange={(val) => {
+                      setNationalityTouched(true)
+                      setPatientData({...patientData, nationality: val || ""})
+                    }}
+                  >
+                    <SelectTrigger className={nationalityTouched && !isNationalityValid ? "border-red-400" : ""}>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NATIONALITIES.map((nat) => (
+                        <SelectItem key={nat} value={nat}>{nat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {nationalityTouched && !isNationalityValid && (
+                    <span className="text-[11px] text-red-500 font-medium">Required.</span>
+                  )}
+                </div>
 
-              <div className="grid gap-1.5">
-                <Label className={genderTouched && !isGenderValid ? "text-red-500 font-semibold" : ""}>
-                  Gender
-                </Label>
-                <Select 
-                  value={patientData.gender} 
-                  onValueChange={(val) => {
-                    setGenderTouched(true)
-                    setPatientData({...patientData, gender: val || ""})
-                  }}
-                >
-                  <SelectTrigger className={genderTouched && !isGenderValid ? "border-red-400" : ""}>
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                {genderTouched && !isGenderValid && (
-                  <span className="text-[11px] text-red-500 font-medium">Please select a gender.</span>
-                )}
+                <div className="grid gap-1.5">
+                  <Label className={genderTouched && !isGenderValid ? "text-red-500 font-semibold" : ""}>
+                    Gender
+                  </Label>
+                  <Select 
+                    value={patientData.gender} 
+                    onValueChange={(val) => {
+                      setGenderTouched(true)
+                      setPatientData({...patientData, gender: val || ""})
+                    }}
+                  >
+                    <SelectTrigger className={genderTouched && !isGenderValid ? "border-red-400" : ""}>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {genderTouched && !isGenderValid && (
+                    <span className="text-[11px] text-red-500 font-medium">Required.</span>
+                  )}
+                </div>
               </div>
             </div>
           )}
