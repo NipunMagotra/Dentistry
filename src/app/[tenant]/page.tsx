@@ -290,7 +290,7 @@ export default function Dashboard() {
       const result = await updateAppointmentStatus(id, newStatus)
       if (result && result.error) {
         showToast(`❌ Error: ${result.error.message || "Failed to update status"}`)
-        startTransition(() => loadAppointments()) // Revert if failed
+        startTransition(() => { loadAppointments() }) // Revert if failed
         return
       }
       startTransition(() => {
@@ -298,7 +298,7 @@ export default function Dashboard() {
       })
     } catch (error: any) {
       showToast(`❌ Error: ${error.message || "Unknown error occurred"}`)
-      startTransition(() => loadAppointments()) // Revert if failed
+      startTransition(() => { loadAppointments() }) // Revert if failed
     }
   }
 

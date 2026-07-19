@@ -81,7 +81,7 @@ export function RescheduleModal({ isOpen, onClose, appointment, onReschedule }: 
                 <ShadcnCalendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={(d) => setDate(d)}
                   disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
                   initialFocus
                 />
