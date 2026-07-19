@@ -1,4 +1,5 @@
 import { serve } from "@upstash/workflow/nextjs"
+import { NextResponse } from "next/server"
 
 interface BookingPayload {
   patientPhone: string
@@ -19,6 +20,20 @@ export const { POST } = serve<BookingPayload>(async (context) => {
   } = context.requestPayload
 
   // --------------------------------------------------------------------------
+  // VALIDATION: Ensure required fields are present and well-formed
+  // --------------------------------------------------------------------------
+  if (!patientPhone || !patientName || !doctorName || !appointmentDate || !appointmentTime) {
+    console.error("[Workflow] Missing required payload fields:", context.requestPayload)
+    return // Exit early — Upstash will not retry on explicit return
+  }
+
+  const parsedDate = new Date(appointmentDate)
+  if (isNaN(parsedDate.getTime())) {
+    console.error("[Workflow] Invalid appointmentDate:", appointmentDate)
+    return
+  }
+
+  // --------------------------------------------------------------------------
   // STEP 1: IMMEDIATE CONFIRMATION
   // --------------------------------------------------------------------------
   await context.run("send-immediate-confirmation", async () => {
@@ -27,7 +42,7 @@ export const { POST } = serve<BookingPayload>(async (context) => {
     
     console.log("===============================================================")
     console.log(`[Twilio/WhatsApp MOCK] -> Sending CONFIRMATION to ${patientPhone}`)
-    console.log(`Message: "Hello ${patientName}, your appointment with ${doctorName} is confirmed for ${new Date(appointmentDate).toLocaleDateString()} at ${appointmentTime}."`)
+    console.log(`Message: "Hello ${patientName}, your appointment with ${doctorName} is confirmed for ${parsedDate.toLocaleDateString()} at ${appointmentTime}."`)
     console.log("===============================================================")
   })
 
@@ -35,7 +50,7 @@ export const { POST } = serve<BookingPayload>(async (context) => {
   // STEP 2: DURABLE SLEEP
   // --------------------------------------------------------------------------
   // Calculate the timestamp for 10:00 AM on the day of the appointment
-  const reminderDate = new Date(appointmentDate)
+  const reminderDate = new Date(parsedDate)
   reminderDate.setHours(10, 0, 0, 0)
 
   // Only invoke sleepUntil if the calculated 10AM time is actually in the future.

@@ -171,8 +171,40 @@ export function ProfileModal({ tenant }: { tenant: string }) {
     setIsDoctorFormOpen(true)
   }
 
+  // Helper: persist doctors list to localStorage and notify other components
+  const persistDoctors = (updatedList: Doctor[]) => {
+    try {
+      localStorage.setItem("clinic_doctors_list", JSON.stringify(updatedList))
+    } catch (e) {
+      console.error("Failed to persist doctors list (storage quota may be exceeded)", e)
+    }
+    window.dispatchEvent(new Event("clinic-doctors-updated"))
+  }
+
   const handleRemoveDoctor = (id: string) => {
-    setDoctors((prev) => prev.filter((d) => d.id !== id))
+    const docToDelete = doctors.find((d) => d.id === id)
+    if (docToDelete) {
+      // Check for active appointments
+      try {
+        const savedApts = localStorage.getItem("active_appointments")
+        if (savedApts) {
+          const activeApts = JSON.parse(savedApts)
+          const hasActive = activeApts.some((a: any) => a.doctor === docToDelete.name)
+          if (hasActive) {
+            const confirmDelete = window.confirm(`Warning: ${docToDelete.name} has active appointments in the queue. Deleting them will leave those appointments with a missing provider. Are you sure you want to delete?`)
+            if (!confirmDelete) return
+          }
+        }
+      } catch (e) {
+        console.error("Error checking active appointments during doctor deletion", e)
+      }
+    }
+
+    setDoctors((prev) => {
+      const updated = prev.filter((d) => d.id !== id)
+      persistDoctors(updated)
+      return updated
+    })
   }
 
   const handleSaveDoctor = () => {
@@ -180,8 +212,8 @@ export function ProfileModal({ tenant }: { tenant: string }) {
 
     if (editingDoctorId) {
       // Update
-      setDoctors((prev) =>
-        prev.map((d) =>
+      setDoctors((prev) => {
+        const updated = prev.map((d) =>
           d.id === editingDoctorId
             ? {
                 ...d,
@@ -194,7 +226,9 @@ export function ProfileModal({ tenant }: { tenant: string }) {
               }
             : d
         )
-      )
+        persistDoctors(updated)
+        return updated
+      })
     } else {
       // Add
       const newDoc: Doctor = {
@@ -206,7 +240,11 @@ export function ProfileModal({ tenant }: { tenant: string }) {
         timings: docTimings,
         charge: Number(docCharge) || 150,
       }
-      setDoctors((prev) => [...prev, newDoc])
+      setDoctors((prev) => {
+        const updated = [...prev, newDoc]
+        persistDoctors(updated)
+        return updated
+      })
     }
     setIsDoctorFormOpen(false)
   }

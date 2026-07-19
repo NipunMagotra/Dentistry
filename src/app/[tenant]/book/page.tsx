@@ -59,13 +59,13 @@ export default function PublicBookingPage() {
   const isPhoneValid = /^\+?[0-9\s\-()]{7,}$/.test(phone)
   const isFormValid = isNameValid && isPhoneValid && !!date && !!time
 
-  // Load clinic settings
+  // Load clinic settings & dynamic doctors list
   useEffect(() => {
     const saved = localStorage.getItem("clinic_profile_settings")
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        const updatedProfile = {
+        setProfile({
           clinicName: parsed.clinicName || "City Dental Clinic",
           clinicAddress: parsed.clinicAddress || "123 Health Avenue, Medical District",
           clinicPhone: parsed.clinicPhone || "+1 (555) 123-4567",
@@ -74,17 +74,26 @@ export default function PublicBookingPage() {
           doctorHours: parsed.doctorHours || "Mon - Fri: 10:00 AM - 5:00 PM",
           doctorName: parsed.doctorName || "Dr. Sarah Jenkins",
           doctorDegrees: parsed.doctorDegrees || "BDS, MDS (Periodontics)"
-        }
-        setProfile(updatedProfile)
-
-        // Update the primary doctor in the list
-        setDoctorsList([
-          { id: "1", name: updatedProfile.doctorName, specialty: `${updatedProfile.doctorDegrees} (${updatedProfile.doctorHours})` },
-          { id: "2", name: "Dr. Michael Chen", specialty: "Cosmetic Dentistry (Mon - Fri: 9:00 AM - 6:00 PM)" },
-          { id: "3", name: "Dr. Emily Rodriguez", specialty: "Orthodontics (Mon, Wed, Fri: 11:00 AM - 4:00 PM)" }
-        ])
+        })
       } catch (e) {
         console.error(e)
+      }
+    }
+
+    // Load full dynamic doctors list
+    const savedDocs = localStorage.getItem("clinic_doctors_list")
+    if (savedDocs) {
+      try {
+        const parsed = JSON.parse(savedDocs)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDoctorsList(parsed.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            specialty: `${d.specialty || d.degrees || "General Dentistry"} (${d.timings || "Mon - Fri"})`
+          })))
+        }
+      } catch (e) {
+        console.error("Error loading doctors list on booking page", e)
       }
     }
   }, [])

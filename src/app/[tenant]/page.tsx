@@ -95,20 +95,25 @@ export default function Dashboard() {
     let calculatedRevenueToday = 0
     let calculatedCompletedTodayCount = 0
     
+    // Load doctors list for dynamic fee lookup
+    let doctorsChargeMap: Record<string, number> = {}
+    const savedDocs = localStorage.getItem("clinic_doctors_list")
+    if (savedDocs) {
+      try {
+        const docsList = JSON.parse(savedDocs)
+        docsList.forEach((d: any) => {
+          if (d.name) doctorsChargeMap[d.name.toLowerCase()] = d.charge || 150
+        })
+      } catch (e) { /* ignore */ }
+    }
+
     patientList.forEach((patient: any) => {
       patient.history?.appointments?.forEach((apt: any) => {
         // Only sum appointments completed today that were dynamically added/completed in session
         if (apt.date === currentDateStr && apt.status === "Completed" && (patient.id.startsWith("p_") || apt.isDynamic)) {
           calculatedCompletedTodayCount++
-          if (apt.doctor.includes("Jenkins")) {
-            calculatedRevenueToday += 150
-          } else if (apt.doctor.includes("Chen")) {
-            calculatedRevenueToday += 200
-          } else if (apt.doctor.includes("Rodriguez")) {
-            calculatedRevenueToday += 180
-          } else {
-            calculatedRevenueToday += 150
-          }
+          const fee = doctorsChargeMap[apt.doctor?.toLowerCase()] || 150
+          calculatedRevenueToday += fee
         }
       })
     })
@@ -119,6 +124,15 @@ export default function Dashboard() {
       revenueToday: 840 + calculatedRevenueToday,
       completedTodayCount: 4 + calculatedCompletedTodayCount
     })
+  }
+
+  // Safe localStorage writer with quota error handling
+  const safeSetItem = (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value)
+    } catch (e) {
+      console.error(`[Storage] Failed to write key "${key}" — quota may be exceeded`, e)
+    }
   }
 
   useEffect(() => {
@@ -199,7 +213,7 @@ export default function Dashboard() {
 
   const updateAppointments = (newApts: Appointment[]) => {
     setAppointments(newApts)
-    localStorage.setItem("active_appointments", JSON.stringify(newApts))
+    safeSetItem("active_appointments", JSON.stringify(newApts))
   }
 
   const handleAddAppointment = (newApt: Omit<Appointment, "id">) => {
@@ -261,7 +275,7 @@ export default function Dashboard() {
   const handleDeclineRequest = (id: string) => {
     const updatedPending = pendingRequests.filter(r => r.id !== id)
     setPendingRequests(updatedPending)
-    localStorage.setItem("pending_appointments", JSON.stringify(updatedPending))
+    safeSetItem("pending_appointments", JSON.stringify(updatedPending))
   }
 
   const handleCancelAppointment = (id: string) => {
@@ -285,22 +299,19 @@ export default function Dashboard() {
 
     const rescheduledApt = appointments.find(a => a.id === id)
     if (rescheduledApt) {
-      try {
-        fetch("/api/workflow", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            patientPhone: "+1 (555) 123-4567",
-            patientName: rescheduledApt.patient,
-            doctorName: rescheduledApt.doctor,
-            appointmentDate: newDate,
-            appointmentTime: newTime,
-            type: "Rescheduled"
-          })
+      fetch("/api/workflow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientPhone: "+1 (555) 123-4567",
+          patientName: rescheduledApt.patient,
+          doctorName: rescheduledApt.doctor,
+          appointmentDate: newDate,
+          appointmentTime: newTime
         })
-      } catch (err) {
-        console.error(err)
-      }
+      }).catch((err) => {
+        console.error("Failed to trigger reschedule workflow", err)
+      })
     }
   }
 
@@ -339,6 +350,7 @@ export default function Dashboard() {
         gender: "Male",
         dob: "Jan 15, 1990",
         allergies: "None",
+        attachments: [],
         history: {
           appointments: [
             { date: currentDate, doctor: apt.doctor, status: "Completed", isDynamic: true, reason: "General Consultation", notes: "Routine checkup and diagnosis completed successfully." }
@@ -349,7 +361,7 @@ export default function Dashboard() {
       patientList.push(existingPatient)
     }
 
-    localStorage.setItem("patient_directory_list", JSON.stringify(patientList))
+    safeSetItem("patient_directory_list", JSON.stringify(patientList))
 
     // Dispatch directory update custom event
     window.dispatchEvent(new Event("patient-directory-updated"))

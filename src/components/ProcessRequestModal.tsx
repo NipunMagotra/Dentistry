@@ -14,7 +14,7 @@ const TIME_SLOTS = [
   "02:00 PM", "02:30 PM", "05:30 PM", "06:00 PM", "06:30 PM"
 ]
 
-const DOCTORS = [
+const DEFAULT_DOCTORS = [
   "Dr. Sarah Jenkins",
   "Dr. Michael Chen",
   "Dr. Emily Rodriguez"
@@ -57,9 +57,33 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
   const [time, setTime] = useState("")
   const [nationality, setNationality] = useState("")
   const [gender, setGender] = useState("")
+  const [doctorsList, setDoctorsList] = useState<string[]>(DEFAULT_DOCTORS)
 
   // Validation warnings states
   const [submittedOnce, setSubmittedOnce] = useState(false)
+
+  // Load dynamic doctors list from localStorage
+  useEffect(() => {
+    const loadDoctors = () => {
+      const saved = localStorage.getItem("clinic_doctors_list")
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setDoctorsList(parsed.map((d: any) => d.name))
+          } else {
+            setDoctorsList(DEFAULT_DOCTORS)
+          }
+        } catch (e) {
+          console.error("Error loading doctors in ProcessRequestModal", e)
+          setDoctorsList(DEFAULT_DOCTORS)
+        }
+      }
+    }
+    loadDoctors()
+    window.addEventListener("clinic-doctors-updated", loadDoctors)
+    return () => window.removeEventListener("clinic-doctors-updated", loadDoctors)
+  }, [])
 
   // Validation rules
   const isNameValid = patientName.trim().length >= 2 && /^[a-zA-Z\s.]{2,}$/.test(patientName)
@@ -72,7 +96,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
     if (request) {
       setPatientName(request.patient || "")
       setPatientPhone(request.phone || "")
-      setDoctor(request.doctor || DOCTORS[0])
+      setDoctor(request.doctor || doctorsList[0] || DEFAULT_DOCTORS[0])
       setDate(request.date || "")
       setTime(request.time || "")
       setNationality("")
@@ -222,7 +246,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
                 <SelectValue placeholder="Select Doctor" />
               </SelectTrigger>
               <SelectContent>
-                {DOCTORS.map((doc) => (
+                {doctorsList.map((doc) => (
                   <SelectItem key={doc} value={doc}>
                     {doc}
                   </SelectItem>

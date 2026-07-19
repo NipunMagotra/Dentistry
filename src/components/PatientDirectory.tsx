@@ -136,23 +136,61 @@ export function PatientDirectory() {
       const dataUrl = event.target?.result as string
       if (!dataUrl) return
 
-      const newAttachment = {
-        id: `att_${Date.now()}`,
-        name: file.name,
-        url: dataUrl,
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
-      }
+      // Compress image using Canvas
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement("canvas")
+        const MAX_WIDTH = 800
+        const MAX_HEIGHT = 800
+        let width = img.width
+        let height = img.height
 
-      const updatedPatient = {
-        ...selectedPatient,
-        attachments: [...(selectedPatient.attachments || []), newAttachment]
-      }
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width
+            width = MAX_WIDTH
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height
+            height = MAX_HEIGHT
+          }
+        }
 
-      setSelectedPatient(updatedPatient)
-      const updatedList = patients.map(p => p.id === selectedPatient.id ? updatedPatient : p)
-      setPatients(updatedList)
-      localStorage.setItem("patient_directory_list", JSON.stringify(updatedList))
-      window.dispatchEvent(new Event("patient-directory-updated"))
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext("2d")
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height)
+          // Compress to JPEG with 0.7 quality
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7)
+
+          const newAttachment = {
+            id: `att_${Date.now()}`,
+            name: file.name.replace(/\.[^/.]+$/, "") + ".jpg", // Change extension
+            url: compressedDataUrl,
+            date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+          }
+
+          const updatedPatient = {
+            ...selectedPatient,
+            attachments: [...(selectedPatient.attachments || []), newAttachment]
+          }
+
+          setSelectedPatient(updatedPatient)
+          setPatients(prev => {
+            const updatedList = prev.map(p => p.id === selectedPatient.id ? updatedPatient : p)
+            try {
+              localStorage.setItem("patient_directory_list", JSON.stringify(updatedList))
+            } catch (e) {
+              console.error("[Storage] Failed to save attachment — storage quota may be exceeded", e)
+            }
+            return updatedList
+          })
+          window.dispatchEvent(new Event("patient-directory-updated"))
+        }
+      }
+      img.src = dataUrl
     }
     reader.readAsDataURL(file)
   }
@@ -168,7 +206,11 @@ export function PatientDirectory() {
     setSelectedPatient(updatedPatient)
     const updatedList = patients.map(p => p.id === selectedPatient.id ? updatedPatient : p)
     setPatients(updatedList)
-    localStorage.setItem("patient_directory_list", JSON.stringify(updatedList))
+    try {
+      localStorage.setItem("patient_directory_list", JSON.stringify(updatedList))
+    } catch (e) {
+      console.error("[Storage] Failed to save after attachment removal", e)
+    }
     window.dispatchEvent(new Event("patient-directory-updated"))
   }
 
@@ -243,7 +285,39 @@ export function PatientDirectory() {
   const handleDeletePatient = (id: string) => {
     const list = patients.filter((p) => p.id !== id)
     setPatients(list)
-    localStorage.setItem("patient_directory_list", JSON.stringify(list))
+    try {
+      localStorage.setItem("patient_directory_list", JSON.stringify(list))
+    } catch (e) {
+      console.error("[Storage] Failed to save after patient deletion", e)
+    }
+
+    // Cascade: remove this patient's active appointments
+    const deletedPatient = patients.find(p => p.id === id)
+    if (deletedPatient) {
+      const savedApts = localStorage.getItem("active_appointments")
+      if (savedApts) {
+        try {
+          const activeApts = JSON.parse(savedApts)
+          const cleaned = activeApts.filter((a: any) => a.patient.toLowerCase() !== deletedPatient.name.toLowerCase())
+          localStorage.setItem("active_appointments", JSON.stringify(cleaned))
+        } catch (e) {
+          console.error(e)
+        }
+      }
+
+      // Cascade: remove this patient's pending requests
+      const savedPending = localStorage.getItem("pending_appointments")
+      if (savedPending) {
+        try {
+          const pendingApts = JSON.parse(savedPending)
+          const cleaned = pendingApts.filter((a: any) => a.patient.toLowerCase() !== deletedPatient.name.toLowerCase())
+          localStorage.setItem("pending_appointments", JSON.stringify(cleaned))
+        } catch (e) {
+          console.error(e)
+        }
+      }
+    }
+
     window.dispatchEvent(new Event("patient-directory-updated"))
     setSelectedPatient(null)
     setShowConfirmDelete(false)
