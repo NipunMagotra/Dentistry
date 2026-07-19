@@ -75,9 +75,15 @@ export default function Dashboard() {
   const loadAppointments = async () => {
     try {
       const apts = await getAppointments()
-      setAppointments(apts)
+      // Only overwrite if we have valid DB records, otherwise keep optimistic state
+      if (apts && apts.length > 0) {
+        setAppointments(apts)
+      }
+      
       const pending = await getPendingRequests()
-      setPendingRequests(pending)
+      if (pending && pending.length > 0) {
+        setPendingRequests(pending)
+      }
       
       const clinicStats = await getClinicStats()
       setStats(clinicStats)
@@ -155,11 +161,28 @@ export default function Dashboard() {
 
   // Pending requests are now loaded via loadAppointments, so we remove the localStorage effect
   
-  const handleAddAppointment = () => {
-    // BookingWizard internally uses the createAppointment action
-    // We just need to refresh the list
-    startTransition(() => {
-      loadAppointments()
+  const handleAddAppointment = (newApt: any) => {
+    // Optimistically update the UI to instantly show the new appointment
+    const optimisticApt = {
+      id: Date.now().toString(),
+      time: newApt.time,
+      patient: newApt.patient,
+      doctor: newApt.doctor,
+      status: newApt.status || "Scheduled"
+    }
+    setAppointments((prev) => [...prev, optimisticApt])
+    
+    // Then attempt to refresh from DB
+    startTransition(async () => {
+      try {
+        const apts = await getAppointments()
+        // Only overwrite if we actually fetched something from DB (protects against missing .env in demo)
+        if (apts && apts.length > 0) {
+          setAppointments(apts)
+        }
+      } catch (e) {
+        console.error("Failed to sync appointments from DB", e)
+      }
     })
   }
 

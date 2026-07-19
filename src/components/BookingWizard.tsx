@@ -23,7 +23,15 @@ import {
 } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -136,7 +144,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       patientName: patientData.name,
       patientPhone: `${patientData.countryCode} ${patientData.phone}`,
       doctorName: doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor, // We store ID in state now
-      appointmentDate: date?.toISOString(),
+      appointmentDate: date ? format(date, "yyyy-MM-dd") : "",
       appointmentTime: selectedTime,
       status: "Scheduled"
     })
@@ -206,21 +214,26 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader className="space-y-1.5 pb-2">
           <DialogTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">Book a New Appointment</DialogTitle>
-          <DialogDescription className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-            STEP {step} OF 3
+          <DialogDescription className="sr-only">
+            Book a new appointment wizard
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
           {step === 1 && (
             <div className="grid gap-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 1 ? "bg-primary" : "bg-primary/20")} />
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 2 ? "bg-primary" : "bg-primary/20")} />
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 3 ? "bg-primary" : "bg-primary/20")} />
+              </div>
               <div className="space-y-1">
-                <h3 className="font-semibold text-lg text-slate-800">Patient Profile</h3>
-                <p className="text-sm text-slate-500">Enter the patient's basic details.</p>
+                <h3 className="font-semibold text-lg text-slate-800">New Patient Details</h3>
+                <p className="text-sm text-slate-500">Enter the patient's basic details. <span className="italic">(All fields required)</span></p>
               </div>
               
               <div className="grid gap-1.5">
-                <Label htmlFor="name" className={nameTouched && !isNameValid ? "text-red-500 font-semibold" : ""}>
+                <Label htmlFor="name" className={nameTouched && !isNameValid ? "text-destructive font-semibold" : ""}>
                   Full Name
                 </Label>
                 <Input 
@@ -229,15 +242,15 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                   value={patientData.name} 
                   onBlur={() => setNameTouched(true)}
                   onChange={(e) => setPatientData({...patientData, name: e.target.value})} 
-                  className={nameTouched && !isNameValid ? "border-red-400 focus:ring-red-200" : ""}
+                  className={nameTouched && !isNameValid ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
                 {nameTouched && !isNameValid && (
-                  <span className="text-[11px] text-red-500 font-medium">Please enter at least 2 letters (no special characters).</span>
+                  <span className="text-[11px] text-destructive font-medium">Please enter at least 2 letters (no special characters).</span>
                 )}
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="phone" className={phoneTouched && !isPhoneValid ? "text-red-500 font-semibold" : ""}>
+                <Label htmlFor="phone" className={phoneTouched && !isPhoneValid ? "text-destructive font-semibold" : ""}>
                   Phone Number
                 </Label>
                 <div className="flex gap-2">
@@ -263,42 +276,73 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                       const val = e.target.value.replace(/[^0-9\s\-()]/g, "")
                       setPatientData({...patientData, phone: val})
                     }} 
-                    className={phoneTouched && !isPhoneValid ? "border-red-400 focus:ring-red-200" : ""}
+                    className={phoneTouched && !isPhoneValid ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
                 </div>
                 {phoneTouched && !isPhoneValid && (
-                  <span className="text-[11px] text-red-500 font-medium">Please enter a valid phone number (minimum 7 digits).</span>
+                  <span className="text-[11px] text-destructive font-medium">Please enter a valid phone number (minimum 7 digits).</span>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-1.5">
-                  <Label className={nationalityTouched && !isNationalityValid ? "text-red-500 font-semibold" : ""}>
+                  <Label className={nationalityTouched && !isNationalityValid ? "text-destructive font-semibold" : ""}>
                     Nationality
                   </Label>
-                  <Select 
-                    value={patientData.nationality} 
-                    onValueChange={(val) => {
-                      setNationalityTouched(true)
-                      setPatientData({...patientData, nationality: val || ""})
-                    }}
-                  >
-                    <SelectTrigger className={nationalityTouched && !isNationalityValid ? "border-red-400" : ""}>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {NATIONALITIES.map((nat) => (
-                        <SelectItem key={nat} value={nat}>{nat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger 
+                      render={
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "justify-between font-normal",
+                            !patientData.nationality && "text-muted-foreground",
+                            nationalityTouched && !isNationalityValid ? "border-destructive focus-visible:ring-destructive" : ""
+                          )}
+                          onBlur={() => setNationalityTouched(true)}
+                        />
+                      }
+                    >
+                      {patientData.nationality || "Select nationality"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search nationality..." />
+                        <CommandList>
+                          <CommandEmpty>No nationality found.</CommandEmpty>
+                          <CommandGroup>
+                            {NATIONALITIES.map((nat) => (
+                              <CommandItem
+                                key={nat}
+                                value={nat}
+                                onSelect={(val) => {
+                                  setNationalityTouched(true)
+                                  setPatientData({ ...patientData, nationality: val === patientData.nationality ? "" : nat })
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    patientData.nationality === nat ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {nat}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {nationalityTouched && !isNationalityValid && (
-                    <span className="text-[11px] text-red-500 font-medium">Required.</span>
+                    <span className="text-[11px] text-destructive font-medium">Required.</span>
                   )}
                 </div>
 
                 <div className="grid gap-1.5">
-                  <Label className={genderTouched && !isGenderValid ? "text-red-500 font-semibold" : ""}>
+                  <Label className={genderTouched && !isGenderValid ? "text-destructive font-semibold" : ""}>
                     Gender
                   </Label>
                   <Select 
@@ -308,7 +352,10 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                       setPatientData({...patientData, gender: val || ""})
                     }}
                   >
-                    <SelectTrigger className={genderTouched && !isGenderValid ? "border-red-400" : ""}>
+                    <SelectTrigger 
+                      className={genderTouched && !isGenderValid ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onBlur={() => setGenderTouched(true)}
+                    >
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
@@ -318,7 +365,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                     </SelectContent>
                   </Select>
                   {genderTouched && !isGenderValid && (
-                    <span className="text-[11px] text-red-500 font-medium">Required.</span>
+                    <span className="text-[11px] text-destructive font-medium">Required.</span>
                   )}
                 </div>
               </div>
@@ -327,6 +374,11 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
 
           {step === 2 && (
             <div className="grid gap-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 1 ? "bg-primary" : "bg-primary/20")} />
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 2 ? "bg-primary" : "bg-primary/20")} />
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 3 ? "bg-primary" : "bg-primary/20")} />
+              </div>
               <div className="space-y-1">
                 <h3 className="font-semibold text-lg text-slate-800">Choose a Doctor</h3>
                 <p className="text-sm text-slate-500">Select an available doctor for the consultation.</p>
@@ -358,6 +410,11 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
 
           {step === 3 && (
             <div className="grid gap-4">
+               <div className="flex items-center gap-2 mb-2">
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 1 ? "bg-primary" : "bg-primary/20")} />
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 2 ? "bg-primary" : "bg-primary/20")} />
+                <div className={cn("h-1.5 flex-1 rounded-full", step >= 3 ? "bg-primary" : "bg-primary/20")} />
+              </div>
                <div className="space-y-1">
                 <h3 className="font-semibold text-lg text-slate-800">Date & Time</h3>
                 <p className="text-sm text-slate-500">Choose when the appointment will take place.</p>
