@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, User, Clock, Pill, FileText } from "lucide-react"
+import { Search, User, Clock, Pill, FileText, AlertTriangle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -81,6 +83,21 @@ export function PatientDirectory() {
   const [search, setSearch] = useState("")
   const [patients, setPatients] = useState<Patient[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+
+  const handleDialogClose = () => {
+    setSelectedPatient(null)
+    setShowConfirmDelete(false)
+  }
+
+  const handleDeletePatient = (id: string) => {
+    const list = patients.filter((p) => p.id !== id)
+    setPatients(list)
+    localStorage.setItem("patient_directory_list", JSON.stringify(list))
+    window.dispatchEvent(new Event("patient-directory-updated"))
+    setSelectedPatient(null)
+    setShowConfirmDelete(false)
+  }
 
   useEffect(() => {
     const loadPatients = () => {
@@ -169,65 +186,114 @@ export function PatientDirectory() {
       </Card>
 
       {/* Patient History Dialog */}
-      <Dialog open={!!selectedPatient} onOpenChange={(open) => !open && setSelectedPatient(null)}>
-        <DialogContent className="sm:max-w-2xl bg-slate-50">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              <User className="h-6 w-6 text-blue-600" />
-              {selectedPatient?.name}'s Medical History
-            </DialogTitle>
-            <DialogDescription>
-              Phone: {selectedPatient?.phone} | Gender: {selectedPatient?.gender}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-6 py-4">
-            {/* Past Appointments */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
-                <Clock className="h-5 w-5 text-slate-500" /> Past Appointments
-              </h3>
-              {selectedPatient?.history.appointments.length === 0 ? (
-                <p className="text-slate-500 text-sm italic">No past appointments recorded.</p>
-              ) : (
-                <div className="space-y-2">
-                  {selectedPatient?.history.appointments.map((apt, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
-                      <div className="font-medium text-slate-700">{apt.date}</div>
-                      <div className="text-sm text-slate-500">{apt.doctor}</div>
-                      <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">{apt.status}</div>
+      <Dialog open={!!selectedPatient} onOpenChange={(open) => !open && handleDialogClose()}>
+        <DialogContent className="sm:max-w-2xl bg-white">
+          {!showConfirmDelete ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                  <User className="h-6 w-6 text-blue-600" />
+                  {selectedPatient?.name}'s Medical History
+                </DialogTitle>
+                <DialogDescription>
+                  Phone: {selectedPatient?.phone} | Gender: {selectedPatient?.gender}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto pr-1">
+                {/* Past Appointments */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
+                    <Clock className="h-5 w-5 text-slate-500" /> Past Appointments
+                  </h3>
+                  {selectedPatient?.history.appointments.length === 0 ? (
+                    <p className="text-slate-500 text-sm italic">No past appointments recorded.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedPatient?.history.appointments.map((apt, i) => (
+                        <div key={i} className="flex justify-between items-center p-3 bg-slate-50/50 border border-slate-100 rounded-lg shadow-sm">
+                          <div className="font-medium text-slate-700">{apt.date}</div>
+                          <div className="text-sm text-slate-500">{apt.doctor}</div>
+                          <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">{apt.status}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Past Prescriptions */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
-                <FileText className="h-5 w-5 text-slate-500" /> Past Prescriptions
-              </h3>
-              {selectedPatient?.history.prescriptions.length === 0 ? (
-                <p className="text-slate-500 text-sm italic">No past prescriptions recorded.</p>
-              ) : (
-                <div className="space-y-4">
-                  {selectedPatient?.history.prescriptions.map((rx, i) => (
-                    <div key={i} className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2">
-                      <div className="font-semibold text-slate-700 border-b pb-1 mb-2">{rx.date}</div>
-                      <ul className="space-y-1">
-                        {rx.drugs.map((drug, j) => (
-                          <li key={j} className="text-sm text-slate-600 flex items-start gap-2">
-                            <Pill className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                            {drug}
-                          </li>
-                        ))}
-                      </ul>
+                {/* Past Prescriptions */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
+                    <FileText className="h-5 w-5 text-slate-500" /> Past Prescriptions
+                  </h3>
+                  {selectedPatient?.history.prescriptions.length === 0 ? (
+                    <p className="text-slate-500 text-sm italic">No past prescriptions recorded.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {selectedPatient?.history.prescriptions.map((rx, i) => (
+                        <div key={i} className="p-4 bg-slate-50/50 border border-slate-200 rounded-lg shadow-sm space-y-2">
+                          <div className="font-semibold text-slate-700 border-b pb-1 mb-2">{rx.date}</div>
+                          <ul className="space-y-1">
+                            {rx.drugs.map((drug, j) => (
+                              <li key={j} className="text-sm text-slate-600 flex items-start gap-2">
+                                <Pill className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                                {drug}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowConfirmDelete(true)}
+                  className="bg-red-50 text-red-600 hover:bg-red-100 border-none font-semibold shadow-none mr-auto w-full sm:w-auto"
+                >
+                  Delete Patient
+                </Button>
+                <Button variant="outline" onClick={handleDialogClose} className="font-semibold">
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-red-600 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500" /> Confirm Delete
+                </DialogTitle>
+                <DialogDescription>
+                  This action is permanent and cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="py-4 text-slate-600 text-sm">
+                Are you sure you want to delete **{selectedPatient?.name}**'s patient profile? This will permanently remove all their historical appointments, clinical diagnostics, and prescription sheets.
+              </div>
+
+              <DialogFooter className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirmDelete(false)}
+                  className="font-semibold"
+                >
+                  Go Back
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => selectedPatient && handleDeletePatient(selectedPatient.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+                >
+                  Yes, Delete Patient
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
