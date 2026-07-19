@@ -9,11 +9,19 @@ import { RescheduleModal } from "@/components/RescheduleModal"
 import { AppointmentDetailsModal } from "@/components/AppointmentDetailsModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal } from "lucide-react"
+import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal, CheckCircle2, AlertTriangle } from "lucide-react"
 import Image from "next/image"
 import { ProfileModal } from "@/components/ProfileModal"
 import { ProcessRequestModal } from "@/components/ProcessRequestModal"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 type Appointment = {
   id: string
@@ -50,6 +58,16 @@ export default function Dashboard() {
   // Appointment Details Modal states
   const [selectedDetailsApt, setSelectedDetailsApt] = useState<Appointment | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+
+  // Cancel confirmation state
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null)
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: "", visible: false })
+  const showToast = (message: string) => {
+    setToast({ message, visible: true })
+    setTimeout(() => setToast({ message: "", visible: false }), 3000)
+  }
 
   // Load active appointments from localStorage or fall back to defaults
   useEffect(() => {
@@ -256,6 +274,9 @@ export default function Dashboard() {
     setIsProcessModalOpen(false)
     setSelectedRequest(null)
 
+    // 4. Show confirmation toast
+    showToast(`✅ Appointment for ${approvedApt.patient} has been confirmed and added to today's schedule.`)
+
     // 4. Trigger SMS/WhatsApp workflow API call in background
     fetch("/api/workflow", {
       method: "POST",
@@ -279,8 +300,16 @@ export default function Dashboard() {
   }
 
   const handleCancelAppointment = (id: string) => {
-    const list = appointments.filter((apt) => apt.id !== id)
+    setCancelTargetId(id)
+  }
+
+  const confirmCancelAppointment = () => {
+    if (!cancelTargetId) return
+    const apt = appointments.find(a => a.id === cancelTargetId)
+    const list = appointments.filter((a) => a.id !== cancelTargetId)
     updateAppointments(list)
+    setCancelTargetId(null)
+    if (apt) showToast(`Appointment for ${apt.patient} has been cancelled.`)
   }
 
   const handleUpdateStatus = (id: string, newStatus: string) => {
@@ -743,6 +772,36 @@ export default function Dashboard() {
         {/* We keep EPrescriptionForm logic inside the tab, but since the form itself contains the print:block logic, 
             it will only print if the tab is active. That's usually fine since the doctor will click Print while on the tab. */}
       </div>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={!!cancelTargetId} onOpenChange={(open) => !open && setCancelTargetId(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" /> Cancel Appointment
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this appointment? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex sm:justify-end gap-3">
+            <Button variant="outline" onClick={() => setCancelTargetId(null)}>Keep Appointment</Button>
+            <Button variant="destructive" onClick={confirmCancelAppointment} className="bg-red-600 hover:bg-red-700">Yes, Cancel It</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Global Toast Notification */}
+      {toast.visible && (
+        <div className="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl z-50 flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          {toast.message.includes("✅") ? (
+            <CheckCircle2 className="h-5 w-5 text-green-400" />
+          ) : (
+            <CheckCircle2 className="h-5 w-5 text-blue-400" />
+          )}
+          <span className="font-medium text-sm">{toast.message.replace("✅ ", "")}</span>
+        </div>
+      )}
     </div>
   )
 }
