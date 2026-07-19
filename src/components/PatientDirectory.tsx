@@ -131,15 +131,15 @@ export function PatientDirectory() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <Card className="border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
+      <Card className="border-slate-200 shadow-sm bg-white">
         <CardHeader className="pb-4 border-b">
           <CardTitle className="text-2xl font-bold text-slate-800">Patient Directory</CardTitle>
           <CardDescription>Search for patients to view their medical history and past prescriptions.</CardDescription>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-6">
           
           {/* Search Bar */}
-          <div className="relative">
+          <div className="relative mb-4">
             <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
             <Input 
               placeholder="Search by name or phone..." 
@@ -160,10 +160,10 @@ export function PatientDirectory() {
                 <div 
                   key={patient.id} 
                   onClick={() => setSelectedPatient(patient)}
-                  className="p-4 border border-slate-100 rounded-xl bg-white shadow-sm flex justify-between items-center cursor-pointer transition-all hover:shadow-md hover:border-blue-200 hover:bg-blue-50/30"
+                  className="p-4 border border-slate-100 rounded-xl bg-slate-50/70 flex justify-between items-center cursor-pointer transition-all hover:shadow-md hover:border-blue-300 hover:bg-white"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center font-bold">
+                    <div className="h-10 w-10 bg-slate-200 text-slate-700 rounded-full flex items-center justify-center font-bold">
                       {patient.name.charAt(0)}
                     </div>
                     <div>

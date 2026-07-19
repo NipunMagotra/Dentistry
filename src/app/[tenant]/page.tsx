@@ -330,7 +330,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-start justify-center p-4 md:p-8">
+    <div className="min-h-screen bg-slate-100 flex items-start justify-center p-4 md:p-8">
       <div className="max-w-6xl w-full">
         
         {/* Header (Hidden on print) */}
@@ -344,8 +344,8 @@ export default function Dashboard() {
               className="h-12 w-auto object-contain mb-1"
               priority 
             />
-            <p className="text-slate-500">
-              Welcome, <span className="font-semibold text-slate-700">{profile.doctorName}</span>. Manage <span className="font-semibold text-slate-700">{profile.clinicName}</span> from one place.
+            <p className="text-slate-500 text-sm">
+              Welcome, <span className="font-semibold text-slate-700">{profile.doctorName}</span>. Manage {profile.clinicName} from one place.
             </p>
           </div>
           
@@ -367,22 +367,22 @@ export default function Dashboard() {
           <Tabs defaultValue="appointments" className="w-full">
             <TabsList 
               style={{ display: "grid", width: "100%" }}
-              className="grid w-full max-w-3xl grid-cols-4 mb-8 bg-slate-100 p-1 rounded-xl"
+              className="grid w-full max-w-4xl grid-cols-4 mb-8 bg-slate-200/60 p-1.5 rounded-2xl"
             >
-              <TabsTrigger value="appointments" className="flex items-center justify-center gap-2">
+              <TabsTrigger value="appointments" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all">
                 <CalendarRange className="h-4 w-4" /> Appointments
               </TabsTrigger>
-              <TabsTrigger value="prescriptions" className="flex items-center justify-center gap-2">
+              <TabsTrigger value="prescriptions" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all">
                 <FileText className="h-4 w-4" /> E-Prescriptions
               </TabsTrigger>
-              <TabsTrigger value="directory" className="flex items-center justify-center gap-2">
+              <TabsTrigger value="directory" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all">
                 <User className="h-4 w-4" /> Patient Directory
               </TabsTrigger>
-              <TabsTrigger value="requests" className="flex items-center justify-center gap-2 relative">
+              <TabsTrigger value="requests" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all relative">
                 <Inbox className="h-4 w-4" /> 
                 <span>Requests Queue</span>
                 {pendingRequests.length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border border-white">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
                     {pendingRequests.length}
                   </span>
                 )}
