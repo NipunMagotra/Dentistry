@@ -174,6 +174,11 @@ export default function Dashboard() {
     localStorage.setItem("pending_appointments", JSON.stringify(updatedPending))
   }
 
+  const handleCancelAppointment = (id: string) => {
+    const list = appointments.filter((apt) => apt.id !== id)
+    updateAppointments(list)
+  }
+
   const handleUpdateStatus = (id: string, newStatus: string) => {
     const list = appointments.map((apt) => (apt.id === id ? { ...apt, status: newStatus } : apt))
     updateAppointments(list)
@@ -185,7 +190,7 @@ export default function Dashboard() {
   }
 
   const handleReschedule = (id: string, newDate: string, newTime: string) => {
-    const list = appointments.map((apt) => (apt.id === id ? { ...apt, time: newTime } : apt))
+    const list = appointments.map((apt) => (apt.id === id ? { ...apt, time: newTime, status: "Rescheduled" } : apt))
     updateAppointments(list)
 
     const rescheduledApt = appointments.find(a => a.id === id)
@@ -335,6 +340,7 @@ export default function Dashboard() {
                               <div className="font-semibold text-slate-800">{apt.patient}</div>
                               <div className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                                 apt.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                                apt.status === 'Rescheduled' ? 'bg-amber-50 text-amber-800 border border-amber-200/50' :
                                 apt.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
                               }`}>
                                 {apt.status}
@@ -349,8 +355,8 @@ export default function Dashboard() {
                               </div>
                             </div>
 
-                            <div className="flex gap-2 border-t pt-3 mt-1 text-xs">
-                              {apt.status === "Scheduled" && (
+                            <div className="flex gap-1.5 border-t pt-3 mt-1 text-[11px]">
+                              {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
                                 <button
                                   onClick={() => handleUpdateStatus(apt.id, "In Progress")}
                                   className="px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded font-semibold transition-colors"
@@ -366,9 +372,15 @@ export default function Dashboard() {
                               </button>
                               <button
                                 onClick={() => handleCompleteAppointment(apt)}
-                                className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-semibold transition-colors ml-auto"
+                                className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-semibold transition-colors"
                               >
                                 Complete
+                              </button>
+                              <button
+                                onClick={() => handleCancelAppointment(apt.id)}
+                                className="px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded font-semibold transition-colors ml-auto"
+                              >
+                                Cancel
                               </button>
                             </div>
                           </div>
