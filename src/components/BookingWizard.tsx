@@ -149,10 +149,10 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
         Book Appointment
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Book a New Appointment</DialogTitle>
-          <DialogDescription>
-            Step {step} of 3
+        <DialogHeader className="space-y-1.5 pb-2">
+          <DialogTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">Book a New Appointment</DialogTitle>
+          <DialogDescription className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+            STEP {step} OF 3
           </DialogDescription>
         </DialogHeader>
 
