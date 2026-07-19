@@ -37,6 +37,10 @@ const timeSlots = [
   "02:00 PM", "02:30 PM", "05:30 PM", "06:00 PM", "06:30 PM"
 ]
 
+const NATIONALITIES = [
+  "Indian", "Emirati", "American", "British", "Saudi", "Omani", "Qatari", "Kuwaiti", "Bahraini", "Filipino", "Pakistani", "Egyptian", "Other"
+]
+
 type BookingWizardProps = {
   onBookAppointment?: (apt: { time: string; patient: string; doctor: string; status: string }) => void
 }
@@ -56,9 +60,33 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const [date, setDate] = useState<Date>()
   const [selectedTime, setSelectedTime] = useState("")
 
+  // Validation touch states
+  const [nameTouched, setNameTouched] = useState(false)
+  const [phoneTouched, setPhoneTouched] = useState(false)
+  const [nationalityTouched, setNationalityTouched] = useState(false)
+  const [genderTouched, setGenderTouched] = useState(false)
+
+  // Validation rules
+  const isNameValid = patientData.name.trim().length >= 2 && /^[a-zA-Z\s.]{2,}$/.test(patientData.name)
+  const isPhoneValid = /^\+?[0-9\s\-()]{7,}$/.test(patientData.phone)
+  const isNationalityValid = !!patientData.nationality
+  const isGenderValid = !!patientData.gender
+
   const doctorCharge = doctors.find(d => d.id === selectedDoctor)?.charge
 
-  const handleNext = () => setStep((s) => Math.min(s + 1, 3))
+  const handleNext = () => {
+    // Enable touching all fields on next attempt to highlight errors if any
+    setNameTouched(true)
+    setPhoneTouched(true)
+    setNationalityTouched(true)
+    setGenderTouched(true)
+    
+    if (step === 1 && (!isNameValid || !isPhoneValid || !isNationalityValid || !isGenderValid)) {
+      return
+    }
+    setStep((s) => Math.min(s + 1, 3))
+  }
+  
   const handleBack = () => setStep((s) => Math.max(s - 1, 1))
   
   const handleComplete = async () => {
@@ -99,6 +127,16 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
       setStep(1)
+      setPatientData({
+        name: "",
+        phone: "",
+        nationality: "",
+        gender: "",
+      })
+      setNameTouched(false)
+      setPhoneTouched(false)
+      setNationalityTouched(false)
+      setGenderTouched(false)
     }
     setOpen(newOpen)
   }
@@ -125,22 +163,82 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                 <h3 className="font-semibold text-lg text-slate-800">Patient Profile</h3>
                 <p className="text-sm text-slate-500">Enter the patient's basic details.</p>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" placeholder="John Doe" value={patientData.name} onChange={(e) => setPatientData({...patientData, name: e.target.value})} />
+              
+              <div className="grid gap-1.5">
+                <Label htmlFor="name" className={nameTouched && !isNameValid ? "text-red-500 font-semibold" : ""}>
+                  Full Name
+                </Label>
+                <Input 
+                  id="name" 
+                  placeholder="John Doe" 
+                  value={patientData.name} 
+                  onBlur={() => setNameTouched(true)}
+                  onChange={(e) => setPatientData({...patientData, name: e.target.value})} 
+                  className={nameTouched && !isNameValid ? "border-red-400 focus:ring-red-200" : ""}
+                />
+                {nameTouched && !isNameValid && (
+                  <span className="text-[11px] text-red-500 font-medium">Please enter at least 2 letters (no special characters).</span>
+                )}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" placeholder="+1 234 567 890" value={patientData.phone} onChange={(e) => setPatientData({...patientData, phone: e.target.value})} />
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="phone" className={phoneTouched && !isPhoneValid ? "text-red-500 font-semibold" : ""}>
+                  Phone Number
+                </Label>
+                <Input 
+                  id="phone" 
+                  placeholder="+1 234 567 890" 
+                  value={patientData.phone} 
+                  onBlur={() => setPhoneTouched(true)}
+                  onChange={(e) => {
+                    // Restrict input to digits, spaces, +, -, (, )
+                    const val = e.target.value.replace(/[^0-9\s+\-()]/g, "")
+                    setPatientData({...patientData, phone: val})
+                  }} 
+                  className={phoneTouched && !isPhoneValid ? "border-red-400 focus:ring-red-200" : ""}
+                />
+                {phoneTouched && !isPhoneValid && (
+                  <span className="text-[11px] text-red-500 font-medium">Please enter a valid phone number (minimum 7 digits).</span>
+                )}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="nationality">Nationality</Label>
-                <Input id="nationality" placeholder="e.g. American, Indian, etc." value={patientData.nationality} onChange={(e) => setPatientData({...patientData, nationality: e.target.value})} />
+
+              <div className="grid gap-1.5">
+                <Label className={nationalityTouched && !isNationalityValid ? "text-red-500 font-semibold" : ""}>
+                  Nationality
+                </Label>
+                <Select 
+                  value={patientData.nationality} 
+                  onValueChange={(val) => {
+                    setNationalityTouched(true)
+                    setPatientData({...patientData, nationality: val || ""})
+                  }}
+                >
+                  <SelectTrigger className={nationalityTouched && !isNationalityValid ? "border-red-400" : ""}>
+                    <SelectValue placeholder="Select nationality" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NATIONALITIES.map((nat) => (
+                      <SelectItem key={nat} value={nat}>{nat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {nationalityTouched && !isNationalityValid && (
+                  <span className="text-[11px] text-red-500 font-medium">Please select a nationality.</span>
+                )}
               </div>
-              <div className="grid gap-2">
-                <Label>Gender</Label>
-                <Select value={patientData.gender} onValueChange={(val) => setPatientData({...patientData, gender: val || ""})}>
-                  <SelectTrigger>
+
+              <div className="grid gap-1.5">
+                <Label className={genderTouched && !isGenderValid ? "text-red-500 font-semibold" : ""}>
+                  Gender
+                </Label>
+                <Select 
+                  value={patientData.gender} 
+                  onValueChange={(val) => {
+                    setGenderTouched(true)
+                    setPatientData({...patientData, gender: val || ""})
+                  }}
+                >
+                  <SelectTrigger className={genderTouched && !isGenderValid ? "border-red-400" : ""}>
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
@@ -149,6 +247,9 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+                {genderTouched && !isGenderValid && (
+                  <span className="text-[11px] text-red-500 font-medium">Please select a gender.</span>
+                )}
               </div>
             </div>
           )}
@@ -233,7 +334,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
           )}
         </div>
 
-        <DialogFooter className="flex justify-between items-center sm:justify-between w-full mt-4">
+        <DialogFooter className="flex justify-between items-center sm:justify-between">
           {step > 1 ? (
             <Button variant="outline" onClick={handleBack}>
               Back
@@ -244,7 +345,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
           
           {step < 3 ? (
             <Button onClick={handleNext} disabled={
-              (step === 1 && (!patientData.name || !patientData.phone || !patientData.nationality || !patientData.gender)) ||
+              (step === 1 && (!isNameValid || !isPhoneValid || !isNationalityValid || !isGenderValid)) ||
               (step === 2 && !selectedDoctor)
             }>Next</Button>
           ) : (

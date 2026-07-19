@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle2, User, Phone, Calendar, Clock, AlertCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const TIME_SLOTS = [
   "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM",
@@ -17,6 +18,10 @@ const DOCTORS = [
   "Dr. Sarah Jenkins",
   "Dr. Michael Chen",
   "Dr. Emily Rodriguez"
+]
+
+const NATIONALITIES = [
+  "Indian", "Emirati", "American", "British", "Saudi", "Omani", "Qatari", "Kuwaiti", "Bahraini", "Filipino", "Pakistani", "Egyptian", "Other"
 ]
 
 interface ProcessRequestModalProps {
@@ -56,6 +61,12 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
   // Validation warnings states
   const [submittedOnce, setSubmittedOnce] = useState(false)
 
+  // Validation rules
+  const isNameValid = patientName.trim().length >= 2 && /^[a-zA-Z\s.]{2,}$/.test(patientName)
+  const isPhoneValid = /^\+?[0-9\s\-()]{7,}$/.test(patientPhone)
+  const isNationalityValid = !!nationality
+  const isGenderValid = !!gender
+
   // Populate data when request changes
   useEffect(() => {
     if (request) {
@@ -72,7 +83,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
 
   const handleConfirm = () => {
     setSubmittedOnce(true)
-    if (!patientName || !patientPhone || !doctor || !date || !time || !nationality || !gender) {
+    if (!isNameValid || !isPhoneValid || !doctor || !date || !time || !isNationalityValid || !isGenderValid) {
       return
     }
 
@@ -91,8 +102,10 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
 
   if (!request) return null
 
-  const isNationalityMissing = submittedOnce && !nationality
-  const isGenderMissing = submittedOnce && !gender
+  const isNameInvalid = submittedOnce && !isNameValid
+  const isPhoneInvalid = submittedOnce && !isPhoneValid
+  const isNationalityMissing = submittedOnce && !isNationalityValid
+  const isGenderMissing = submittedOnce && !isGenderValid
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -117,63 +130,73 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="req-name">Patient Full Name</Label>
+            <Label htmlFor="req-name" className={isNameInvalid ? "text-red-500 font-semibold" : ""}>
+              Patient Full Name
+            </Label>
             <div className="relative">
               <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
                 id="req-name"
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
-                className="pl-9 bg-slate-50/30"
+                className={cn("pl-9 bg-slate-50/30", isNameInvalid ? "border-red-400 focus:ring-red-200" : "")}
                 required
               />
             </div>
+            {isNameInvalid && (
+              <span className="text-[11px] text-red-500">Please enter at least 2 letters (no special characters).</span>
+            )}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="req-phone">Phone / WhatsApp Number</Label>
+            <Label htmlFor="req-phone" className={isPhoneInvalid ? "text-red-500 font-semibold" : ""}>
+              Phone / WhatsApp Number
+            </Label>
             <div className="relative">
               <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
                 id="req-phone"
                 value={patientPhone}
-                onChange={(e) => setPatientPhone(e.target.value)}
-                className="pl-9 bg-slate-50/30"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9\s+\-()]/g, "")
+                  setPatientPhone(val)
+                }}
+                className={cn("pl-9 bg-slate-50/30", isPhoneInvalid ? "border-red-400 focus:ring-red-200" : "")}
                 required
               />
             </div>
+            {isPhoneInvalid && (
+              <span className="text-[11px] text-red-500">Please enter a valid phone number (minimum 7 digits).</span>
+            )}
           </div>
 
-          {/* Missing Details with Highlights */}
+          {/* Required Intake Details */}
           <div className="grid grid-cols-2 gap-4 p-4 border rounded-xl bg-amber-50/20 border-amber-100">
             <div className="col-span-2 text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
               <AlertCircle className="h-3.5 w-3.5" /> Required Intake Details
             </div>
             
             <div className="space-y-1.5">
-              <Label 
-                htmlFor="req-nationality" 
-                className={isNationalityMissing ? "text-red-500 font-semibold" : "text-slate-700"}
-              >
+              <Label className={isNationalityMissing ? "text-red-500 font-semibold" : "text-slate-700"}>
                 Nationality {isNationalityMissing && "*"}
               </Label>
-              <Input
-                id="req-nationality"
-                placeholder="e.g. American"
-                value={nationality}
-                onChange={(e) => setNationality(e.target.value)}
-                className={isNationalityMissing ? "border-red-400 bg-red-50/20 focus:ring-red-200" : "bg-white"}
-                required
-              />
+              <Select value={nationality} onValueChange={(val) => setNationality(val || "")}>
+                <SelectTrigger className={isNationalityMissing ? "border-red-400 bg-red-50/20" : "bg-white"}>
+                  <SelectValue placeholder="Select nationality" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NATIONALITIES.map((nat) => (
+                    <SelectItem key={nat} value={nat}>{nat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {isNationalityMissing && (
                 <span className="text-[10px] text-red-500 block">Nationality is required</span>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label 
-                className={isGenderMissing ? "text-red-500 font-semibold" : "text-slate-700"}
-              >
+              <Label className={isGenderMissing ? "text-red-500 font-semibold" : "text-slate-700"}>
                 Gender {isGenderMissing && "*"}
               </Label>
               <Select value={gender} onValueChange={(val) => setGender(val || "")}>
@@ -242,7 +265,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
           </div>
         </div>
 
-        <DialogFooter className="border-t pt-4 flex gap-2">
+        <DialogFooter className="flex gap-2">
           <Button variant="outline" onClick={onClose}>
             Cancel Request
           </Button>

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 const TIME_SLOTS = [
   "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM",
@@ -49,6 +50,15 @@ export default function PublicBookingPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Validation touch states
+  const [nameTouched, setNameTouched] = useState(false)
+  const [phoneTouched, setPhoneTouched] = useState(false)
+
+  // Validation rules
+  const isNameValid = name.trim().length >= 2 && /^[a-zA-Z\s.]{2,}$/.test(name)
+  const isPhoneValid = /^\+?[0-9\s\-()]{7,}$/.test(phone)
+  const isFormValid = isNameValid && isPhoneValid && !!date && !!time
+
   // Load clinic settings
   useEffect(() => {
     const saved = localStorage.getItem("clinic_profile_settings")
@@ -81,7 +91,10 @@ export default function PublicBookingPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name || !phone || !date || !time) return
+    setNameTouched(true)
+    phoneTouched && setPhoneTouched(true)
+    
+    if (!isFormValid) return
 
     setIsSubmitting(true)
 
@@ -169,6 +182,8 @@ export default function PublicBookingPage() {
                 setReason("")
                 setDate("")
                 setTime("")
+                setNameTouched(false)
+                setPhoneTouched(false)
               }}
               className="w-full bg-primary hover:bg-primary/95 text-white font-semibold h-11"
             >
@@ -243,33 +258,48 @@ export default function PublicBookingPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1.5">
-                <Label htmlFor="patient-name">Your Full Name</Label>
+                <Label htmlFor="patient-name" className={nameTouched && !isNameValid ? "text-red-500 font-semibold" : ""}>
+                  Your Full Name
+                </Label>
                 <div className="relative">
                   <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <Input 
                     id="patient-name" 
                     placeholder="Enter your full name" 
-                    className="pl-9 bg-slate-50/50"
+                    className={cn("pl-9 bg-slate-50/50", nameTouched && !isNameValid ? "border-red-400 focus:ring-red-200" : "")}
                     value={name}
+                    onBlur={() => setNameTouched(true)}
                     onChange={(e) => setName(e.target.value)}
                     required
                   />
                 </div>
+                {nameTouched && !isNameValid && (
+                  <span className="text-[11px] text-red-500 font-medium">Please enter at least 2 letters (no special characters).</span>
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="patient-phone">Mobile / WhatsApp Number</Label>
+                <Label htmlFor="patient-phone" className={phoneTouched && !isPhoneValid ? "text-red-500 font-semibold" : ""}>
+                  Mobile / WhatsApp Number
+                </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <Input 
                     id="patient-phone" 
                     placeholder="e.g. +1 (555) 123-4567" 
-                    className="pl-9 bg-slate-50/50"
+                    className={cn("pl-9 bg-slate-50/50", phoneTouched && !isPhoneValid ? "border-red-400 focus:ring-red-200" : "")}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onBlur={() => setPhoneTouched(true)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9\s+\-()]/g, "")
+                      setPhone(val)
+                    }}
                     required
                   />
                 </div>
+                {phoneTouched && !isPhoneValid && (
+                  <span className="text-[11px] text-red-500 font-medium">Please enter a valid phone number (minimum 7 digits).</span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -334,7 +364,7 @@ export default function PublicBookingPage() {
 
               <Button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isFormValid}
                 className="w-full bg-primary hover:bg-primary/95 text-white font-semibold h-11 mt-6"
               >
                 {isSubmitting ? "Submitting Request..." : "Request Appointment"}
