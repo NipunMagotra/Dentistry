@@ -94,13 +94,16 @@ export function ProfileModal({ tenant }: { tenant: string }) {
             <Settings className="h-6 w-6 text-primary animate-spin-slow" /> Profile & Account Settings
           </DialogTitle>
           <DialogDescription>
-            Manage your clinic details, doctor credentials, and external api integrations.
+            Manage your clinic details, doctor credentials, and external API integrations.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSave} className="space-y-6 pt-4">
           <Tabs defaultValue="clinic" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl">
+            <TabsList 
+              style={{ display: "grid", width: "100%" }}
+              className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl"
+            >
               <TabsTrigger value="clinic" className="flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg">
                 <Building2 className="h-4 w-4" /> Clinic
               </TabsTrigger>
