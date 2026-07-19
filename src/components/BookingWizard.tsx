@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { getDoctors, createAppointment } from "@/app/actions"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -65,24 +66,18 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const [step, setStep] = useState(1)
   const [doctorsList, setDoctorsList] = useState<any[]>(DEFAULT_DOCTORS)
 
-  // Sync doctors list dynamically from localStorage
+  // Sync doctors list dynamically from DB
   useEffect(() => {
-    const loadDoctors = () => {
-      const saved = localStorage.getItem("clinic_doctors_list")
-      if (saved) {
-        try {
-          setDoctorsList(JSON.parse(saved))
-        } catch (e) {
-          console.error("Error parsing doctors list in BookingWizard", e)
-          setDoctorsList(DEFAULT_DOCTORS)
-        }
-      } else {
+    const loadDoctors = async () => {
+      try {
+        const docs = await getDoctors()
+        setDoctorsList(docs.length > 0 ? docs : DEFAULT_DOCTORS)
+      } catch (e) {
+        console.error("Error fetching doctors list in BookingWizard", e)
         setDoctorsList(DEFAULT_DOCTORS)
       }
     }
     loadDoctors()
-    window.addEventListener("clinic-doctors-updated", loadDoctors)
-    return () => window.removeEventListener("clinic-doctors-updated", loadDoctors)
   }, [open])
 
   // Form State
@@ -130,16 +125,33 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   
   const handleBack = () => setStep((s) => Math.max(s - 1, 1))
   
-  const handleComplete = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleComplete = async () => {
+    setIsSubmitting(true)
     console.log("Booking complete", { patientData, selectedDoctor, date, selectedTime })
     
-    // Update local UI state
+    // Server Action
+    const result = await createAppointment({
+      patientName: patientData.name,
+      patientPhone: `${patientData.countryCode} ${patientData.phone}`,
+      doctorName: doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor, // We store ID in state now
+      appointmentDate: date?.toISOString(),
+      appointmentTime: selectedTime,
+      status: "Scheduled"
+    })
+
+    if (!result.success) {
+      console.error("Failed to create appointment", result.error)
+    }
+
+    // Update local UI state if prop provided
     if (onBookAppointment) {
       onBookAppointment({
         time: selectedTime,
         patient: patientData.name,
         phone: `${patientData.countryCode} ${patientData.phone}`,
-        doctor: selectedDoctor,
+        doctor: doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor,
         status: "Scheduled"
       })
     }
@@ -147,6 +159,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
     // Close modal instantly to optimize INP response
     setOpen(false)
     setStep(1) // reset
+    setIsSubmitting(false)
 
     // Trigger Upstash Workflow in background
     fetch("/api/workflow", {
@@ -155,7 +168,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       body: JSON.stringify({
         patientPhone: `${patientData.countryCode} ${patientData.phone}`,
         patientName: patientData.name,
-        doctorName: selectedDoctor,
+        doctorName: doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor,
         appointmentDate: date?.toISOString(),
         appointmentTime: selectedTime
       })
@@ -326,7 +339,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {doctorsList.map((doc) => (
-                      <SelectItem key={doc.id} value={doc.name}>
+                      <SelectItem key={doc.id} value={doc.id}>
                         {doc.name}
                       </SelectItem>
                     ))}
@@ -408,7 +421,9 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
               (step === 2 && !selectedDoctor)
             } className="disabled:cursor-not-allowed">Next</Button>
           ) : (
-             <Button onClick={handleComplete} disabled={!date || !selectedTime} className="bg-green-600 hover:bg-green-700 text-white disabled:cursor-not-allowed">Confirm Booking</Button>
+             <Button onClick={handleComplete} disabled={!date || !selectedTime || isSubmitting} className="bg-green-600 hover:bg-green-700 text-white disabled:cursor-not-allowed">
+                {isSubmitting ? "Confirming..." : "Confirm Booking"}
+             </Button>
           )}
         </DialogFooter>
       </DialogContent>

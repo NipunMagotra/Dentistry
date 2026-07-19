@@ -7,9 +7,9 @@ Clinic OS is a modern, ultra-fast, intuitive clinic management platform built sp
 - **Framework**: [Next.js 15 (App Router)](https://nextjs.org/)
 - **UI & Styling**: [Tailwind CSS v4](https://tailwindcss.com/) & [Shadcn UI](https://ui.shadcn.com/)
 - **Typography**: [Outfit](https://fonts.google.com/specimen/Outfit) (Google Fonts)
-- **Database (Ready)**: [Supabase](https://supabase.com/) (PostgreSQL + RLS)
+- **Database (Live)**: [Supabase](https://supabase.com/) (PostgreSQL + RLS + Vault Encryption)
 - **Background Jobs**: [Upstash Workflow](https://upstash.com/docs/workflow/getstarted) (Serverless Cron/Delays)
-- **Deployment target**: [Cloudflare Pages](https://pages.cloudflare.com/) (Edge Runtime)
+- **Deployment target**: [Vercel](https://vercel.com/) (Edge Runtime)
 
 ## ✨ Key Features
 
@@ -35,28 +35,27 @@ npm run dev
 ### 3. Accessing the App Locally
 Because the app relies on subdomain multi-tenant routing, you interact with it differently than a standard Next.js app:
 - **Generic Home/Landing Page**: Open [http://localhost:3000](http://localhost:3000)
-- **Clinic Dashboard (Demo)**: Open [http://apollo-dental.localhost:3000](http://apollo-dental.localhost:3000) to access the actual application dashboard.
+- **Clinic Dashboard**: Open [http://apollo-dental.localhost:3000](http://apollo-dental.localhost:3000) to access the actual application dashboard.
 
-*Note: The demo currently runs on local React state to allow testing the UI flows without requiring Supabase API keys.*
+*Note: The app requires valid Supabase environment variables configured in `.env.local` to function correctly.*
 
-## ☁️ Cloudflare Pages Deployment
+## ☁️ Vercel Deployment
 
-This project is configured to compile to Cloudflare Workers (the Edge Runtime). 
-
-To test the Cloudflare compilation locally:
-```bash
-npm run build:cf
-```
-*(Note: If you run this natively on Windows, it may fail due to a known `shellac` subshell bug in the Cloudflare CLI. It will compile perfectly on macOS, Linux, or Cloudflare's GitHub CI/CD pipeline).*
+This project is configured to deploy seamlessly to Vercel. 
 
 **To deploy to production**:
 1. Push this code to a GitHub repository.
-2. Link the repository to your Cloudflare Dashboard (Pages).
-3. Set the build command to `npx @cloudflare/next-on-pages`.
+2. Import the repository into your Vercel Dashboard.
+3. Configure your Environment Variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET`, Twilio credentials, Upstash QStash tokens).
+4. Deploy!
+
+*Vercel Routing Note: Free `.vercel.app` domains do not support wildcard subdomains. To test multi-tenancy on the free tier, the middleware automatically supports path-based routing (e.g. `your-app.vercel.app/city-dental`). For production, attach a custom domain with wildcard subdomains enabled.*
 
 ## 🗄️ Database Architecture
 
-When you are ready to move from the local React state demo to production, you will need to wire the application to the provided Supabase schema. 
+## 🗄️ Database Architecture
+
+The application is fully wired to a secure Supabase PostgreSQL backend. 
 
 The core schema includes:
 - `clinics`: The core tenants.
@@ -67,4 +66,8 @@ The core schema includes:
 - `common_drugs`: Standardized drug lists for easy e-prescriptions.
 - `prescriptions`: Finalized medical documents.
 
-Row Level Security (RLS) policies enforce strict data isolation using a security-definer function (`get_user_clinic_id()`), guaranteeing that a receptionist or doctor at Clinic A can never access data belonging to Clinic B.
+**Security Pillars Implemented:**
+- **Row Level Security (RLS)**: Enforces strict data isolation using the `tenant_id` JWT claim, guaranteeing cross-tenant data leakage is impossible at the database kernel level.
+- **Supabase Vault Encryption**: Transparent AES-256-GCM column-level encryption for highly sensitive medical notes (`sensitive_notes`).
+- **Role-Based Access Control (RBAC)**: Enforces API action limits based on the authenticated user's `role` (Admin, Doctor, Receptionist).
+- **Audit Logging**: Immutable tracking of every `INSERT`, `UPDATE`, and `DELETE` event across the platform for HIPAA compliance.

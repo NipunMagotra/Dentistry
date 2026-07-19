@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { getDoctors, searchPatients, createSecurePrescription } from "@/app/actions"
 import { toPng } from "html-to-image"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -84,8 +85,8 @@ export function EPrescriptionForm() {
 
   // Load clinic profile, patient directory & doctors list
   useEffect(() => {
-    const loadData = () => {
-      // 1. Profile settings
+    const loadData = async () => {
+      // 1. Profile settings (keep in local storage for now as it's not strictly DB driven yet)
       const savedProfile = localStorage.getItem("clinic_profile_settings")
       if (savedProfile) {
         try {
@@ -103,46 +104,35 @@ export function EPrescriptionForm() {
         }
       }
 
-      // 2. Patients directory
-      const savedPatients = localStorage.getItem("patient_directory_list")
-      if (savedPatients) {
-        try {
-          setPatients(JSON.parse(savedPatients))
-        } catch (e) {
-          console.error("Error loading directory", e)
-        }
+      // 2. Fetch Patients from Server
+      try {
+        const dbPatients = await searchPatients("", "All")
+        setPatients(dbPatients)
+      } catch (e) {
+        console.error("Error loading patients", e)
       }
 
-      // 3. Doctors list
-      const savedDocs = localStorage.getItem("clinic_doctors_list")
-      if (savedDocs) {
-        try {
-          const parsed = JSON.parse(savedDocs)
-          setDoctorsList(parsed)
-          if (parsed.length > 0) {
-            setSelectedDoctorId((prev) => {
-              const stillExists = parsed.some((d: any) => d.name === prev)
-              return stillExists ? prev : parsed[0].name
-            })
-          }
-        } catch (e) {
-          console.error("Error loading doctors list", e)
-          setDoctorsList(DEFAULT_DOCTORS)
+      // 3. Fetch Doctors from Server
+      try {
+        const docs = await getDoctors()
+        setDoctorsList(docs.length > 0 ? docs : DEFAULT_DOCTORS)
+        if (docs.length > 0) {
+           setSelectedDoctorId((prev) => {
+              const stillExists = docs.some((d: any) => d.id === prev)
+              return stillExists ? prev : docs[0].id
+           })
         }
-      } else {
+      } catch (e) {
+        console.error("Error loading doctors list", e)
         setDoctorsList(DEFAULT_DOCTORS)
-        setSelectedDoctorId((prev) => prev || DEFAULT_DOCTORS[0].name)
+        setSelectedDoctorId(DEFAULT_DOCTORS[0].id)
       }
     }
 
     loadData()
     window.addEventListener("clinic-profile-updated", loadData)
-    window.addEventListener("patient-directory-updated", loadData)
-    window.addEventListener("clinic-doctors-updated", loadData)
     return () => {
       window.removeEventListener("clinic-profile-updated", loadData)
-      window.removeEventListener("patient-directory-updated", loadData)
-      window.removeEventListener("clinic-doctors-updated", loadData)
     }
   }, [])
 
@@ -206,6 +196,27 @@ export function EPrescriptionForm() {
     setCustomName("")
     setCustomFreq("1-0-1")
     setCustomDays("")
+  }
+
+  const handleGeneratePreview = async () => {
+    setIsGenerating(true)
+    
+    // Save to Database via Server Action if it's a registered patient
+    if (patientId !== "custom") {
+      const res = await createSecurePrescription({
+        patientId,
+        medications: selectedDrugs,
+        sensitiveNotes: "Auto-generated E-Prescription"
+      })
+      if (!res.success) {
+        console.error("Failed to save secure prescription to DB", res.error)
+      } else {
+        console.log("Saved securely to DB with ID:", res.id)
+      }
+    }
+
+    setIsPreviewOpen(true)
+    setIsGenerating(false)
   }
 
   // Generate PNG data URL using html-to-image
@@ -276,7 +287,7 @@ export function EPrescriptionForm() {
     }
   }
 
-  const currentDoctor = doctorsList.find(d => d.name === selectedDoctorId) || {
+  const currentDoctor = doctorsList.find(d => d.id === selectedDoctorId) || {
     name: profile.doctorName,
     degrees: profile.doctorDegrees,
     regNo: profile.doctorRegNo,
@@ -293,12 +304,12 @@ export function EPrescriptionForm() {
               <CardDescription>Select a patient, assign dosages, and generate clipboard-copyable image forms.</CardDescription>
             </div>
             <Button 
-              onClick={() => setIsPreviewOpen(true)} 
-              disabled={selectedDrugs.length === 0 || !patientName.trim()}
+              onClick={handleGeneratePreview} 
+              disabled={selectedDrugs.length === 0 || !patientName.trim() || isGenerating}
               className="bg-blue-600 text-white hover:bg-blue-700 font-semibold"
             >
-              <FileText className="mr-2 h-4 w-4" />
-              Generate Image
+              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+              {isGenerating ? "Saving..." : "Generate Image"}
             </Button>
           </div>
         </CardHeader>
@@ -317,7 +328,7 @@ export function EPrescriptionForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {doctorsList.map(doc => (
-                      <SelectItem key={doc.id} value={doc.name}>{doc.name} ({doc.specialty})</SelectItem>
+                      <SelectItem key={doc.id} value={doc.id}>{doc.name} {doc.specialty ? `(${doc.specialty})` : ''}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

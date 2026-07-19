@@ -31,10 +31,11 @@ Clinic OS is a modern, client-side-heavy single-page application (SPA) built on 
 
 The application uses **Tenant-Based Dynamic Routing** powered by Next.js Middleware. 
 
-### Middleware (`src/middleware.ts`)
-Intercepts all incoming requests and rewrites the URL based on the hostname.
-- If the user visits the root domain (e.g., `localhost:3000` or `yoursaas.com`), it rewrites the path to `/home`.
-- If the user visits a subdomain (e.g., `apollo-dental.localhost:3000`), it extracts the tenant (`apollo-dental`) and rewrites the path to `/[tenant]`.
+### Middleware (`src/proxy.ts`)
+Intercepts all incoming requests and features a **Dual-Mode Router** to support both production domains and Vercel staging environments:
+- **Custom Domain Mode**: Extracts the tenant from the wildcard subdomain (e.g., `apollo-dental.yoursaas.com` -> `tenant: apollo-dental`).
+- **Vercel Staging Mode**: If accessing via `.vercel.app` or `localhost`, it automatically falls back to path-based routing (e.g., `yoursaas.vercel.app/apollo-dental` -> `tenant: apollo-dental`).
+- In both cases, the middleware signs a secure HTTP-only JWT (`tenant_session`) containing the `tenant_id` and explicitly sets the `x-tenant-id` header for strict Server Action and RLS authentication.
 
 ### Pages
 1. **Marketing / Landing Page** (`src/app/home/...`)
@@ -49,19 +50,21 @@ Intercepts all incoming requests and rewrites the URL based on the hostname.
 
 ---
 
-## 3. 🗃️ Data Persistence & State Management
+## 3. 🗃️ Data Persistence & Security
 
-**⚠️ Architecture Note:** The application currently operates completely *without a backend database*. All state is persisted locally in the browser.
+The application is fully integrated with a production-grade **Supabase PostgreSQL** backend, replacing all legacy `localStorage` client-side state.
 
-### The Storage Engine: `localStorage`
-Data is serialized as JSON strings and written to the browser's `localStorage`. To ensure components react to changes made in other parts of the app (or in modals), the app uses a **Custom Event Bus Pattern**. When data is written to localStorage, a `window.dispatchEvent` is fired to tell other components to re-render.
+### The Security Pillars
+1. **Multi-Tenant Data Isolation (RLS)**: Every single table includes a `tenant_id`. Row-Level Security intercept queries at the database kernel level to block any data that does not belong to the currently authenticated tenant session.
+2. **Column-Level Encryption**: Integration with Supabase Vault (AES-256-GCM) ensures sensitive medical fields (e.g., `sensitive_notes` on prescriptions) are encrypted at rest.
+3. **Role-Based Access Control (RBAC)**: A three-tiered role schema (`system_admin`, `clinic_admin`, `clinic_staff`) strictly controls database mutations.
+4. **Audit Logging**: An immutable, verifiable trail of all data mutations triggered automatically via PostgreSQL functions and triggers.
 
-### Core Data Entities & Storage Keys
-1. **`clinic_profile_settings`**: Stores the clinic's name, address, phone number, and API keys.
-2. **`clinic_doctors_list`**: Array of doctor objects (Name, Specialty, Degrees, Timings, Consultation Charge).
-3. **`active_appointments`**: The daily queue of approved patients sitting in the Dashboard.
-4. **`pending_appointments`**: Incoming requests submitted from the Public Booking Portal awaiting front-desk approval.
-5. **`patient_directory_list`**: The master CRM array containing all patients, their medical history (past visits, generated prescriptions), and Base64-encoded diagnostic images (X-Rays).
+### Core Data Entities
+- **`patients`**: The master CRM containing all registered patients.
+- **`appointments`**: The daily queue of active and pending scheduled visits.
+- **`prescriptions`**: Medical documents linking patients, doctors, and treatments (supports encrypted notes).
+- **`staff_accounts` & `memberships`**: The RBAC system defining who can access what clinic.
 
 ---
 
@@ -101,10 +104,10 @@ Powered by `@upstash/workflow`, this API route executes in isolated steps that c
 
 ---
 
-## 6. 🚨 Known Constraints & Limitations
+## 6. 🚨 Future Scalability & Architecture Notes
 
-If you intend to deploy this prototype to a real production environment, you must address the following constraints inherent to the current architecture:
+With the successful migration to Supabase PostgreSQL, Upstash Workflows, and Vercel Edge routing, the prototype limitations have been resolved. As the platform scales, consider these future enhancements:
 
-1. **Storage Quotas:** `localStorage` is strictly limited to ~5MB per browser. High-res X-Rays will quickly exhaust this limit. A real database (e.g., PostgreSQL via Prisma/Supabase) and S3 bucket (e.g., AWS/UploadThing) is required for production.
-2. **Subdomain Isolation:** Because data lives in the browser, if the dashboard is accessed at `localhost:3000` but the public form is filled at `apollo-dental.localhost:3000`, the data will NOT sync. `localStorage` cannot cross subdomains.
-3. **No Authentication:** The `AuthModal.tsx` is currently a UI mockup. There is no real JWT or session management protecting the dashboard routes. 
+1. **Patient Authentication Portal**: Implement an auth layer allowing patients to log in and securely view their own e-prescriptions and upcoming appointments.
+2. **Stripe Billing Engine**: Integrate a payment gateway into the dashboard to support automated invoicing and digital payment collection for completed visits.
+3. **S3 Storage for Diagnostics**: While text data is secure, implement Supabase Storage buckets or AWS S3 to support high-resolution X-ray and diagnostic imaging uploads directly within the Patient Directory.

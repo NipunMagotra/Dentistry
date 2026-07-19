@@ -9,6 +9,41 @@ interface BookingPayload {
   appointmentTime: string
 }
 
+async function sendTwilioMessage(to: string, body: string) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER
+
+  if (!accountSid || !authToken || !fromNumber) {
+    console.warn("[Twilio] Missing credentials. Mocking message:", { to, body })
+    return
+  }
+
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
+  const data = new URLSearchParams({
+    To: to,
+    From: fromNumber,
+    Body: body
+  })
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": "Basic " + Buffer.from(`${accountSid}:${authToken}`).toString("base64")
+      },
+      body: data.toString()
+    })
+    
+    if (!res.ok) {
+      console.error("[Twilio] Failed to send message", await res.text())
+    }
+  } catch (error) {
+    console.error("[Twilio] Exception during fetch", error)
+  }
+}
+
 // Next.js API route that handles the Upstash Workflow execution
 export const { POST } = serve<BookingPayload>(async (context) => {
   const { 
@@ -37,12 +72,12 @@ export const { POST } = serve<BookingPayload>(async (context) => {
   // STEP 1: IMMEDIATE CONFIRMATION
   // --------------------------------------------------------------------------
   await context.run("send-immediate-confirmation", async () => {
-    // In production, perform a POST request to Twilio/WhatsApp API here:
-    // await fetch("https://api.twilio.com/2010-04-01/Accounts/.../Messages.json", { ... })
+    const msg = `Hello ${patientName}, your appointment with ${doctorName} is confirmed for ${parsedDate.toLocaleDateString()} at ${appointmentTime}.`
+    await sendTwilioMessage(patientPhone, msg)
     
     console.log("===============================================================")
-    console.log(`[Twilio/WhatsApp MOCK] -> Sending CONFIRMATION to ${patientPhone}`)
-    console.log(`Message: "Hello ${patientName}, your appointment with ${doctorName} is confirmed for ${parsedDate.toLocaleDateString()} at ${appointmentTime}."`)
+    console.log(`[Twilio SMS] -> Sent CONFIRMATION to ${patientPhone}`)
+    console.log(`Message: "${msg}"`)
     console.log("===============================================================")
   })
 
@@ -63,10 +98,12 @@ export const { POST } = serve<BookingPayload>(async (context) => {
   // STEP 3: DAY-OF-TREATMENT REMINDER
   // --------------------------------------------------------------------------
   await context.run("send-day-of-reminder", async () => {
-    // In production, perform the second POST request to Twilio/WhatsApp API here.
+    const msg = `Reminder: You have a dental appointment today at ${appointmentTime} with ${doctorName}.`
+    await sendTwilioMessage(patientPhone, msg)
+    
     console.log("===============================================================")
-    console.log(`[Twilio/WhatsApp MOCK] -> Sending REMINDER to ${patientPhone}`)
-    console.log(`Message: "Reminder: You have a dental appointment today at ${appointmentTime}."`)
+    console.log(`[Twilio SMS] -> Sent REMINDER to ${patientPhone}`)
+    console.log(`Message: "${msg}"`)
     console.log("===============================================================")
   })
 })

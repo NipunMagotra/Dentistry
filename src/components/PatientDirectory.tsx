@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useTransition } from "react"
+import { searchPatients, deletePatient } from "@/app/actions"
 import { Search, User, Clock, Pill, FileText, AlertTriangle, Download, Paperclip, Upload, Trash2 } from "lucide-react"
 import { toPng } from "html-to-image"
 import { Input } from "@/components/ui/input"
@@ -108,19 +109,21 @@ interface Patient {
   }
 }
 
-const getLastVisited = (patient: Patient) => {
-  const appointments = patient.history?.appointments || []
+const getLastVisited = (patient: any) => {
+  const appointments = patient.appointments || []
   if (appointments.length === 0) return "Never"
-  const lastApt = appointments[appointments.length - 1]
-  return lastApt.date
+  // Assuming appointments are sorted descending or just get the latest
+  const sorted = [...appointments].sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
+  return sorted[0].appointment_date
 }
 
 export function PatientDirectory() {
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState("All")
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+  const [patients, setPatients] = useState<any[]>([])
+  const [selectedPatient, setSelectedPatient] = useState<any | null>(null)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [downloadingRx, setDownloadingRx] = useState<any>(null)
   const exportRef = useRef<HTMLDivElement>(null)
   const [doctorsList, setDoctorsList] = useState<any[]>([])
@@ -203,7 +206,7 @@ export function PatientDirectory() {
 
     const updatedPatient = {
       ...selectedPatient,
-      attachments: (selectedPatient.attachments || []).filter(a => a.id !== attachmentId)
+      attachments: (selectedPatient.attachments || []).filter((a: any) => a.id !== attachmentId)
     }
 
     setSelectedPatient(updatedPatient)
@@ -285,81 +288,45 @@ export function PatientDirectory() {
     setShowConfirmDelete(false)
   }
 
-  const handleDeletePatient = (id: string) => {
+  const handleDeletePatient = async (id: string) => {
+    // Optimistic update
     const list = patients.filter((p) => p.id !== id)
     setPatients(list)
-    try {
-      localStorage.setItem("patient_directory_list", JSON.stringify(list))
-    } catch (e) {
-      console.error("[Storage] Failed to save after patient deletion", e)
-    }
-
-    // Cascade: remove this patient's active appointments
-    const deletedPatient = patients.find(p => p.id === id)
-    if (deletedPatient) {
-      const savedApts = localStorage.getItem("active_appointments")
-      if (savedApts) {
-        try {
-          const activeApts = JSON.parse(savedApts)
-          const cleaned = activeApts.filter((a: any) => a.patient.toLowerCase() !== deletedPatient.name.toLowerCase())
-          localStorage.setItem("active_appointments", JSON.stringify(cleaned))
-        } catch (e) {
-          console.error(e)
-        }
-      }
-
-      // Cascade: remove this patient's pending requests
-      const savedPending = localStorage.getItem("pending_appointments")
-      if (savedPending) {
-        try {
-          const pendingApts = JSON.parse(savedPending)
-          const cleaned = pendingApts.filter((a: any) => a.patient.toLowerCase() !== deletedPatient.name.toLowerCase())
-          localStorage.setItem("pending_appointments", JSON.stringify(cleaned))
-        } catch (e) {
-          console.error(e)
-        }
-      }
-    }
-
-    window.dispatchEvent(new Event("patient-directory-updated"))
     setSelectedPatient(null)
     setShowConfirmDelete(false)
+
+    // Server Action
+    const result = await deletePatient(id)
+    if (!result.success) {
+      console.error("Failed to delete patient", result.error)
+      // Revert if failed (simple refresh)
+      fetchPatients()
+    }
   }
 
-  useEffect(() => {
-    const loadPatients = () => {
-      const saved = localStorage.getItem("patient_directory_list")
-      if (saved) {
-        try {
-          setPatients(JSON.parse(saved))
-        } catch (e) {
-          console.error(e)
-          setPatients(MOCK_PATIENTS)
-        }
-      } else {
-        localStorage.setItem("patient_directory_list", JSON.stringify(MOCK_PATIENTS))
-        setPatients(MOCK_PATIENTS)
-      }
-    }
-    loadPatients()
-    window.addEventListener("patient-directory-updated", loadPatients)
-    window.addEventListener("storage", loadPatients)
-    return () => {
-      window.removeEventListener("patient-directory-updated", loadPatients)
-      window.removeEventListener("storage", loadPatients)
-    }
-  }, [])
+  const fetchPatients = async (q: string = search, f: string = filter) => {
+    const data = await searchPatients(q, f)
+    setPatients(data)
+  }
 
-  // Filter patients based on search input & quick filters
-  const filteredPatients = patients.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.phone.includes(search)
-    let matchesFilter = true
-    if (filter === "Male") matchesFilter = p.gender === "Male"
-    if (filter === "Female") matchesFilter = p.gender === "Female"
-    if (filter === "Recent") matchesFilter = getLastVisited(p) !== "Never"
-    
-    return matchesSearch && matchesFilter
-  })
+  // Load patients initially and on filter change
+  useEffect(() => {
+    startTransition(() => {
+      fetchPatients(search, filter)
+    })
+  }, [filter])
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      startTransition(() => {
+        fetchPatients(search, filter)
+      })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const filteredPatients = patients
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -471,15 +438,15 @@ export function PatientDirectory() {
                   <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
                     <Clock className="h-5 w-5 text-slate-500" /> Past Appointments
                   </h3>
-                  {selectedPatient?.history.appointments.length === 0 ? (
+                  {!selectedPatient?.appointments || selectedPatient.appointments.length === 0 ? (
                     <p className="text-slate-500 text-sm italic">No past appointments recorded.</p>
                   ) : (
                     <div className="space-y-2">
-                      {selectedPatient?.history.appointments.map((apt, i) => (
+                      {selectedPatient?.appointments.map((apt: any, i: number) => (
                         <div key={i} className="flex justify-between items-start p-3.5 bg-slate-50/50 border border-slate-100 rounded-xl shadow-sm">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-800">{apt.date}</span>
+                              <span className="font-bold text-slate-800">{apt.appointment_date}</span>
                               <span className="text-slate-300">•</span>
                               <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100/30">
                                 {apt.reason || "General Consultation"}
@@ -488,7 +455,7 @@ export function PatientDirectory() {
                             <p className="text-xs text-slate-500 italic mt-1 font-medium">Notes: {apt.notes || "No treatment notes logged."}</p>
                           </div>
                           <div className="text-right space-y-1 shrink-0 ml-4">
-                            <div className="text-xs text-slate-500 font-semibold">{apt.doctor}</div>
+                            <div className="text-xs text-slate-500 font-semibold">{apt.doctor_name}</div>
                             <div className="text-[10px] bg-green-100 text-green-850 px-2.5 py-0.5 rounded-full font-bold inline-block border border-green-250/20">{apt.status}</div>
                           </div>
                         </div>
@@ -502,22 +469,22 @@ export function PatientDirectory() {
                   <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
                     <FileText className="h-5 w-5 text-slate-500" /> Past Prescriptions
                   </h3>
-                  {selectedPatient?.history.prescriptions.length === 0 ? (
+                  {!selectedPatient?.prescriptions || selectedPatient.prescriptions.length === 0 ? (
                     <p className="text-slate-500 text-sm italic">No past prescriptions recorded.</p>
                   ) : (
                     <div className="space-y-4">
-                      {selectedPatient?.history.prescriptions.map((rx, i) => (
+                      {selectedPatient?.prescriptions.map((rx: any, i: number) => (
                         <div key={i} className="p-4 bg-slate-50/50 border border-slate-200 rounded-xl shadow-sm flex justify-between items-start">
                           <div className="space-y-3 flex-1">
                             <div className="flex justify-between items-center border-b pb-1.5">
-                              <span className="font-bold text-slate-700 text-sm">{rx.date}</span>
-                              <span className="text-xs text-slate-400 font-medium italic">Prescribed by: {rx.doctor || profile.doctorName}</span>
+                              <span className="font-bold text-slate-700 text-sm">{new Date(rx.created_at).toLocaleDateString()}</span>
+                              <span className="text-xs text-slate-400 font-medium italic">Prescription ID: {rx.id.substring(0, 8)}</span>
                             </div>
                             <ul className="space-y-1">
-                              {rx.drugs.map((drug, j) => (
+                              {Array.isArray(rx.medications) && rx.medications.map((drug: any, j: number) => (
                                 <li key={j} className="text-sm text-slate-600 flex items-start gap-2">
                                   <Pill className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                                  {drug}
+                                  {drug.name} ({drug.frequency}) for {drug.days} Days
                                 </li>
                               ))}
                             </ul>
@@ -558,7 +525,7 @@ export function PatientDirectory() {
 
                   {selectedPatient?.attachments && selectedPatient.attachments.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {selectedPatient.attachments.map((file) => (
+                      {selectedPatient.attachments.map((file: any) => (
                         <div key={file.id} className="relative group border rounded-xl overflow-hidden bg-white border-slate-200 shadow-xs">
                           {/* Image Thumbnail */}
                           <img 
@@ -698,10 +665,10 @@ export function PatientDirectory() {
                       </tr>
                     </thead>
                     <tbody>
-                      {downloadingRx.drugs.map((drug: string, i: number) => (
+                      {downloadingRx.medications.map((drug: any, i: number) => (
                         <tr key={i} className="border-b border-slate-100 text-slate-800">
                           <td className="py-4 px-1 text-center font-bold text-slate-400 text-sm">{i + 1}</td>
-                          <td className="py-4 px-1 font-bold text-base text-slate-800">{drug}</td>
+                          <td className="py-4 px-1 font-bold text-base text-slate-800">{drug.name} ({drug.frequency}) x {drug.days} Days</td>
                         </tr>
                       ))}
                     </tbody>

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { useParams } from "next/navigation"
+import { getAppointments, getPendingRequests, updateAppointmentStatus, updateAppointmentDetails, getClinicStats } from "@/app/actions"
 import { BookingWizard } from "@/components/BookingWizard"
 import { EPrescriptionForm } from "@/components/EPrescriptionForm"
 import { PatientDirectory } from "@/components/PatientDirectory"
@@ -69,80 +70,36 @@ export default function Dashboard() {
     setTimeout(() => setToast({ message: "", visible: false }), 3000)
   }
 
-  // Load active appointments from localStorage or fall back to defaults
-  useEffect(() => {
-    const saved = localStorage.getItem("active_appointments")
-    if (saved) {
-      try {
-        setAppointments(JSON.parse(saved))
-      } catch (e) {
-        console.error(e)
-        setAppointments(DEFAULT_APPOINTMENTS)
-      }
-    } else {
-      localStorage.setItem("active_appointments", JSON.stringify(DEFAULT_APPOINTMENTS))
-      setAppointments(DEFAULT_APPOINTMENTS)
+  const [isPending, startTransition] = useTransition()
+
+  const loadAppointments = async () => {
+    try {
+      const apts = await getAppointments()
+      setAppointments(apts)
+      const pending = await getPendingRequests()
+      setPendingRequests(pending)
+      
+      const clinicStats = await getClinicStats()
+      setStats(clinicStats)
+    } catch (e) {
+      console.error(e)
     }
+  }
+
+  // Load active appointments from DB
+  useEffect(() => {
+    startTransition(() => {
+      loadAppointments()
+    })
   }, [])
 
   const [stats, setStats] = useState({
     totalPatients: 0,
     patientsThisWeek: 0,
     revenueToday: 0,
-    completedTodayCount: 0
+    completedTodayCount: 0,
+    noShowRate: 0
   })
-
-  // Load stats from patient directory
-  const loadStats = () => {
-    const saved = localStorage.getItem("patient_directory_list")
-    let patientList = []
-    if (saved) {
-      try {
-        patientList = JSON.parse(saved)
-      } catch (e) {
-        console.error(e)
-      }
-    }
-    
-    // Baseline offsets matching the requested visual mockup
-    const totalPatients = 1248 + patientList.filter((p: any) => p.id.startsWith("p_")).length
-    const patientsThisWeek = 12 + patientList.filter((p: any) => p.id.startsWith("p_")).length
-    
-    const currentDateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
-    
-    let calculatedRevenueToday = 0
-    let calculatedCompletedTodayCount = 0
-    
-    // Load doctors list for dynamic fee lookup
-    let doctorsChargeMap: Record<string, number> = {}
-    const savedDocs = localStorage.getItem("clinic_doctors_list")
-    if (savedDocs) {
-      try {
-        const docsList = JSON.parse(savedDocs)
-        docsList.forEach((d: any) => {
-          if (d.name) doctorsChargeMap[d.name.toLowerCase()] = d.charge || 150
-        })
-      } catch (e) { /* ignore */ }
-    }
-
-    patientList.forEach((patient: any) => {
-      patient.history?.appointments?.forEach((apt: any) => {
-        // Only sum appointments completed today that were dynamically added/completed in session
-        if (apt.date === currentDateStr && apt.status === "Completed" && (patient.id.startsWith("p_") || apt.isDynamic)) {
-          calculatedCompletedTodayCount++
-          const fee = doctorsChargeMap[apt.doctor?.toLowerCase()] || 150
-          calculatedRevenueToday += fee
-        }
-      })
-    })
-    
-    setStats({
-      totalPatients,
-      patientsThisWeek,
-      revenueToday: 840 + calculatedRevenueToday,
-      completedTodayCount: 4 + calculatedCompletedTodayCount
-    })
-  }
 
   // Safe localStorage writer with quota error handling
   const safeSetItem = (key: string, value: string) => {
@@ -152,16 +109,6 @@ export default function Dashboard() {
       console.error(`[Storage] Failed to write key "${key}" — quota may be exceeded`, e)
     }
   }
-
-  useEffect(() => {
-    loadStats()
-    window.addEventListener("patient-directory-updated", loadStats)
-    window.addEventListener("storage", loadStats)
-    return () => {
-      window.removeEventListener("patient-directory-updated", loadStats)
-      window.removeEventListener("storage", loadStats)
-    }
-  }, [])
 
   // Load clinic settings & doctors list
   useEffect(() => {
@@ -206,40 +153,14 @@ export default function Dashboard() {
     }
   }, [])
 
-  // Sync pending requests from localStorage
-  useEffect(() => {
-    const loadPending = () => {
-      const saved = localStorage.getItem("pending_appointments")
-      if (saved) {
-        try {
-          setPendingRequests(JSON.parse(saved))
-        } catch (e) {
-          console.error(e)
-        }
-      } else {
-        setPendingRequests([])
-      }
-    }
-    loadPending()
-    window.addEventListener("pending-appointments-updated", loadPending)
-    window.addEventListener("storage", loadPending)
-    return () => {
-      window.removeEventListener("pending-appointments-updated", loadPending)
-      window.removeEventListener("storage", loadPending)
-    }
-  }, [])
-
-  const updateAppointments = (newApts: Appointment[]) => {
-    setAppointments(newApts)
-    safeSetItem("active_appointments", JSON.stringify(newApts))
-  }
-
-  const handleAddAppointment = (newApt: Omit<Appointment, "id">) => {
-    const list = [
-      ...appointments,
-      { ...newApt, id: Date.now().toString() }
-    ]
-    updateAppointments(list)
+  // Pending requests are now loaded via loadAppointments, so we remove the localStorage effect
+  
+  const handleAddAppointment = () => {
+    // BookingWizard internally uses the createAppointment action
+    // We just need to refresh the list
+    startTransition(() => {
+      loadAppointments()
+    })
   }
 
   const handleApproveRequest = async (approvedApt: {
@@ -252,23 +173,23 @@ export default function Dashboard() {
   }) => {
     if (!selectedRequest) return
 
-    // 1. Add to active appointments
-    const list = [
-      ...appointments,
-      {
-        id: Date.now().toString(),
-        time: approvedApt.time,
-        patient: approvedApt.patient,
-        doctor: approvedApt.doctor,
-        status: approvedApt.status
-      }
-    ]
-    updateAppointments(list)
+    // 1. Update appointment in DB
+    const result = await updateAppointmentDetails(selectedRequest.id, {
+       doctor: approvedApt.doctor,
+       date: approvedApt.date,
+       time: approvedApt.time,
+       status: approvedApt.status
+    })
 
-    // 2. Remove from pending requests
-    const updatedPending = pendingRequests.filter(r => r.id !== selectedRequest.id)
-    setPendingRequests(updatedPending)
-    localStorage.setItem("pending_appointments", JSON.stringify(updatedPending))
+    if (!result.success) {
+      showToast("❌ Failed to approve appointment.")
+      return
+    }
+
+    // 2. Refresh local state via DB
+    startTransition(() => {
+      loadAppointments()
+    })
 
     // 3. Close modal instantly to optimize INP
     setIsProcessModalOpen(false)
@@ -293,28 +214,33 @@ export default function Dashboard() {
     })
   }
 
-  const handleDeclineRequest = (id: string) => {
-    const updatedPending = pendingRequests.filter(r => r.id !== id)
-    setPendingRequests(updatedPending)
-    safeSetItem("pending_appointments", JSON.stringify(updatedPending))
+  const handleDeclineRequest = async (id: string) => {
+    await updateAppointmentStatus(id, "Declined")
+    startTransition(() => {
+      loadAppointments()
+    })
   }
 
   const handleCancelAppointment = (id: string) => {
     setCancelTargetId(id)
   }
 
-  const confirmCancelAppointment = () => {
+  const confirmCancelAppointment = async () => {
     if (!cancelTargetId) return
     const apt = appointments.find(a => a.id === cancelTargetId)
-    const list = appointments.filter((a) => a.id !== cancelTargetId)
-    updateAppointments(list)
+    await updateAppointmentStatus(cancelTargetId, "Cancelled")
+    startTransition(() => {
+      loadAppointments()
+    })
     setCancelTargetId(null)
     if (apt) showToast(`Appointment for ${apt.patient} has been cancelled.`)
   }
 
-  const handleUpdateStatus = (id: string, newStatus: string) => {
-    const list = appointments.map((apt) => (apt.id === id ? { ...apt, status: newStatus } : apt))
-    updateAppointments(list)
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    await updateAppointmentStatus(id, newStatus)
+    startTransition(() => {
+      loadAppointments()
+    })
   }
 
   const handleRescheduleClick = (apt: Appointment) => {
@@ -322,9 +248,11 @@ export default function Dashboard() {
     setIsRescheduleModalOpen(true)
   }
 
-  const handleReschedule = (id: string, newDate: string, newTime: string) => {
-    const list = appointments.map((apt) => (apt.id === id ? { ...apt, time: newTime, status: "Rescheduled" } : apt))
-    updateAppointments(list)
+  const handleReschedule = async (id: string, newDate: string, newTime: string) => {
+    await updateAppointmentDetails(id, { date: newDate, time: newTime, status: "Rescheduled" })
+    startTransition(() => {
+      loadAppointments()
+    })
 
     const rescheduledApt = appointments.find(a => a.id === id)
     if (rescheduledApt) {
@@ -344,56 +272,12 @@ export default function Dashboard() {
     }
   }
 
-  const handleCompleteAppointment = (apt: Appointment) => {
-    // Update status to Completed instead of removing from active queue
-    const list = appointments.map(a => a.id === apt.id ? { ...a, status: "Completed" } : a)
-    updateAppointments(list)
-
-    // Add record to the patient in localStorage directory
-    const savedPatients = localStorage.getItem("patient_directory_list")
-    let patientList = []
-    if (savedPatients) {
-      try {
-        patientList = JSON.parse(savedPatients)
-      } catch (e) {
-        console.error(e)
-      }
-    }
-
-    const currentDate = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
-    let existingPatient = patientList.find((p: any) => p.name.toLowerCase() === apt.patient.toLowerCase())
-    if (existingPatient) {
-      existingPatient.history.appointments.push({
-        date: currentDate,
-        doctor: apt.doctor,
-        status: "Completed",
-        isDynamic: true,
-        reason: "General Consultation",
-        notes: "Routine checkup and diagnosis completed successfully."
-      })
-    } else {
-      existingPatient = {
-        id: `p_${Date.now()}`,
-        name: apt.patient,
-        phone: "+1 (555) 0199",
-        gender: "Male",
-        dob: "Jan 15, 1990",
-        allergies: "None",
-        attachments: [],
-        history: {
-          appointments: [
-            { date: currentDate, doctor: apt.doctor, status: "Completed", isDynamic: true, reason: "General Consultation", notes: "Routine checkup and diagnosis completed successfully." }
-          ],
-          prescriptions: []
-        }
-      }
-      patientList.push(existingPatient)
-    }
-
-    safeSetItem("patient_directory_list", JSON.stringify(patientList))
-
-    // Dispatch directory update custom event
-    window.dispatchEvent(new Event("patient-directory-updated"))
+  const handleCompleteAppointment = async (apt: Appointment) => {
+    // Update status to Completed natively via DB
+    await updateAppointmentStatus(apt.id, "Completed")
+    startTransition(() => {
+      loadAppointments()
+    })
   }
 
   return (
@@ -595,7 +479,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <Card className="border-slate-200 shadow-sm">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-slate-500 text-sm font-medium uppercase tracking-wider">Total Patients</CardTitle>
@@ -608,6 +492,7 @@ export default function Dashboard() {
                         </p>
                       </CardContent>
                     </Card>
+                    
                     <Card className="border-slate-200 shadow-sm">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-slate-500 text-sm font-medium uppercase tracking-wider">Revenue Today</CardTitle>
@@ -616,7 +501,19 @@ export default function Dashboard() {
                         <div className="text-4xl font-bold text-slate-800">${stats.revenueToday}</div>
                         <p className="text-sm text-green-600 font-medium mt-1 flex items-center gap-1">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check-circle-2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-                          {stats.completedTodayCount} appointments completed
+                          {stats.completedTodayCount} appointments
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-slate-200 shadow-sm">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-slate-500 text-sm font-medium uppercase tracking-wider">No-Show Rate</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-4xl font-bold text-slate-800">{stats.noShowRate}%</div>
+                        <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1">
+                          vs previous week
                         </p>
                       </CardContent>
                     </Card>
