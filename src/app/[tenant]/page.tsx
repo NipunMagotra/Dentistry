@@ -216,25 +216,24 @@ export default function Dashboard() {
     setPendingRequests(updatedPending)
     localStorage.setItem("pending_appointments", JSON.stringify(updatedPending))
 
-    // 3. Trigger SMS/WhatsApp workflow API call
-    try {
-      await fetch("/api/workflow", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientPhone: approvedApt.phone,
-          patientName: approvedApt.patient,
-          doctorName: approvedApt.doctor,
-          appointmentDate: approvedApt.date,
-          appointmentTime: approvedApt.time
-        })
-      })
-    } catch (err) {
-      console.error("Failed to trigger workflow", err)
-    }
-
+    // 3. Close modal instantly to optimize INP
     setIsProcessModalOpen(false)
     setSelectedRequest(null)
+
+    // 4. Trigger SMS/WhatsApp workflow API call in background
+    fetch("/api/workflow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patientPhone: approvedApt.phone,
+        patientName: approvedApt.patient,
+        doctorName: approvedApt.doctor,
+        appointmentDate: approvedApt.date,
+        appointmentTime: approvedApt.time
+      })
+    }).catch((err) => {
+      console.error("Failed to trigger workflow", err)
+    })
   }
 
   const handleDeclineRequest = (id: string) => {

@@ -89,7 +89,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   
   const handleBack = () => setStep((s) => Math.max(s - 1, 1))
   
-  const handleComplete = async () => {
+  const handleComplete = () => {
     console.log("Booking complete", { patientData, selectedDoctor, date, selectedTime })
     
     // Update local UI state
@@ -102,25 +102,24 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       })
     }
     
-    // Trigger Upstash Workflow
-    try {
-      await fetch("/api/workflow", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientPhone: patientData.phone,
-          patientName: patientData.name,
-          doctorName: doctors.find(d => d.id === selectedDoctor)?.name || "Doctor",
-          appointmentDate: date?.toISOString(),
-          appointmentTime: selectedTime
-        })
-      })
-    } catch (err) {
-      console.error("Failed to trigger workflow", err)
-    }
-
+    // Close modal instantly to optimize INP response
     setOpen(false)
     setStep(1) // reset
+
+    // Trigger Upstash Workflow in background
+    fetch("/api/workflow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patientPhone: patientData.phone,
+        patientName: patientData.name,
+        doctorName: doctors.find(d => d.id === selectedDoctor)?.name || "Doctor",
+        appointmentDate: date?.toISOString(),
+        appointmentTime: selectedTime
+      })
+    }).catch((err) => {
+      console.error("Failed to trigger workflow", err)
+    })
   }
 
   // Handle dialog open/close explicitly to reset state on open
