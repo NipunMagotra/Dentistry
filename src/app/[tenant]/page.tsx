@@ -10,7 +10,7 @@ import { RescheduleModal } from "@/components/RescheduleModal"
 import { AppointmentDetailsModal } from "@/components/AppointmentDetailsModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal, CheckCircle2, AlertTriangle, CalendarX } from "lucide-react"
 import Image from "next/image"
 import { ProfileModal } from "@/components/ProfileModal"
 import { ProcessRequestModal } from "@/components/ProcessRequestModal"
@@ -353,8 +353,9 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent className="flex-1 overflow-auto p-4 flex flex-col space-y-4">
                       {appointments.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-slate-400 italic text-sm">
-                          No appointments booked yet. Use the wizard to add one.
+                        <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center text-slate-400 text-sm space-y-3">
+                          <CalendarX className="w-12 h-12 text-slate-200" />
+                          <p>No appointments booked yet. Use the wizard to add one.</p>
                         </div>
                       ) : (
                         appointments.map((apt) => (
@@ -464,7 +465,7 @@ export default function Dashboard() {
 
                 {/* Main Content Area */}
                 <div className="lg:col-span-2 space-y-6 flex flex-col justify-center">
-                  <div className="bg-white p-8 md:p-12 rounded-2xl shadow-sm border border-slate-200 text-center space-y-6">
+                  <div className="bg-white py-6 px-8 md:px-12 rounded-2xl shadow-sm border border-slate-200 text-center space-y-6">
                     <div className="space-y-2">
                       <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
                         Front Desk
@@ -482,7 +483,7 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <Card className="border-slate-200 shadow-sm">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-500 text-sm font-medium uppercase tracking-wider">Total Patients</CardTitle>
+                        <CardTitle className="text-slate-600 text-sm font-medium uppercase tracking-wider">Total Patients</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="text-4xl font-bold text-slate-800">{stats.totalPatients}</div>
@@ -495,7 +496,7 @@ export default function Dashboard() {
                     
                     <Card className="border-slate-200 shadow-sm">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-500 text-sm font-medium uppercase tracking-wider">Revenue Today</CardTitle>
+                        <CardTitle className="text-slate-600 text-sm font-medium uppercase tracking-wider">Revenue Today</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="text-4xl font-bold text-slate-800">${stats.revenueToday}</div>
@@ -508,7 +509,7 @@ export default function Dashboard() {
 
                     <Card className="border-slate-200 shadow-sm">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-500 text-sm font-medium uppercase tracking-wider">No-Show Rate</CardTitle>
+                        <CardTitle className="text-slate-600 text-sm font-medium uppercase tracking-wider">No-Show Rate</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="text-4xl font-bold text-slate-800">{stats.noShowRate}%</div>

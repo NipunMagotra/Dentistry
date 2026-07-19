@@ -199,7 +199,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={
-        <Button size="lg" className="w-full text-lg h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold" />
+        <Button size="lg" className="w-full text-lg h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all" />
       }>
         Book Appointment
       </DialogTrigger>

@@ -220,7 +220,7 @@ export default function PublicBookingPage() {
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
               {profile.clinicName}
             </h1>
-            <p className="text-slate-100 text-sm leading-relaxed max-w-md">
+            <p className="text-slate-100 text-sm leading-loose max-w-md">
               {profile.clinicBio}
             </p>
           </div>
@@ -299,7 +299,7 @@ export default function PublicBookingPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <Label>Preferred Doctor</Label>
                   <Select value={selectedDocId} onValueChange={(val) => setSelectedDocId(val || "Dr. Sarah Jenkins")}>
@@ -330,7 +330,7 @@ export default function PublicBookingPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <Label>Preferred Time Slot</Label>
                   <Select value={time} onValueChange={(val) => setTime(val || "")}>
@@ -363,19 +363,19 @@ export default function PublicBookingPage() {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || !isFormValid}
-                  className="w-full bg-primary hover:bg-primary/95 text-white font-semibold h-11"
+                  className="w-full bg-teal-800 hover:bg-teal-900 shadow-md text-white font-semibold h-11"
                 >
                   {isSubmitting ? "Submitting Request..." : "Request Appointment"}
                 </Button>
 
                 {/* Quality Badges - Moved here for better contextual trust */}
-                <div className="mt-6 space-y-3 p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="flex items-center gap-2.5 text-xs text-slate-600 font-medium">
-                    <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />
+                <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
+                  <div className="flex items-center gap-2.5 text-xs text-slate-500 font-medium">
+                    <ShieldCheck className="h-4 w-4 text-teal-700 shrink-0" />
                     <span>Verified Clinic Profile & Doctor Credentials</span>
                   </div>
-                  <div className="flex items-center gap-2.5 text-xs text-slate-600 font-medium">
-                    <Sparkles className="h-4 w-4 text-blue-600 shrink-0" />
+                  <div className="flex items-center gap-2.5 text-xs text-slate-500 font-medium">
+                    <Sparkles className="h-4 w-4 text-teal-700 shrink-0" />
                     <span>Instant WhatsApp Notification on Approval</span>
                   </div>
                 </div>
