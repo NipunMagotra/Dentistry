@@ -6,6 +6,7 @@ import { BookingWizard } from "@/components/BookingWizard"
 import { EPrescriptionForm } from "@/components/EPrescriptionForm"
 import { PatientDirectory } from "@/components/PatientDirectory"
 import { RescheduleModal } from "@/components/RescheduleModal"
+import { AppointmentDetailsModal } from "@/components/AppointmentDetailsModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare } from "lucide-react"
@@ -45,6 +46,10 @@ export default function Dashboard() {
   // Reschedule Modal states
   const [selectedRescheduleApt, setSelectedRescheduleApt] = useState<Appointment | null>(null)
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
+
+  // Appointment Details Modal states
+  const [selectedDetailsApt, setSelectedDetailsApt] = useState<Appointment | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
   // Load active appointments from localStorage or fall back to defaults
   useEffect(() => {
@@ -335,7 +340,14 @@ export default function Dashboard() {
                         </div>
                       ) : (
                         appointments.map((apt) => (
-                          <div key={apt.id} className="p-4 border border-slate-100 rounded-xl bg-white shadow-sm flex flex-col gap-3 transition-all hover:shadow-md hover:border-slate-200">
+                          <div 
+                            key={apt.id} 
+                            onClick={() => {
+                              setSelectedDetailsApt(apt)
+                              setIsDetailsModalOpen(true)
+                            }}
+                            className="p-4 border border-slate-100 rounded-xl bg-white shadow-sm flex flex-col gap-3 transition-all hover:shadow-md hover:border-slate-200 cursor-pointer"
+                          >
                             <div className="flex justify-between items-start">
                               <div className="font-semibold text-slate-800">{apt.patient}</div>
                               <div className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -358,26 +370,38 @@ export default function Dashboard() {
                             <div className="flex gap-1.5 border-t pt-3 mt-1 text-[11px]">
                               {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
                                 <button
-                                  onClick={() => handleUpdateStatus(apt.id, "In Progress")}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleUpdateStatus(apt.id, "In Progress")
+                                  }}
                                   className="px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded font-semibold transition-colors"
                                 >
                                   Start
                                 </button>
                               )}
                               <button
-                                onClick={() => handleRescheduleClick(apt)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRescheduleClick(apt)
+                                }}
                                 className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold transition-colors"
                               >
                                 Reschedule
                               </button>
                               <button
-                                onClick={() => handleCompleteAppointment(apt)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleCompleteAppointment(apt)
+                                }}
                                 className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-semibold transition-colors"
                               >
                                 Complete
                               </button>
                               <button
-                                onClick={() => handleCancelAppointment(apt.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleCancelAppointment(apt.id)
+                                }}
                                 className="px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded font-semibold transition-colors ml-auto"
                               >
                                 Cancel
@@ -562,6 +586,21 @@ export default function Dashboard() {
             }}
             appointment={selectedRescheduleApt}
             onReschedule={handleReschedule}
+          />
+        )}
+
+        {/* Appointment Details Modal */}
+        {selectedDetailsApt && (
+          <AppointmentDetailsModal
+            isOpen={isDetailsModalOpen}
+            onClose={() => {
+              setIsDetailsModalOpen(false)
+              setSelectedDetailsApt(null)
+            }}
+            appointment={selectedDetailsApt}
+            onDelete={handleCancelAppointment}
+            onStart={(id) => handleUpdateStatus(id, "In Progress")}
+            onReschedule={handleRescheduleClick}
           />
         )}
 
