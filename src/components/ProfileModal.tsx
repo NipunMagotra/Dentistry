@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Switch } from "@/components/ui/switch"
 
 export interface Doctor {
   id: string
@@ -254,8 +256,8 @@ export function ProfileModal({ tenant }: { tenant: string }) {
       <DialogTrigger render={<button className="focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-full transition-transform hover:scale-105 active:scale-95" />}>
         <User className="h-10 w-10 p-2 bg-slate-200 rounded-full text-slate-600 animate-pulse-subtle cursor-pointer" />
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl bg-white max-h-[85vh] overflow-y-auto">
-        <DialogHeader className="pb-2 border-b">
+      <DialogContent className="sm:max-w-xl bg-white max-h-[85vh] overflow-hidden flex flex-col gap-0 p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <Settings className="h-6 w-6 text-primary animate-spin-slow" /> Profile & Account Settings
           </DialogTitle>
@@ -264,8 +266,9 @@ export function ProfileModal({ tenant }: { tenant: string }) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSave} className="space-y-6 pt-4">
-          <Tabs defaultValue="clinic" className="w-full">
+        <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+          <ScrollArea className="flex-1 px-6 pt-4">
+            <Tabs defaultValue="clinic" className="w-full pb-6">
             <TabsList 
               style={{ display: "grid", width: "100%", height: "auto" }}
               className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl h-auto"
@@ -384,8 +387,14 @@ export function ProfileModal({ tenant }: { tenant: string }) {
                 </div>
 
                 {doctors.length === 0 ? (
-                  <div className="text-center p-8 text-slate-400 italic border border-dashed rounded-xl">
-                    No doctors registered yet. Click "Add Doctor" to add one.
+                  <div className="text-center p-10 text-slate-500 italic border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center space-y-3 bg-slate-50/50 mt-4">
+                    <div className="bg-slate-100 p-3 rounded-full text-slate-400">
+                      <Stethoscope className="h-6 w-6" />
+                    </div>
+                    <p>No doctors registered yet.</p>
+                    <Button type="button" variant="link" onClick={handleAddDoctorClick} className="text-blue-600 p-0 h-auto font-semibold">
+                      Click here to add your first practitioner
+                    </Button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -573,11 +582,9 @@ export function ProfileModal({ tenant }: { tenant: string }) {
                   <div className="font-semibold text-slate-800 text-sm">WhatsApp Notifications</div>
                   <div className="text-xs text-slate-500">Enable automatic patient notifications</div>
                 </div>
-                <input 
-                  type="checkbox" 
+                <Switch 
                   checked={settings.whatsappEnabled} 
-                  onChange={(e) => updateField("whatsappEnabled", e.target.checked)}
-                  className="w-5 h-5 accent-primary cursor-pointer rounded" 
+                  onCheckedChange={(checked) => updateField("whatsappEnabled", checked)}
                 />
               </div>
 
@@ -619,13 +626,14 @@ export function ProfileModal({ tenant }: { tenant: string }) {
               )}
             </TabsContent>
           </Tabs>
+          </ScrollArea>
 
-          <div className="flex justify-end gap-3 border-t pt-4 mt-6">
+          <div className="flex justify-end gap-3 border-t px-6 py-4 bg-slate-50 shrink-0">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => setIsOpen(false)}
-              className="font-semibold"
+              className="font-semibold bg-white"
             >
               Cancel
             </Button>

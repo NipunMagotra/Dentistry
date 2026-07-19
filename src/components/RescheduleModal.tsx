@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 import { CalendarRange, Calendar, Clock } from "lucide-react"
 
 const TIME_SLOTS = [
@@ -26,20 +30,20 @@ interface RescheduleModalProps {
 }
 
 export function RescheduleModal({ isOpen, onClose, appointment, onReschedule }: RescheduleModalProps) {
-  const [date, setDate] = useState("")
+  const [date, setDate] = useState<Date | undefined>(new Date())
   const [time, setTime] = useState("")
 
   // Default to today's date format or current slot on open
   useEffect(() => {
     if (appointment) {
-      setDate(new Date().toISOString().split("T")[0])
+      setDate(new Date())
       setTime(appointment.time)
     }
   }, [appointment, isOpen])
 
   const handleSave = () => {
     if (!appointment || !date || !time) return
-    onReschedule(appointment.id, date, time)
+    onReschedule(appointment.id, format(date, "yyyy-MM-dd"), time)
     onClose()
   }
 
@@ -60,18 +64,29 @@ export function RescheduleModal({ isOpen, onClose, appointment, onReschedule }: 
         <div className="py-4 space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="res-date">Select Date</Label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 z-10" />
-              <Input
-                id="res-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="pl-9 bg-slate-50/50"
-                min={new Date().toISOString().split("T")[0]}
-                required
-              />
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-slate-50/50",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4 text-slate-400" />
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <ShadcnCalendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-1.5">

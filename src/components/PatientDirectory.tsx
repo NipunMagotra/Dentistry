@@ -338,7 +338,7 @@ export function PatientDirectory() {
         <CardContent className="p-6">
           
           {/* Search Bar & Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row gap-2 mb-6 max-w-xl">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
               <Input 
@@ -366,9 +366,30 @@ export function PatientDirectory() {
           {/* Patient List */}
           <div className="space-y-3">
             {filteredPatients.length === 0 ? (
-              <div className="text-center p-8 text-slate-500 italic border border-dashed border-slate-200 rounded-xl">
-                No patients found matching "{search}"
-              </div>
+              (search.length === 0 && filter === "All") ? (
+                <div className="text-center p-12 bg-blue-50/30 border border-blue-100 rounded-xl flex flex-col items-center justify-center space-y-4 shadow-sm">
+                  <div className="bg-blue-100 p-4 rounded-full text-blue-600 mb-2 shadow-inner">
+                    <User className="h-8 w-8" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-slate-800">Your CRM directory is empty</h3>
+                    <p className="text-slate-500 max-w-md mx-auto">Onboard your first patient using the Booking Wizard to start tracking medical history and diagnostic images.</p>
+                  </div>
+                  <Button 
+                    variant="secondary"
+                    onClick={() => {
+                      document.querySelector<HTMLElement>('button[value="appointments"]')?.click()
+                    }} 
+                    className="mt-4 bg-white border border-slate-200 hover:bg-slate-50 text-blue-600 font-semibold"
+                  >
+                    Open Booking Wizard
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center p-8 text-slate-500 italic border border-dashed border-slate-200 rounded-xl">
+                  No patients found matching {search ? `"${search}"` : "your filters"}
+                </div>
+              )
             ) : (
               filteredPatients.map(patient => {
                 const lastVisited = getLastVisited(patient)

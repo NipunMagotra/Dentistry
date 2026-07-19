@@ -303,101 +303,102 @@ export function EPrescriptionForm() {
               <CardTitle className="text-xl font-bold text-slate-800">E-Prescription Pad</CardTitle>
               <CardDescription>Select a patient, assign dosages, and generate clipboard-copyable image forms.</CardDescription>
             </div>
-            <Button 
-              onClick={handleGeneratePreview} 
-              disabled={selectedDrugs.length === 0 || !patientName.trim() || isGenerating}
-              className="bg-blue-600 text-white hover:bg-blue-700 font-semibold"
-            >
-              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-              {isGenerating ? "Saving..." : "Generate Image"}
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           
           {/* Prescribing Physician & Patient Details Selector */}
-          <div className="p-4 border rounded-xl bg-slate-50/50 space-y-4">
-            <h3 className="font-semibold text-slate-700 text-sm uppercase tracking-wider">Clinical Details</h3>
+          <div className="p-6 border rounded-xl bg-slate-50/50 space-y-4">
+            <h3 className="font-semibold text-slate-700 text-sm uppercase tracking-wider mb-2">Clinical Details</h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="prescribing-doctor">Prescribing Doctor</Label>
-                <Select value={selectedDoctorId} onValueChange={(val) => setSelectedDoctorId(val || "")}>
-                  <SelectTrigger id="prescribing-doctor" className="bg-white">
-                    <SelectValue placeholder="Choose Doctor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {doctorsList.map(doc => (
-                      <SelectItem key={doc.id} value={doc.id}>{doc.name} {doc.specialty ? `(${doc.specialty})` : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left Column: Selection */}
+              <div className="space-y-5">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="prescribing-doctor">Prescribing Doctor</Label>
+                  <Select value={selectedDoctorId} onValueChange={(val) => setSelectedDoctorId(val || "")}>
+                    <SelectTrigger id="prescribing-doctor" className="bg-white">
+                      <SelectValue placeholder="Choose Doctor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctorsList.map(doc => (
+                        <SelectItem key={doc.id} value={doc.id}>{doc.name} {doc.specialty ? `(${doc.specialty})` : ''}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label htmlFor="patient-select">Onboarded Patient (Optional)</Label>
+                  <Select value={patientId} onValueChange={handlePatientSelect}>
+                    <SelectTrigger id="patient-select" className="bg-white border-blue-200 focus:ring-blue-500">
+                      <SelectValue placeholder="Choose from Patient Directory" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom" className="font-semibold text-blue-600">-- Custom/New Entry --</SelectItem>
+                      {patients.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="patient-select">Onboarded Patient (Optional)</Label>
-                <Select value={patientId} onValueChange={handlePatientSelect}>
-                  <SelectTrigger id="patient-select" className="bg-white">
-                    <SelectValue placeholder="Choose from Patient Directory" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="custom">-- Custom/New Entry --</SelectItem>
-                    {patients.map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Right Column: Patient Profile Overrides */}
+              <div className="space-y-4 md:pl-8 md:border-l border-slate-200">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="patient-name">Patient Full Name</Label>
+                  <Input 
+                    id="patient-name"
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    placeholder="e.g. Jane Doe"
+                    disabled={patientId !== "custom"}
+                    className={cn("bg-white", patientId !== "custom" && "opacity-70 bg-slate-100 cursor-not-allowed")}
+                    required
+                  />
+                </div>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="patient-name">Patient Full Name</Label>
-                <Input 
-                  id="patient-name"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="e.g. Jane Doe"
-                  className="bg-white"
-                  required
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="patient-gender">Gender</Label>
+                    <Select disabled={patientId !== "custom"} value={patientGender} onValueChange={(val) => setPatientGender(val || "Male")}>
+                      <SelectTrigger id="patient-gender" className={cn("bg-white", patientId !== "custom" && "opacity-70 bg-slate-100 cursor-not-allowed text-slate-500")}>
+                        <SelectValue placeholder="Gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="patient-gender">Gender</Label>
-                <Select value={patientGender} onValueChange={(val) => setPatientGender(val || "Male")}>
-                  <SelectTrigger id="patient-gender" className="bg-white">
-                    <SelectValue placeholder="Gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="patient-age">Age (Years)</Label>
+                    <Input 
+                      id="patient-age"
+                      type="number"
+                      value={patientAge}
+                      onChange={(e) => setPatientAge(e.target.value)}
+                      placeholder="e.g. 28"
+                      disabled={patientId !== "custom"}
+                      className={cn("bg-white", patientId !== "custom" && "opacity-70 bg-slate-100 cursor-not-allowed")}
+                    />
+                  </div>
+                </div>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="patient-age">Age (Years)</Label>
-                <Input 
-                  id="patient-age"
-                  type="number"
-                  value={patientAge}
-                  onChange={(e) => setPatientAge(e.target.value)}
-                  placeholder="e.g. 35"
-                  className="bg-white"
-                />
-              </div>
-
-              <div className="grid gap-1.5">
-                <Label htmlFor="patient-phone">Phone Number</Label>
-                <Input 
-                  id="patient-phone"
-                  value={patientPhone}
-                  onChange={(e) => setPatientPhone(e.target.value)}
-                  placeholder="e.g. +1 555-0100"
-                  className="bg-white"
-                />
+                <div className="grid gap-1.5">
+                  <Label htmlFor="patient-phone">Phone Number</Label>
+                  <Input 
+                    id="patient-phone"
+                    value={patientPhone}
+                    onChange={(e) => setPatientPhone(e.target.value)}
+                    placeholder="e.g. +1 (555) 000-0000"
+                    disabled={patientId !== "custom"}
+                    className={cn("bg-white", patientId !== "custom" && "opacity-70 bg-slate-100 cursor-not-allowed")}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -519,6 +520,18 @@ export function EPrescriptionForm() {
               </div>
             </div>
           )}
+
+          {/* Action Buttons */}
+          <div className="pt-8 mt-8 border-t border-slate-100 flex justify-end">
+            <Button 
+              onClick={handleGeneratePreview} 
+              disabled={selectedDrugs.length === 0 || !patientName.trim() || isGenerating}
+              className="bg-primary text-primary-foreground hover:bg-primary/95 font-semibold px-10 py-6 text-lg w-full md:w-auto shadow-md rounded-xl"
+            >
+              {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileText className="mr-2 h-5 w-5" />}
+              {isGenerating ? "Saving Prescription..." : "Generate & Download"}
+            </Button>
+          </div>
 
         </CardContent>
       </Card>

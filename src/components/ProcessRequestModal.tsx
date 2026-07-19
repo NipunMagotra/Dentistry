@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle2, User, Phone, Calendar, Clock, AlertCircle } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
 const TIME_SLOTS = [
@@ -53,7 +57,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
   const [patientName, setPatientName] = useState("")
   const [patientPhone, setPatientPhone] = useState("")
   const [doctor, setDoctor] = useState("")
-  const [date, setDate] = useState("")
+  const [date, setDate] = useState<Date | undefined>(new Date())
   const [time, setTime] = useState("")
   const [nationality, setNationality] = useState("")
   const [gender, setGender] = useState("")
@@ -97,7 +101,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
       setPatientName(request.patient || "")
       setPatientPhone(request.phone || "")
       setDoctor(request.doctor || doctorsList[0] || DEFAULT_DOCTORS[0])
-      setDate(request.date || "")
+      setDate(request.date ? new Date(request.date) : new Date())
       setTime(request.time || "")
       setNationality("")
       setGender("")
@@ -115,7 +119,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
       patient: patientName,
       phone: patientPhone,
       doctor: doctor,
-      date: date,
+      date: date ? format(date, "yyyy-MM-dd") : "",
       time: time,
       nationality: nationality,
       gender: gender,
@@ -143,15 +147,16 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-          {/* Reason for Visit banner */}
-          <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100 flex items-start gap-2.5 text-xs text-blue-800">
-            <AlertCircle className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
-            <div>
-              <span className="font-semibold">Patient Note: </span>
-              {request.reason}
+        <ScrollArea className="h-[60vh] pr-4">
+          <div className="py-4 space-y-4">
+            {/* Reason for Visit banner */}
+            <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100 flex items-start gap-2.5 text-xs text-blue-800">
+              <AlertCircle className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
+              <div>
+                <span className="font-semibold">Patient Note: </span>
+                {request.reason}
+              </div>
             </div>
-          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="req-name" className={isNameInvalid ? "text-red-500 font-semibold" : ""}>
@@ -258,17 +263,29 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="req-date">Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 z-10" />
-                <Input
-                  id="req-date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="pl-9 bg-slate-50/30 text-xs"
-                  required
-                />
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal bg-slate-50/30",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4 text-slate-400" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <ShadcnCalendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-1.5">
@@ -287,7 +304,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
               </Select>
             </div>
           </div>
-        </div>
+        </ScrollArea>
 
         <DialogFooter className="flex gap-2">
           <Button variant="outline" onClick={onClose}>

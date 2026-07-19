@@ -51,9 +51,7 @@ This project is configured to deploy seamlessly to Vercel.
 
 *Vercel Routing Note: Free `.vercel.app` domains do not support wildcard subdomains. To test multi-tenancy on the free tier, the middleware automatically supports path-based routing (e.g. `your-app.vercel.app/city-dental`). For production, attach a custom domain with wildcard subdomains enabled.*
 
-## 🗄️ Database Architecture
-
-## 🗄️ Database Architecture
+## Database Architecture
 
 The application is fully wired to a secure Supabase PostgreSQL backend. 
 

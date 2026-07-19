@@ -196,6 +196,17 @@ export default function Dashboard() {
   }) => {
     if (!selectedRequest) return
 
+    // Optimistic UI Update: Remove from queue, add to today's schedule
+    setPendingRequests(prev => prev.filter(req => req.id !== selectedRequest.id))
+    const optimisticApt = {
+      id: selectedRequest.id,
+      patient: approvedApt.patient,
+      doctor: approvedApt.doctor,
+      time: approvedApt.time,
+      status: approvedApt.status
+    }
+    setAppointments(prev => [...prev, optimisticApt])
+
     // 1. Update appointment in DB
     const result = await updateAppointmentDetails(selectedRequest.id, {
        doctor: approvedApt.doctor,
@@ -206,6 +217,7 @@ export default function Dashboard() {
 
     if (!result.success) {
       showToast("❌ Failed to approve appointment.")
+      startTransition(() => loadAppointments())
       return
     }
 
@@ -238,6 +250,9 @@ export default function Dashboard() {
   }
 
   const handleDeclineRequest = async (id: string) => {
+    // Optimistic UI Update: Remove from queue
+    setPendingRequests(prev => prev.filter(req => req.id !== id))
+
     await updateAppointmentStatus(id, "Declined")
     startTransition(() => {
       loadAppointments()
@@ -251,6 +266,12 @@ export default function Dashboard() {
   const confirmCancelAppointment = async () => {
     if (!cancelTargetId) return
     const apt = appointments.find(a => a.id === cancelTargetId)
+    
+    // Optimistic UI Update
+    setAppointments(prev => prev.map(a => 
+      a.id === cancelTargetId ? { ...a, status: "Cancelled" } : a
+    ))
+
     await updateAppointmentStatus(cancelTargetId, "Cancelled")
     startTransition(() => {
       loadAppointments()
@@ -260,10 +281,25 @@ export default function Dashboard() {
   }
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
-    await updateAppointmentStatus(id, newStatus)
-    startTransition(() => {
-      loadAppointments()
-    })
+    try {
+      // Optimistic UI Update
+      setAppointments(prev => prev.map(apt => 
+        apt.id === id ? { ...apt, status: newStatus } : apt
+      ))
+      
+      const result = await updateAppointmentStatus(id, newStatus)
+      if (result && result.error) {
+        showToast(`❌ Error: ${result.error.message || "Failed to update status"}`)
+        startTransition(() => loadAppointments()) // Revert if failed
+        return
+      }
+      startTransition(() => {
+        loadAppointments()
+      })
+    } catch (error: any) {
+      showToast(`❌ Error: ${error.message || "Unknown error occurred"}`)
+      startTransition(() => loadAppointments()) // Revert if failed
+    }
   }
 
   const handleRescheduleClick = (apt: Appointment) => {
@@ -272,6 +308,11 @@ export default function Dashboard() {
   }
 
   const handleReschedule = async (id: string, newDate: string, newTime: string) => {
+    // Optimistic UI Update
+    setAppointments(prev => prev.map(apt => 
+      apt.id === id ? { ...apt, time: newTime, status: "Rescheduled" } : apt
+    ))
+
     await updateAppointmentDetails(id, { date: newDate, time: newTime, status: "Rescheduled" })
     startTransition(() => {
       loadAppointments()
@@ -296,6 +337,11 @@ export default function Dashboard() {
   }
 
   const handleCompleteAppointment = async (apt: Appointment) => {
+    // Optimistic UI Update
+    setAppointments(prev => prev.map(a => 
+      a.id === apt.id ? { ...a, status: "Completed" } : a
+    ))
+
     // Update status to Completed natively via DB
     await updateAppointmentStatus(apt.id, "Completed")
     startTransition(() => {
@@ -406,8 +452,8 @@ export default function Dashboard() {
                               <div className="text-sm text-slate-500 flex items-center gap-2">
                                 <User className="h-4 w-4 text-slate-400" /> {apt.doctor}
                               </div>
-                              <div className="text-sm text-blue-600 font-semibold flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-blue-500" /> {apt.time}
+                              <div className="text-sm text-slate-700 font-semibold flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-slate-400" /> {apt.time}
                               </div>
                             </div>
 
@@ -439,12 +485,14 @@ export default function Dashboard() {
 
                                 {/* Secondary actions — ellipsis menu */}
                                 <div className="relative ml-auto group">
-                                  <button
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                                    className="h-10 w-10 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                                   >
                                     <MoreHorizontal className="h-4 w-4" />
-                                  </button>
+                                  </Button>
                                   <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[130px] z-20">
                                     <button
                                       onClick={(e) => {
