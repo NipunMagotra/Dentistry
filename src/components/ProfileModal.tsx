@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Building2, User, Settings, Phone, MapPin, Award, ShieldAlert, Key, Clock, Copy, Check, Plus, Pencil, Trash2, DollarSign, Stethoscope } from "lucide-react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -333,192 +333,199 @@ export function ProfileModal({ tenant }: { tenant: string }) {
 
             {/* Doctor Settings Tab: Bento Grid Directory */}
             <TabsContent value="doctor" className="space-y-4 outline-none">
-              {!isDoctorFormOpen ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b">
-                    <h3 className="font-bold text-slate-800">Clinic Practitioners ({doctors.length})</h3>
-                    <Button 
-                      type="button" 
-                      onClick={handleAddDoctorClick} 
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-1 text-xs h-8 px-2.5"
-                    >
-                      <Plus className="h-4 w-4" /> Add Doctor
-                    </Button>
-                  </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b">
+                  <h3 className="font-bold text-slate-800">Clinic Practitioners ({doctors.length})</h3>
+                  <Button 
+                    type="button" 
+                    onClick={handleAddDoctorClick} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-1 text-xs h-8 px-2.5"
+                  >
+                    <Plus className="h-4 w-4" /> Add Doctor
+                  </Button>
+                </div>
 
-                  {doctors.length === 0 ? (
-                    <div className="text-center p-8 text-slate-400 italic border border-dashed rounded-xl">
-                      No doctors registered yet. Click "Add Doctor" to add one.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {doctors.map((doc) => (
-                        <div 
-                          key={doc.id} 
-                          className="border border-slate-150 rounded-xl p-4 bg-slate-50 flex flex-col justify-between hover:shadow-md hover:border-blue-200 transition-all gap-3 relative group"
-                        >
-                          {/* Floating Actions overlay */}
-                          <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => handleEditDoctorClick(doc)}
-                              className="p-1 bg-white hover:bg-blue-50 border rounded text-slate-500 hover:text-blue-600 transition-colors"
-                              title="Edit Credentials"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveDoctor(doc.id)}
-                              className="p-1 bg-white hover:bg-red-50 border rounded text-slate-500 hover:text-red-600 transition-colors"
-                              title="Remove Doctor"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                {doctors.length === 0 ? (
+                  <div className="text-center p-8 text-slate-400 italic border border-dashed rounded-xl">
+                    No doctors registered yet. Click "Add Doctor" to add one.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {doctors.map((doc) => (
+                      <div 
+                        key={doc.id} 
+                        className="border border-slate-150 rounded-xl p-4 bg-slate-50 flex flex-col justify-between hover:shadow-md hover:border-blue-200 transition-all gap-3 relative group"
+                      >
+                        {/* Actions overlay */}
+                        <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => handleEditDoctorClick(doc)}
+                            className="p-1 bg-white hover:bg-blue-50 border rounded text-slate-500 hover:text-blue-600 transition-colors"
+                            title="Edit Credentials"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDoctor(doc.id)}
+                            className="p-1 bg-white hover:bg-red-50 border rounded text-slate-500 hover:text-red-600 transition-colors"
+                            title="Remove Doctor"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-3.5">
+                          {/* Prominent Name & Avatar Box */}
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold font-sans text-sm">
+                              {doc.name.replace("Dr. ", "").charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-800 leading-tight">{doc.name}</div>
+                              <div className="text-xs text-slate-500 font-semibold">{doc.specialty || "Dental Surgeon"}</div>
+                            </div>
                           </div>
 
-                          <div className="space-y-3.5">
-                            {/* Prominent Name & Avatar Box */}
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold font-sans text-sm">
-                                {doc.name.replace("Dr. ", "").charAt(0)}
-                              </div>
-                              <div>
-                                <div className="font-bold text-slate-800 leading-tight">{doc.name}</div>
-                                <div className="text-xs text-slate-500 font-semibold">{doc.specialty || "Dental Surgeon"}</div>
-                              </div>
-                            </div>
+                          {/* Credentials Accent Box */}
+                          <div className="p-2.5 bg-blue-50/50 border border-blue-100/50 rounded-lg text-xs">
+                            <span className="font-bold text-blue-800 block text-[9px] uppercase tracking-wider mb-0.5">Specialization & Degrees</span>
+                            <span className="text-slate-650 font-medium">{doc.degrees}</span>
+                          </div>
 
-                            {/* Credentials Accent Box */}
-                            <div className="p-2.5 bg-blue-50/50 border border-blue-100/50 rounded-lg text-xs">
-                              <span className="font-bold text-blue-800 block text-[9px] uppercase tracking-wider mb-0.5">Specialization & Degrees</span>
-                              <span className="text-slate-650 font-medium">{doc.degrees}</span>
+                          {/* License & Consultation Fee grid block */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="p-2 bg-white border border-slate-200/60 rounded-lg">
+                              <span className="font-semibold text-slate-400 block text-[8px] uppercase tracking-wider mb-0.5">License ID</span>
+                              <span className="text-slate-700 font-bold">Reg #{doc.regNo}</span>
                             </div>
+                            <div className="p-2 bg-white border border-slate-200/60 rounded-lg">
+                              <span className="font-semibold text-slate-400 block text-[8px] uppercase tracking-wider mb-0.5">Consult Fee</span>
+                              <span className="text-green-700 font-bold">${doc.charge}</span>
+                            </div>
+                          </div>
 
-                            {/* License & Consultation Fee grid block */}
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div className="p-2 bg-white border border-slate-200/60 rounded-lg">
-                                <span className="font-semibold text-slate-400 block text-[8px] uppercase tracking-wider mb-0.5">License ID</span>
-                                <span className="text-slate-700 font-bold">Reg #{doc.regNo}</span>
-                              </div>
-                              <div className="p-2 bg-white border border-slate-200/60 rounded-lg">
-                                <span className="font-semibold text-slate-400 block text-[8px] uppercase tracking-wider mb-0.5">Consult Fee</span>
-                                <span className="text-green-700 font-bold">${doc.charge}</span>
-                              </div>
-                            </div>
-
-                            {/* Hours Highlight Box */}
-                            <div className="p-2.5 bg-amber-50/60 border border-amber-100/70 rounded-lg text-xs">
-                              <span className="font-bold text-amber-800 block text-[9px] uppercase tracking-wider mb-0.5">Consultation Hours</span>
-                              <span className="text-slate-650 font-medium flex items-center gap-1 mt-0.5">
-                                <Clock className="h-3.5 w-3.5 text-amber-600" /> {doc.timings}
-                              </span>
-                            </div>
+                          {/* Hours Highlight Box */}
+                          <div className="p-2.5 bg-amber-50/60 border border-amber-100/70 rounded-lg text-xs">
+                            <span className="font-bold text-amber-800 block text-[9px] uppercase tracking-wider mb-0.5">Consultation Hours</span>
+                            <span className="text-slate-650 font-medium flex items-center gap-1 mt-0.5">
+                              <Clock className="h-3.5 w-3.5 text-amber-600" /> {doc.timings}
+                            </span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Add / Edit Form Card
-                <div className="p-4 border border-blue-100 rounded-xl bg-blue-50/30 space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b border-blue-100">
-                    <h3 className="font-bold text-blue-800 text-sm">
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Sub-dialog overlay for doctor details form */}
+              <Dialog open={isDoctorFormOpen} onOpenChange={setIsDoctorFormOpen}>
+                <DialogContent className="sm:max-w-md bg-white p-0 overflow-hidden rounded-xl border">
+                  <DialogHeader className="p-5 pb-4 border-b bg-slate-50">
+                    <DialogTitle className="text-lg font-bold text-slate-800">
                       {editingDoctorId ? "Edit Doctor Credentials" : "Register New Practitioner"}
-                    </h3>
+                    </DialogTitle>
+                    <DialogDescription className="text-slate-400 text-xs mt-0.5">
+                      Specify credentials, specializations, consulting schedules, and fees.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="p-5 space-y-4 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid gap-1">
+                        <Label htmlFor="subdoc-name">Doctor Name</Label>
+                        <Input 
+                          id="subdoc-name" 
+                          placeholder="e.g. Dr. Sarah Jenkins" 
+                          value={docName} 
+                          onChange={(e) => setDocName(e.target.value)}
+                          className="bg-white h-9"
+                          required
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label htmlFor="subdoc-spec">Specialty Title</Label>
+                        <Input 
+                          id="subdoc-spec" 
+                          placeholder="e.g. Orthodontist" 
+                          value={docSpecialty} 
+                          onChange={(e) => setDocSpecialty(e.target.value)}
+                          className="bg-white h-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid gap-1">
+                        <Label htmlFor="subdoc-degrees">Degrees & Specializations</Label>
+                        <Input 
+                          id="subdoc-degrees" 
+                          placeholder="e.g. BDS, MDS" 
+                          value={docDegrees} 
+                          onChange={(e) => setDocDegrees(e.target.value)}
+                          className="bg-white h-9"
+                          required
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label htmlFor="subdoc-reg">License / Registration ID</Label>
+                        <Input 
+                          id="subdoc-reg" 
+                          placeholder="e.g. 849201" 
+                          value={docRegNo} 
+                          onChange={(e) => setDocRegNo(e.target.value)}
+                          className="bg-white h-9"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid gap-1">
+                        <Label htmlFor="subdoc-timings">Consultation Timings</Label>
+                        <Input 
+                          id="subdoc-timings" 
+                          placeholder="e.g. Mon - Fri: 10am - 5pm" 
+                          value={docTimings} 
+                          onChange={(e) => setDocTimings(e.target.value)}
+                          className="bg-white h-9"
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label htmlFor="subdoc-charge">Consultation Fee ($)</Label>
+                        <Input 
+                          id="subdoc-charge" 
+                          type="number"
+                          placeholder="e.g. 150" 
+                          value={docCharge} 
+                          onChange={(e) => setDocCharge(e.target.value)}
+                          className="bg-white h-9"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <DialogFooter className="p-5 bg-slate-50 border-t flex justify-end gap-2">
                     <Button 
                       type="button" 
                       variant="outline" 
                       onClick={() => setIsDoctorFormOpen(false)}
-                      className="h-7 text-xs font-semibold"
+                      className="h-9 text-xs font-semibold px-4"
                     >
-                      Back to Directory
+                      Cancel
                     </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="grid gap-1">
-                      <Label htmlFor="doc-name">Doctor Name</Label>
-                      <Input 
-                        id="doc-name" 
-                        placeholder="e.g. Dr. Sarah Jenkins" 
-                        value={docName} 
-                        onChange={(e) => setDocName(e.target.value)}
-                        className="bg-white h-9"
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="doc-spec">Specialty Title</Label>
-                      <Input 
-                        id="doc-spec" 
-                        placeholder="e.g. Orthodontist" 
-                        value={docSpecialty} 
-                        onChange={(e) => setDocSpecialty(e.target.value)}
-                        className="bg-white h-9"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="grid gap-1">
-                      <Label htmlFor="doc-degrees">Degrees & Specializations</Label>
-                      <Input 
-                        id="doc-degrees" 
-                        placeholder="e.g. BDS, MDS" 
-                        value={docDegrees} 
-                        onChange={(e) => setDocDegrees(e.target.value)}
-                        className="bg-white h-9"
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="doc-reg">License / Registration ID</Label>
-                      <Input 
-                        id="doc-reg" 
-                        placeholder="e.g. 849201" 
-                        value={docRegNo} 
-                        onChange={(e) => setDocRegNo(e.target.value)}
-                        className="bg-white h-9"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="grid gap-1">
-                      <Label htmlFor="doc-timings">Consultation Timings</Label>
-                      <Input 
-                        id="doc-timings" 
-                        placeholder="e.g. Mon - Fri: 10am - 5pm" 
-                        value={docTimings} 
-                        onChange={(e) => setDocTimings(e.target.value)}
-                        className="bg-white h-9"
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="doc-charge">Consultation Fee ($)</Label>
-                      <Input 
-                        id="doc-charge" 
-                        type="number"
-                        placeholder="e.g. 150" 
-                        value={docCharge} 
-                        onChange={(e) => setDocCharge(e.target.value)}
-                        className="bg-white h-9"
-                      />
-                    </div>
-                  </div>
-
-                  <Button 
-                    type="button" 
-                    onClick={handleSaveDoctor} 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold mt-2 h-9"
-                  >
-                    Save Doctor Details
-                  </Button>
-                </div>
-              )}
+                    <Button 
+                      type="button" 
+                      onClick={handleSaveDoctor} 
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-9 text-xs px-4"
+                    >
+                      Save Doctor Details
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* Integrations Settings Tab */}
