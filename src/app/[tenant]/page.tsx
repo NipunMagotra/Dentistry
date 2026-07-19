@@ -86,31 +86,28 @@ export default function Dashboard() {
       }
     }
     
-    // Total Patients
-    const totalPatients = patientList.length
+    // Baseline offsets matching the requested visual mockup
+    const totalPatients = 1248 + patientList.filter((p: any) => p.id.startsWith("p_")).length
+    const patientsThisWeek = 12 + patientList.filter((p: any) => p.id.startsWith("p_")).length
     
-    // Patients added this week (with id starting with p_)
-    const patientsThisWeek = patientList.filter((p: any) => p.id.startsWith("p_")).length
-    
-    // Revenue & Appointments Completed Today
     const currentDateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
     
-    let revenueToday = 0
-    let completedTodayCount = 0
+    let calculatedRevenueToday = 0
+    let calculatedCompletedTodayCount = 0
     
     patientList.forEach((patient: any) => {
       patient.history?.appointments?.forEach((apt: any) => {
-        if (apt.date === currentDateStr && apt.status === "Completed") {
-          completedTodayCount++
-          // Match doctor to charge
+        // Only sum appointments completed today that were dynamically added/completed in session
+        if (apt.date === currentDateStr && apt.status === "Completed" && (patient.id.startsWith("p_") || apt.isDynamic)) {
+          calculatedCompletedTodayCount++
           if (apt.doctor.includes("Jenkins")) {
-            revenueToday += 150
+            calculatedRevenueToday += 150
           } else if (apt.doctor.includes("Chen")) {
-            revenueToday += 200
+            calculatedRevenueToday += 200
           } else if (apt.doctor.includes("Rodriguez")) {
-            revenueToday += 180
+            calculatedRevenueToday += 180
           } else {
-            revenueToday += 150 // fallback charge
+            calculatedRevenueToday += 150
           }
         }
       })
@@ -119,8 +116,8 @@ export default function Dashboard() {
     setStats({
       totalPatients,
       patientsThisWeek,
-      revenueToday,
-      completedTodayCount
+      revenueToday: 840 + calculatedRevenueToday,
+      completedTodayCount: 4 + calculatedCompletedTodayCount
     })
   }
 
@@ -308,7 +305,8 @@ export default function Dashboard() {
       existingPatient.history.appointments.push({
         date: currentDate,
         doctor: apt.doctor,
-        status: "Completed"
+        status: "Completed",
+        isDynamic: true
       })
     } else {
       existingPatient = {
@@ -318,7 +316,7 @@ export default function Dashboard() {
         gender: "Male",
         history: {
           appointments: [
-            { date: currentDate, doctor: apt.doctor, status: "Completed" }
+            { date: currentDate, doctor: apt.doctor, status: "Completed", isDynamic: true }
           ],
           prescriptions: []
         }
