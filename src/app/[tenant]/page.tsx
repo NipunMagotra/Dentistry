@@ -305,7 +305,9 @@ export default function Dashboard() {
         date: currentDate,
         doctor: apt.doctor,
         status: "Completed",
-        isDynamic: true
+        isDynamic: true,
+        reason: "General Consultation",
+        notes: "Routine checkup and diagnosis completed successfully."
       })
     } else {
       existingPatient = {
@@ -313,9 +315,11 @@ export default function Dashboard() {
         name: apt.patient,
         phone: "+1 (555) 0199",
         gender: "Male",
+        dob: "Jan 15, 1990",
+        allergies: "None",
         history: {
           appointments: [
-            { date: currentDate, doctor: apt.doctor, status: "Completed", isDynamic: true }
+            { date: currentDate, doctor: apt.doctor, status: "Completed", isDynamic: true, reason: "General Consultation", notes: "Routine checkup and diagnosis completed successfully." }
           ],
           prescriptions: []
         }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, User, Clock, Pill, FileText, AlertTriangle } from "lucide-react"
+import { Search, User, Clock, Pill, FileText, AlertTriangle, Download } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,13 +21,15 @@ const MOCK_PATIENTS = [
     name: "Alice Smith",
     phone: "+1 555-0100",
     gender: "Female",
+    dob: "Nov 14, 1991",
+    allergies: "Penicillin",
     history: {
       appointments: [
-        { date: "Oct 12, 2023", doctor: "Dr. Sarah Jenkins", status: "Completed" },
-        { date: "Jan 05, 2024", doctor: "Dr. Michael Chen", status: "Completed" },
+        { date: "Oct 12, 2023", doctor: "Dr. Sarah Jenkins", status: "Completed", reason: "Routine Clean & Checkup", notes: "Mild plaque buildup. Advised scaling." },
+        { date: "Jan 05, 2024", doctor: "Dr. Michael Chen", status: "Completed", reason: "Deep Scaling & Polishing", notes: "Scaling completed. Gums healthy." },
       ],
       prescriptions: [
-        { date: "Oct 12, 2023", drugs: ["Amoxicillin 500mg (1-1-1) 5 Days", "Ibuprofen 400mg (1-0-1) 3 Days"] }
+        { date: "Oct 12, 2023", doctor: "Dr. Sarah Jenkins", drugs: ["Amoxicillin 500mg (1-0-1) 5 Days", "Ibuprofen 400mg (1-0-1) 3 Days"] }
       ]
     }
   },
@@ -36,12 +38,14 @@ const MOCK_PATIENTS = [
     name: "Bob Johnson",
     phone: "+1 555-0101",
     gender: "Male",
+    dob: "May 23, 1988",
+    allergies: "None",
     history: {
       appointments: [
-        { date: "Nov 22, 2023", doctor: "Dr. Emily Rodriguez", status: "Completed" },
+        { date: "Nov 22, 2023", doctor: "Dr. Emily Rodriguez", status: "Completed", reason: "Tooth Extraction", notes: "Lower left molar extraction. Prescribed paracetamol." },
       ],
       prescriptions: [
-        { date: "Nov 22, 2023", drugs: ["Paracetamol 500mg (1-1-1) 3 Days"] }
+        { date: "Nov 22, 2023", doctor: "Dr. Emily Rodriguez", drugs: ["Paracetamol 500mg (1-1-1) 3 Days"] }
       ]
     }
   },
@@ -50,6 +54,8 @@ const MOCK_PATIENTS = [
     name: "Charlie Davis",
     phone: "+1 555-0102",
     gender: "Male",
+    dob: "Aug 09, 1995",
+    allergies: "Sulfa Drugs",
     history: {
       appointments: [],
       prescriptions: []
@@ -61,10 +67,13 @@ interface PatientAppointment {
   date: string
   doctor: string
   status: string
+  reason?: string
+  notes?: string
 }
 
 interface Prescription {
   date: string
+  doctor?: string
   drugs: string[]
 }
 
@@ -73,6 +82,8 @@ interface Patient {
   name: string
   phone: string
   gender: string
+  dob?: string
+  allergies?: string
   history: {
     appointments: PatientAppointment[]
     prescriptions: Prescription[]
@@ -91,6 +102,52 @@ export function PatientDirectory() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [profile, setProfile] = useState({
+    clinicName: "City Dental Clinic",
+    doctorName: "Dr. Sarah Jenkins"
+  })
+
+  // Load clinic profile settings
+  useEffect(() => {
+    const saved = localStorage.getItem("clinic_profile_settings")
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setProfile({
+          clinicName: parsed.clinicName || "City Dental Clinic",
+          doctorName: parsed.doctorName || "Dr. Sarah Jenkins"
+        })
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }, [])
+
+  const handleDownloadPastPrescription = (patientName: string, rx: any) => {
+    const content = `
+=========================================
+PRESCRIPTION RECORD - ${profile.clinicName}
+=========================================
+Date: ${rx.date}
+Patient: ${patientName}
+Prescribed By: ${rx.doctor || profile.doctorName}
+
+Medications:
+${rx.drugs.map((d: string, i: number) => `${i + 1}. ${d}`).join("\n")}
+
+=========================================
+This is a verified digital health record copy.
+`;
+    const blob = new Blob([content], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `Prescription_${patientName.replace(/\s+/g, "_")}_${rx.date.replace(/\s+/g, "_")}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
 
   const handleDialogClose = () => {
     setSelectedPatient(null)
@@ -198,20 +255,30 @@ export function PatientDirectory() {
 
       {/* Patient History Dialog */}
       <Dialog open={!!selectedPatient} onOpenChange={(open) => !open && handleDialogClose()}>
-        <DialogContent className="sm:max-w-2xl bg-white">
+        <DialogContent className="sm:max-w-2xl bg-white p-0 overflow-hidden">
           {!showConfirmDelete ? (
             <>
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <DialogHeader className="p-6 pb-4 border-b bg-slate-50/50">
+                <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-slate-800">
                   <User className="h-6 w-6 text-blue-600" />
                   {selectedPatient?.name}'s Medical History
                 </DialogTitle>
-                <DialogDescription>
-                  Phone: {selectedPatient?.phone} | Gender: {selectedPatient?.gender}
+                <DialogDescription className="text-slate-500 font-medium">
+                  Phone: {selectedPatient?.phone} | Gender: {selectedPatient?.gender} | DOB: {selectedPatient?.dob || "N/A"}
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="grid gap-6 px-6 py-4 max-h-[55vh] overflow-y-auto pr-2">
+                {/* Allergies Section */}
+                <div className={`p-3.5 rounded-xl border flex items-center gap-3 ${
+                  selectedPatient?.allergies && selectedPatient.allergies !== "None"
+                    ? "bg-red-50/60 border-red-200 text-red-700"
+                    : "bg-green-50/60 border-green-200/50 text-green-700"
+                }`}>
+                  <span className="font-bold text-xs uppercase tracking-wider">Allergies:</span>
+                  <span className="font-semibold text-sm">{selectedPatient?.allergies || "None"}</span>
+                </div>
+
                 {/* Past Appointments */}
                 <div className="space-y-3">
                   <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
@@ -222,10 +289,21 @@ export function PatientDirectory() {
                   ) : (
                     <div className="space-y-2">
                       {selectedPatient?.history.appointments.map((apt, i) => (
-                        <div key={i} className="flex justify-between items-center p-3 bg-slate-50/50 border border-slate-100 rounded-lg shadow-sm">
-                          <div className="font-medium text-slate-700">{apt.date}</div>
-                          <div className="text-sm text-slate-500">{apt.doctor}</div>
-                          <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">{apt.status}</div>
+                        <div key={i} className="flex justify-between items-start p-3.5 bg-slate-50/50 border border-slate-100 rounded-xl shadow-sm">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-800">{apt.date}</span>
+                              <span className="text-slate-300">•</span>
+                              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100/30">
+                                {apt.reason || "General Consultation"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 italic mt-1 font-medium">Notes: {apt.notes || "No treatment notes logged."}</p>
+                          </div>
+                          <div className="text-right space-y-1 shrink-0 ml-4">
+                            <div className="text-xs text-slate-500 font-semibold">{apt.doctor}</div>
+                            <div className="text-[10px] bg-green-100 text-green-850 px-2.5 py-0.5 rounded-full font-bold inline-block border border-green-250/20">{apt.status}</div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -242,16 +320,30 @@ export function PatientDirectory() {
                   ) : (
                     <div className="space-y-4">
                       {selectedPatient?.history.prescriptions.map((rx, i) => (
-                        <div key={i} className="p-4 bg-slate-50/50 border border-slate-200 rounded-lg shadow-sm space-y-2">
-                          <div className="font-semibold text-slate-700 border-b pb-1 mb-2">{rx.date}</div>
-                          <ul className="space-y-1">
-                            {rx.drugs.map((drug, j) => (
-                              <li key={j} className="text-sm text-slate-600 flex items-start gap-2">
-                                <Pill className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                                {drug}
-                              </li>
-                            ))}
-                          </ul>
+                        <div key={i} className="p-4 bg-slate-50/50 border border-slate-200 rounded-xl shadow-sm flex justify-between items-start">
+                          <div className="space-y-3 flex-1">
+                            <div className="flex justify-between items-center border-b pb-1.5">
+                              <span className="font-bold text-slate-700 text-sm">{rx.date}</span>
+                              <span className="text-xs text-slate-400 font-medium italic">Prescribed by: {rx.doctor || profile.doctorName}</span>
+                            </div>
+                            <ul className="space-y-1">
+                              {rx.drugs.map((drug, j) => (
+                                <li key={j} className="text-sm text-slate-600 flex items-start gap-2">
+                                  <Pill className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                                  {drug}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <Button 
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={() => selectedPatient && handleDownloadPastPrescription(selectedPatient.name, rx)}
+                            className="ml-4 h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-lg shrink-0"
+                            title="Download Prescription Copy"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -259,22 +351,22 @@ export function PatientDirectory() {
                 </div>
               </div>
 
-              <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
+              <DialogFooter className="p-6 bg-slate-50 border-t border-slate-200 flex flex-row items-center gap-2 justify-end">
                 <Button
-                  variant="destructive"
+                  variant="ghost"
                   onClick={() => setShowConfirmDelete(true)}
-                  className="bg-red-50 text-red-600 hover:bg-red-100 border-none font-semibold shadow-none mr-auto w-full sm:w-auto"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50/50 font-semibold text-xs mr-auto w-full sm:w-auto"
                 >
-                  Delete Patient
+                  Delete Patient Profile
                 </Button>
-                <Button variant="outline" onClick={handleDialogClose} className="font-semibold">
+                <Button variant="outline" onClick={handleDialogClose} className="font-semibold px-4 h-9">
                   Close
                 </Button>
               </DialogFooter>
             </>
           ) : (
             <>
-              <DialogHeader>
+              <DialogHeader className="p-6 pb-4 border-b bg-red-50/20">
                 <DialogTitle className="text-xl font-bold text-red-600 flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-red-500" /> Confirm Delete
                 </DialogTitle>
@@ -283,22 +375,22 @@ export function PatientDirectory() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="py-4 text-slate-600 text-sm">
+              <div className="p-6 text-slate-600 text-sm">
                 Are you sure you want to delete **{selectedPatient?.name}**'s patient profile? This will permanently remove all their historical appointments, clinical diagnostics, and prescription sheets.
               </div>
 
-              <DialogFooter className="flex gap-2">
+              <DialogFooter className="p-6 bg-slate-50 border-t border-slate-200 flex gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowConfirmDelete(false)}
-                  className="font-semibold"
+                  className="font-semibold px-4 h-9"
                 >
                   Go Back
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={() => selectedPatient && handleDeletePatient(selectedPatient.id)}
-                  className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 h-9"
                 >
                   Yes, Delete Patient
                 </Button>
