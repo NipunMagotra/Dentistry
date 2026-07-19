@@ -289,7 +289,8 @@ export default function Dashboard() {
       
       const result = await updateAppointmentStatus(id, newStatus)
       if (result && result.error) {
-        showToast(`❌ Error: ${result.error.message || "Failed to update status"}`)
+        const errorMsg = (result.error as any).message || "Failed to update status"
+        showToast(`❌ Error: ${errorMsg}`)
         startTransition(() => { loadAppointments() }) // Revert if failed
         return
       }

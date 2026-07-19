@@ -65,25 +65,26 @@ export function RescheduleModal({ isOpen, onClose, appointment, onReschedule }: 
           <div className="space-y-1.5">
             <Label htmlFor="res-date">Select Date</Label>
             <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal bg-slate-50/50",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4 text-slate-400" />
-                  {date ? format(date, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal bg-slate-50/50",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4 text-slate-400" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                }
+              />
               <PopoverContent className="w-auto p-0" align="start">
                 <ShadcnCalendar
                   mode="single"
                   selected={date}
                   onSelect={(d) => setDate(d)}
                   disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
-                  initialFocus
                 />
               </PopoverContent>
             </Popover>
