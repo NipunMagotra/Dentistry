@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 const MOCK_XRAY = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%230f172a'/><text x='50%' y='40%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%233b82f6' text-anchor='middle'>DENTAL X-RAY SCAN</text><path d='M80,180 Q100,100 120,180 T160,180 T200,180 T240,180 T280,180 T320,180' stroke='%2338bdf8' stroke-width='4' fill='none' opacity='0.7'/><circle cx='200' cy='160' r='6' fill='%23ef4444'/><text x='50%' y='80%' font-family='sans-serif' font-size='12' fill='%2364748b' text-anchor='middle'>Panoramic Scan - Target region shaded red</text></svg>"
 
@@ -115,6 +117,7 @@ const getLastVisited = (patient: Patient) => {
 
 export function PatientDirectory() {
   const [search, setSearch] = useState("")
+  const [filter, setFilter] = useState("All")
   const [patients, setPatients] = useState<Patient[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
@@ -347,11 +350,16 @@ export function PatientDirectory() {
     }
   }, [])
 
-  // Filter patients based on search input
-  const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.phone.includes(search)
-  )
+  // Filter patients based on search input & quick filters
+  const filteredPatients = patients.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.phone.includes(search)
+    let matchesFilter = true
+    if (filter === "Male") matchesFilter = p.gender === "Male"
+    if (filter === "Female") matchesFilter = p.gender === "Female"
+    if (filter === "Recent") matchesFilter = getLastVisited(p) !== "Never"
+    
+    return matchesSearch && matchesFilter
+  })
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -362,15 +370,30 @@ export function PatientDirectory() {
         </CardHeader>
         <CardContent className="p-6">
           
-          {/* Search Bar */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-            <Input 
-              placeholder="Search by name or phone..." 
-              className="pl-10 h-12 text-lg bg-white border-slate-200 focus-visible:ring-blue-500"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          {/* Search Bar & Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+              <Input 
+                placeholder="Search by name or phone..." 
+                className="pl-10 h-12 text-lg bg-white border-slate-200 focus-visible:ring-blue-500"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="w-full sm:w-48">
+              <Select value={filter} onValueChange={(val) => setFilter(val || "All")}>
+                <SelectTrigger className="h-12 bg-white text-base">
+                  <SelectValue placeholder="Filter by..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Patients</SelectItem>
+                  <SelectItem value="Recent">Recent Visitors</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Patient List */}
@@ -380,34 +403,38 @@ export function PatientDirectory() {
                 No patients found matching "{search}"
               </div>
             ) : (
-              filteredPatients.map(patient => (
-                <div 
-                  key={patient.id} 
-                  onClick={() => setSelectedPatient(patient)}
-                  className="p-4 border border-slate-100 rounded-xl bg-slate-50/70 flex justify-between items-center cursor-pointer transition-all hover:shadow-md hover:border-blue-300 hover:bg-white"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 bg-slate-200 text-slate-700 rounded-full flex items-center justify-center font-bold">
-                      {patient.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-800 text-lg">{patient.name}</div>
-                      <div className="text-sm text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                        <span>{patient.phone}</span>
-                        <span className="text-slate-300">•</span>
-                        <span>{patient.gender}</span>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-xs font-semibold px-2 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100/50">
-                          Last Visited: {getLastVisited(patient)}
-                        </span>
+              filteredPatients.map(patient => {
+                const lastVisited = getLastVisited(patient)
+                const isNever = lastVisited === "Never"
+                return (
+                  <div 
+                    key={patient.id} 
+                    onClick={() => setSelectedPatient(patient)}
+                    className="p-4 border border-slate-100 rounded-xl bg-slate-50/70 flex justify-between items-center cursor-pointer transition-all hover:shadow-md hover:border-blue-300 hover:bg-white"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 bg-slate-200 text-slate-700 rounded-full flex items-center justify-center font-bold">
+                        {patient.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800 text-lg">{patient.name}</div>
+                        <div className="text-sm text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                          <span>{patient.phone}</span>
+                          <span className="text-slate-300">•</span>
+                          <span>{patient.gender}</span>
+                          <span className="text-slate-300">•</span>
+                          <span className={cn("text-xs font-semibold px-2 py-0.5 rounded border", isNever ? "bg-slate-100 text-slate-500 border-slate-200" : "bg-blue-50 text-blue-600 border-blue-100/50")}>
+                            Last Visited: {lastVisited}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <div className="text-blue-600 font-medium text-sm flex items-center gap-1">
+                      View History &rarr;
+                    </div>
                   </div>
-                  <div className="text-blue-600 font-medium text-sm flex items-center gap-1">
-                    View History &rarr;
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </CardContent>

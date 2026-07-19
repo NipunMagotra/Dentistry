@@ -206,11 +206,11 @@ export default function PublicBookingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row items-stretch">
-      {/* Left Panel: Clinic Info & Trust Indicators */}
-      <div className="md:w-5/12 bg-gradient-to-br from-primary to-primary/80 text-white p-8 md:p-12 flex flex-col justify-between">
+      {/* Left Panel: Clinic Info */}
+      <div className="md:w-5/12 bg-gradient-to-br from-primary to-primary/80 text-white p-8 md:p-12 flex flex-col justify-center">
         <div className="space-y-8">
           {/* Clinic Brand */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-8 md:mb-12">
             <HeartPulse className="h-8 w-8 text-white/90" />
             <span className="text-xl font-bold uppercase tracking-wider">Clinic OS Portal</span>
           </div>
@@ -239,18 +239,6 @@ export default function PublicBookingPage() {
               <Clock className="h-5 w-5 shrink-0 text-white/70" />
               <span>{profile.clinicHours}</span>
             </div>
-          </div>
-        </div>
-
-        {/* Quality Badges */}
-        <div className="space-y-4 pt-8 border-t border-white/10">
-          <div className="flex items-center gap-3 text-xs text-white/80">
-            <ShieldCheck className="h-5 w-5 text-white/90" />
-            <span>Verified Clinic Profile & Verified Doctor Credentials</span>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-white/80">
-            <Sparkles className="h-5 w-5 text-white/90" />
-            <span>Instant WhatsApp Notification Trigger on Approval</span>
           </div>
         </div>
       </div>
@@ -371,13 +359,27 @@ export default function PublicBookingPage() {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || !isFormValid}
-                className="w-full bg-primary hover:bg-primary/95 text-white font-semibold h-11 mt-6"
-              >
-                {isSubmitting ? "Submitting Request..." : "Request Appointment"}
-              </Button>
+              <div className="pt-2">
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !isFormValid}
+                  className="w-full bg-primary hover:bg-primary/95 text-white font-semibold h-11"
+                >
+                  {isSubmitting ? "Submitting Request..." : "Request Appointment"}
+                </Button>
+
+                {/* Quality Badges - Moved here for better contextual trust */}
+                <div className="mt-6 space-y-3 p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="flex items-center gap-2.5 text-xs text-slate-600 font-medium">
+                    <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />
+                    <span>Verified Clinic Profile & Doctor Credentials</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 text-xs text-slate-600 font-medium">
+                    <Sparkles className="h-4 w-4 text-blue-600 shrink-0" />
+                    <span>Instant WhatsApp Notification on Approval</span>
+                  </div>
+                </div>
+              </div>
             </form>
           </CardContent>
         </Card>

@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Plus, Trash2, FileText, Download, Copy, Check, Loader2, RefreshCw } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 // Mock common drugs for the predefined list
 const COMMON_DRUGS = [
@@ -393,55 +394,54 @@ export function EPrescriptionForm() {
           {/* Standard Medications Selection */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg text-slate-800 border-b pb-2">Common Medications</h3>
-            <div className="grid gap-3">
+            <div className="flex flex-wrap gap-2">
               {COMMON_DRUGS.map((drug) => {
-                const selected = selectedDrugs.find((d) => d.id === drug.id)
-                const isChecked = !!selected
+                const isChecked = !!selectedDrugs.find((d) => d.id === drug.id)
 
                 return (
-                  <div key={drug.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-3 border rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <div className="flex items-center space-x-3 min-w-[200px]">
-                      <Checkbox
-                        id={drug.id}
-                        checked={isChecked}
-                        onCheckedChange={(checked) => handleToggleDrug(drug.id, drug.name, checked as boolean)}
-                      />
-                      <Label htmlFor={drug.id} className="font-medium cursor-pointer">{drug.name}</Label>
-                    </div>
-
-                    {isChecked && (
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-32">
-                          <Select
-                            value={selected.frequency}
-                            onValueChange={(val) => handleUpdateDrug(drug.id, "frequency", val || "")}
-                          >
-                            <SelectTrigger className="h-9 bg-white">
-                              <SelectValue placeholder="Freq" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {FREQUENCIES.map((freq) => (
-                                <SelectItem key={freq} value={freq}>{freq}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min={1}
-                            className="w-20 h-9 bg-white"
-                            value={selected.days}
-                            onChange={(e) => handleUpdateDrug(drug.id, "days", parseInt(e.target.value) || 1)}
-                          />
-                          <span className="text-sm text-slate-500 font-medium">Days</span>
-                        </div>
-                      </div>
+                  <button
+                    key={drug.id}
+                    type="button"
+                    onClick={() => handleToggleDrug(drug.id, drug.name, !isChecked)}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 border",
+                      isChecked 
+                        ? "bg-blue-600 border-blue-600 text-white shadow-sm" 
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
                     )}
-                  </div>
+                  >
+                    {isChecked && <Check className="w-3.5 h-3.5" />}
+                    {drug.name}
+                  </button>
                 )
               })}
             </div>
+
+            {/* Inputs for selected common drugs */}
+            {selectedDrugs.filter(d => !d.isCustom).length > 0 && (
+              <div className="grid gap-3 mt-4 p-4 border rounded-xl bg-slate-50/50">
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Dosage Configuration</h4>
+                {selectedDrugs.filter(d => !d.isCustom).map(selected => (
+                  <div key={selected.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 pb-3 border-b border-slate-200/60 last:border-0 last:pb-0">
+                    <div className="font-semibold text-sm text-slate-800 min-w-[180px]">{selected.name}</div>
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-32">
+                        <Select value={selected.frequency} onValueChange={(val) => handleUpdateDrug(selected.id, "frequency", val || "")}>
+                          <SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Freq" /></SelectTrigger>
+                          <SelectContent>
+                            {FREQUENCIES.map((freq) => <SelectItem key={freq} value={freq}>{freq}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="number" min={1} className="w-20 h-9 bg-white" value={selected.days} onChange={(e) => handleUpdateDrug(selected.id, "days", parseInt(e.target.value) || 1)} />
+                        <span className="text-sm text-slate-500 font-medium">Days</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Custom Drug Adding */}
@@ -455,13 +455,13 @@ export function EPrescriptionForm() {
                   placeholder="e.g. Vitamin D3 60K" 
                   value={customName} 
                   onChange={(e) => setCustomName(e.target.value)}
-                  className="bg-white"
+                  className="bg-white h-10"
                 />
               </div>
               <div className="grid gap-1.5 w-full sm:w-32">
                 <Label>Frequency</Label>
                 <Select value={customFreq} onValueChange={(val) => setCustomFreq(val || "")}>
-                  <SelectTrigger className="bg-white">
+                  <SelectTrigger className="bg-white h-10">
                     <SelectValue placeholder="Freq" />
                   </SelectTrigger>
                   <SelectContent>
@@ -479,10 +479,10 @@ export function EPrescriptionForm() {
                   min={1} 
                   value={customDays} 
                   onChange={(e) => setCustomDays(parseInt(e.target.value) || "")}
-                  className="bg-white"
+                  className="bg-white h-10"
                 />
               </div>
-              <Button onClick={handleAddCustomDrug} variant="secondary" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+              <Button onClick={handleAddCustomDrug} variant="secondary" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold h-10">
                 <Plus className="w-4 h-4 mr-1" /> Add
               </Button>
             </div>
