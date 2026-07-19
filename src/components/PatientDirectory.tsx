@@ -79,6 +79,13 @@ interface Patient {
   }
 }
 
+const getLastVisited = (patient: Patient) => {
+  const appointments = patient.history?.appointments || []
+  if (appointments.length === 0) return "Never"
+  const lastApt = appointments[appointments.length - 1]
+  return lastApt.date
+}
+
 export function PatientDirectory() {
   const [search, setSearch] = useState("")
   const [patients, setPatients] = useState<Patient[]>([])
@@ -168,10 +175,14 @@ export function PatientDirectory() {
                     </div>
                     <div>
                       <div className="font-semibold text-slate-800 text-lg">{patient.name}</div>
-                      <div className="text-sm text-slate-500 flex gap-3">
+                      <div className="text-sm text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
                         <span>{patient.phone}</span>
                         <span className="text-slate-300">•</span>
                         <span>{patient.gender}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100/50">
+                          Last Visited: {getLastVisited(patient)}
+                        </span>
                       </div>
                     </div>
                   </div>
