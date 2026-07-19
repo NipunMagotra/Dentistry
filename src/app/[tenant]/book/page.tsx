@@ -42,7 +42,7 @@ export default function PublicBookingPage() {
   // Form State
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
-  const [selectedDocId, setSelectedDocId] = useState("1")
+  const [selectedDocId, setSelectedDocId] = useState("Dr. Sarah Jenkins")
   const [date, setDate] = useState("")
   const [time, setTime] = useState("")
   const [reason, setReason] = useState("")
@@ -109,7 +109,7 @@ export default function PublicBookingPage() {
 
     // Simulate database write delay
     setTimeout(() => {
-      const selectedDoc = doctorsList.find(d => d.id === selectedDocId)?.name || "Doctor"
+      const selectedDoc = doctorsList.find(d => d.name === selectedDocId)?.name || "Doctor"
       
       const newRequest = {
         id: Date.now().toString(),
@@ -166,7 +166,7 @@ export default function PublicBookingPage() {
               <div className="flex justify-between">
                 <span className="text-slate-400">Doctor:</span>
                 <span className="font-semibold text-slate-700">
-                  {doctorsList.find(d => d.id === selectedDocId)?.name}
+                  {doctorsList.find(d => d.name === selectedDocId)?.name}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -314,14 +314,14 @@ export default function PublicBookingPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Preferred Doctor</Label>
-                  <Select value={selectedDocId} onValueChange={(val) => setSelectedDocId(val || "1")}>
+                  <Select value={selectedDocId} onValueChange={(val) => setSelectedDocId(val || "Dr. Sarah Jenkins")}>
                     <SelectTrigger className="bg-slate-50/50">
                       <SelectValue placeholder="Select Doctor" />
                     </SelectTrigger>
                     <SelectContent>
                       {doctorsList.map((doc) => (
-                        <SelectItem key={doc.id} value={doc.id}>
-                          {doc.name} ({doc.specialty})
+                        <SelectItem key={doc.id} value={doc.name}>
+                          {doc.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -61,7 +61,7 @@ export function EPrescriptionForm() {
   const [patients, setPatients] = useState<any[]>([])
 
   const [doctorsList, setDoctorsList] = useState<any[]>(DEFAULT_DOCTORS)
-  const [selectedDoctorId, setSelectedDoctorId] = useState("1")
+  const [selectedDoctorId, setSelectedDoctorId] = useState(DEFAULT_DOCTORS[0].name)
 
   // Clinic profile settings
   const [profile, setProfile] = useState({
@@ -120,8 +120,8 @@ export function EPrescriptionForm() {
           setDoctorsList(parsed)
           if (parsed.length > 0) {
             setSelectedDoctorId((prev) => {
-              const stillExists = parsed.some((d: any) => d.id === prev)
-              return stillExists ? prev : parsed[0].id
+              const stillExists = parsed.some((d: any) => d.name === prev)
+              return stillExists ? prev : parsed[0].name
             })
           }
         } catch (e) {
@@ -130,7 +130,7 @@ export function EPrescriptionForm() {
         }
       } else {
         setDoctorsList(DEFAULT_DOCTORS)
-        setSelectedDoctorId((prev) => prev || "1")
+        setSelectedDoctorId((prev) => prev || DEFAULT_DOCTORS[0].name)
       }
     }
 
@@ -275,7 +275,7 @@ export function EPrescriptionForm() {
     }
   }
 
-  const currentDoctor = doctorsList.find(d => d.id === selectedDoctorId) || {
+  const currentDoctor = doctorsList.find(d => d.name === selectedDoctorId) || {
     name: profile.doctorName,
     degrees: profile.doctorDegrees,
     regNo: profile.doctorRegNo,
@@ -316,7 +316,7 @@ export function EPrescriptionForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {doctorsList.map(doc => (
-                      <SelectItem key={doc.id} value={doc.id}>{doc.name} ({doc.specialty})</SelectItem>
+                      <SelectItem key={doc.id} value={doc.name}>{doc.name} ({doc.specialty})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
