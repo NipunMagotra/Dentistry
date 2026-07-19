@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, User, Clock, Pill, FileText, AlertTriangle, Download } from "lucide-react"
+import { Search, User, Clock, Pill, FileText, AlertTriangle, Download, Paperclip, Upload, Trash2 } from "lucide-react"
 import { toPng } from "html-to-image"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+const MOCK_XRAY = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%230f172a'/><text x='50%' y='40%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%233b82f6' text-anchor='middle'>DENTAL X-RAY SCAN</text><path d='M80,180 Q100,100 120,180 T160,180 T200,180 T240,180 T280,180 T320,180' stroke='%2338bdf8' stroke-width='4' fill='none' opacity='0.7'/><circle cx='200' cy='160' r='6' fill='%23ef4444'/><text x='50%' y='80%' font-family='sans-serif' font-size='12' fill='%2364748b' text-anchor='middle'>Panoramic Scan - Target region shaded red</text></svg>"
+
 // Mock Data for the Demo
 const MOCK_PATIENTS = [
   {
@@ -24,6 +26,9 @@ const MOCK_PATIENTS = [
     gender: "Female",
     dob: "Nov 14, 1991",
     allergies: "Penicillin",
+    attachments: [
+      { id: "att_1", name: "Panoramic_Scan.svg", url: MOCK_XRAY, date: "Jan 05, 2024" }
+    ],
     history: {
       appointments: [
         { date: "Oct 12, 2023", doctor: "Dr. Sarah Jenkins", status: "Completed", reason: "Routine Clean & Checkup", notes: "Mild plaque buildup. Advised scaling." },
@@ -41,6 +46,7 @@ const MOCK_PATIENTS = [
     gender: "Male",
     dob: "May 23, 1988",
     allergies: "None",
+    attachments: [],
     history: {
       appointments: [
         { date: "Nov 22, 2023", doctor: "Dr. Emily Rodriguez", status: "Completed", reason: "Tooth Extraction", notes: "Lower left molar extraction. Prescribed paracetamol." },
@@ -57,6 +63,7 @@ const MOCK_PATIENTS = [
     gender: "Male",
     dob: "Aug 09, 1995",
     allergies: "Sulfa Drugs",
+    attachments: [],
     history: {
       appointments: [],
       prescriptions: []
@@ -78,6 +85,13 @@ interface Prescription {
   drugs: string[]
 }
 
+interface PatientAttachment {
+  id: string
+  name: string
+  url: string
+  date: string
+}
+
 interface Patient {
   id: string
   name: string
@@ -85,6 +99,7 @@ interface Patient {
   gender: string
   dob?: string
   allergies?: string
+  attachments?: PatientAttachment[]
   history: {
     appointments: PatientAppointment[]
     prescriptions: Prescription[]
@@ -106,10 +121,56 @@ export function PatientDirectory() {
   const [downloadingRx, setDownloadingRx] = useState<any>(null)
   const exportRef = useRef<HTMLDivElement>(null)
   const [doctorsList, setDoctorsList] = useState<any[]>([])
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [profile, setProfile] = useState({
     clinicName: "City Dental Clinic",
     doctorName: "Dr. Sarah Jenkins"
   })
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !selectedPatient) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string
+      if (!dataUrl) return
+
+      const newAttachment = {
+        id: `att_${Date.now()}`,
+        name: file.name,
+        url: dataUrl,
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+      }
+
+      const updatedPatient = {
+        ...selectedPatient,
+        attachments: [...(selectedPatient.attachments || []), newAttachment]
+      }
+
+      setSelectedPatient(updatedPatient)
+      const updatedList = patients.map(p => p.id === selectedPatient.id ? updatedPatient : p)
+      setPatients(updatedList)
+      localStorage.setItem("patient_directory_list", JSON.stringify(updatedList))
+      window.dispatchEvent(new Event("patient-directory-updated"))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveAttachment = (attachmentId: string) => {
+    if (!selectedPatient) return
+
+    const updatedPatient = {
+      ...selectedPatient,
+      attachments: (selectedPatient.attachments || []).filter(a => a.id !== attachmentId)
+    }
+
+    setSelectedPatient(updatedPatient)
+    const updatedList = patients.map(p => p.id === selectedPatient.id ? updatedPatient : p)
+    setPatients(updatedList)
+    localStorage.setItem("patient_directory_list", JSON.stringify(updatedList))
+    window.dispatchEvent(new Event("patient-directory-updated"))
+  }
 
   // Load clinic profile settings & doctors list
   useEffect(() => {
@@ -374,6 +435,56 @@ export function PatientDirectory() {
                     </div>
                   )}
                 </div>
+
+                {/* Patient Attachments / Clinical X-Rays */}
+                <div className="space-y-3 pt-2">
+                  <h3 className="text-lg font-semibold text-slate-800 flex items-center justify-between border-b pb-2">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-5 w-5 text-slate-500" /> X-Rays & Diagnostic Images
+                    </div>
+                    <div>
+                      <label className="cursor-pointer bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-[10px] uppercase tracking-wide py-1 px-2.5 rounded-lg border border-blue-200 transition-colors flex items-center gap-1">
+                        <Upload className="h-3 w-3" /> Upload File
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handleImageUpload} 
+                        />
+                      </label>
+                    </div>
+                  </h3>
+
+                  {selectedPatient?.attachments && selectedPatient.attachments.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {selectedPatient.attachments.map((file) => (
+                        <div key={file.id} className="relative group border rounded-xl overflow-hidden bg-white border-slate-200 shadow-xs">
+                          {/* Image Thumbnail */}
+                          <img 
+                            src={file.url} 
+                            alt={file.name} 
+                            className="w-full h-24 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setLightboxUrl(file.url)}
+                          />
+                          {/* Title block */}
+                          <div className="p-2 bg-slate-50 border-t text-[10px] text-slate-500 font-semibold truncate flex justify-between items-center">
+                            <span className="truncate flex-1" title={file.name}>{file.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAttachment(file.id)}
+                              className="text-red-500 hover:text-red-700 ml-2"
+                              title="Delete Scan"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-xs italic">No clinical images or dental X-rays uploaded.</p>
+                  )}
+                </div>
               </div>
 
               <DialogFooter className="p-6 bg-slate-50 border-t border-slate-200 flex flex-row items-center gap-2 justify-end">
@@ -512,6 +623,20 @@ export function PatientDirectory() {
           </div>
         );
       })()}
+      {/* Lightbox zoom dialog overlay for diagnostic attachments */}
+      {lightboxUrl && (
+        <Dialog open={!!lightboxUrl} onOpenChange={(open) => !open && setLightboxUrl(null)}>
+          <DialogContent className="sm:max-w-4xl bg-slate-950 p-2 overflow-hidden flex flex-col justify-center items-center h-[75vh] border-none shadow-2xl">
+            <div className="relative w-full h-full flex justify-center items-center">
+              <img 
+                src={lightboxUrl} 
+                alt="Enlarged diagnostic view" 
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
