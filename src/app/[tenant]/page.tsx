@@ -316,8 +316,8 @@ export default function Dashboard() {
   }
 
   const handleCompleteAppointment = (apt: Appointment) => {
-    // Remove from active appointments list
-    const list = appointments.filter(a => a.id !== apt.id)
+    // Update status to Completed instead of removing from active queue
+    const list = appointments.map(a => a.id === apt.id ? { ...a, status: "Completed" } : a)
     updateAppointments(list)
 
     // Add record to the patient in localStorage directory
@@ -372,17 +372,17 @@ export default function Dashboard() {
       <div className="max-w-6xl w-full">
         
         {/* Header (Hidden on print) */}
-        <div className="flex items-center justify-between mb-8 print:hidden">
+        <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-200 print:hidden">
           <div>
             <Image 
               src="/horizontal-logo.png" 
               alt="Clinic OS Logo" 
               width={200} 
               height={50} 
-              className="h-12 w-auto object-contain mb-1"
+              className="h-12 w-auto object-contain mb-2"
               priority 
             />
-            <p className="text-slate-500 text-sm">
+            <p className="text-slate-500 text-sm mt-1">
               Welcome, <span className="font-semibold text-slate-700">{profile.doctorName}</span>. Manage {profile.clinicName} from one place.
             </p>
           </div>
@@ -438,9 +438,9 @@ export default function Dashboard() {
                       <CardTitle className="text-xl font-bold text-slate-800">Today's Appointments</CardTitle>
                       <CardDescription>You have {appointments.length} appointments today.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 overflow-auto p-4 space-y-4">
+                    <CardContent className="flex-1 overflow-auto p-4 flex flex-col space-y-4">
                       {appointments.length === 0 ? (
-                        <div className="flex items-center justify-center h-full text-slate-400 italic">
+                        <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-slate-400 italic text-sm">
                           No appointments booked yet. Use the wizard to add one.
                         </div>
                       ) : (
@@ -451,7 +451,9 @@ export default function Dashboard() {
                               setSelectedDetailsApt(apt)
                               setIsDetailsModalOpen(true)
                             }}
-                            className="p-4 border border-slate-100 rounded-xl bg-white shadow-sm flex flex-col gap-3 transition-all hover:shadow-md hover:border-slate-200 cursor-pointer"
+                            className={`p-4 border border-slate-100 rounded-xl shadow-sm flex flex-col gap-3 transition-all cursor-pointer ${
+                              apt.status === "Completed" ? "opacity-60 bg-slate-50" : "bg-white hover:shadow-md hover:border-slate-200"
+                            }`}
                           >
                             <div className="flex justify-between items-start">
                               <div className="font-semibold text-slate-800">{apt.patient}</div>
@@ -472,46 +474,48 @@ export default function Dashboard() {
                               </div>
                             </div>
 
-                            <div className="flex gap-1.5 border-t pt-3 mt-1 text-[11px]">
-                              {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
+                            {apt.status !== "Completed" && (
+                              <div className="flex gap-1.5 border-t pt-3 mt-1 text-[11px]">
+                                {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleUpdateStatus(apt.id, "In Progress")
+                                    }}
+                                    className="px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded font-semibold transition-colors"
+                                  >
+                                    Start
+                                  </button>
+                                )}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    handleUpdateStatus(apt.id, "In Progress")
+                                    handleRescheduleClick(apt)
                                   }}
-                                  className="px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded font-semibold transition-colors"
+                                  className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold transition-colors"
                                 >
-                                  Start
+                                  Reschedule
                                 </button>
-                              )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRescheduleClick(apt)
-                                }}
-                                className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold transition-colors"
-                              >
-                                Reschedule
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleCompleteAppointment(apt)
-                                }}
-                                className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-semibold transition-colors"
-                              >
-                                Complete
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleCancelAppointment(apt.id)
-                                }}
-                                className="px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded font-semibold transition-colors ml-auto"
-                              >
-                                Cancel
-                              </button>
-                            </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleCompleteAppointment(apt)
+                                  }}
+                                  className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-semibold transition-colors"
+                                >
+                                  Complete
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleCancelAppointment(apt.id)
+                                  }}
+                                  className="px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded font-semibold transition-colors ml-auto"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))
                       )}
