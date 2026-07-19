@@ -35,6 +35,12 @@ const COMMON_DRUGS = [
 
 const FREQUENCIES = ["1-0-0", "1-0-1", "1-1-1", "0-1-0", "0-0-1", "SOS"]
 
+const DEFAULT_DOCTORS = [
+  { id: "1", name: "Dr. Sarah Jenkins", specialty: "Periodontics", degrees: "BDS, MDS (Periodontics)", regNo: "849201", charge: 150 },
+  { id: "2", name: "Dr. Michael Chen", specialty: "Prosthodontics", degrees: "DDS, MS (Prosthodontics)", regNo: "732910", charge: 200 },
+  { id: "3", name: "Dr. Emily Rodriguez", specialty: "Pediatric Dentistry", degrees: "DDS, MSD (Pedodontics)", regNo: "918273", charge: 180 }
+]
+
 type SelectedDrug = {
   id: string
   name: string
@@ -54,6 +60,9 @@ export function EPrescriptionForm() {
   const [patientPhone, setPatientPhone] = useState("")
   const [patients, setPatients] = useState<any[]>([])
 
+  const [doctorsList, setDoctorsList] = useState<any[]>(DEFAULT_DOCTORS)
+  const [selectedDoctorId, setSelectedDoctorId] = useState("1")
+
   // Clinic profile settings
   const [profile, setProfile] = useState({
     clinicName: "City Dental Clinic",
@@ -72,7 +81,7 @@ export function EPrescriptionForm() {
   
   const prescriptionRef = useRef<HTMLDivElement>(null)
 
-  // Load clinic profile & patient directory
+  // Load clinic profile, patient directory & doctors list
   useEffect(() => {
     const loadData = () => {
       // 1. Profile settings
@@ -102,14 +111,37 @@ export function EPrescriptionForm() {
           console.error("Error loading directory", e)
         }
       }
+
+      // 3. Doctors list
+      const savedDocs = localStorage.getItem("clinic_doctors_list")
+      if (savedDocs) {
+        try {
+          const parsed = JSON.parse(savedDocs)
+          setDoctorsList(parsed)
+          if (parsed.length > 0) {
+            setSelectedDoctorId((prev) => {
+              const stillExists = parsed.some((d: any) => d.id === prev)
+              return stillExists ? prev : parsed[0].id
+            })
+          }
+        } catch (e) {
+          console.error("Error loading doctors list", e)
+          setDoctorsList(DEFAULT_DOCTORS)
+        }
+      } else {
+        setDoctorsList(DEFAULT_DOCTORS)
+        setSelectedDoctorId((prev) => prev || "1")
+      }
     }
 
     loadData()
     window.addEventListener("clinic-profile-updated", loadData)
     window.addEventListener("patient-directory-updated", loadData)
+    window.addEventListener("clinic-doctors-updated", loadData)
     return () => {
       window.removeEventListener("clinic-profile-updated", loadData)
       window.removeEventListener("patient-directory-updated", loadData)
+      window.removeEventListener("clinic-doctors-updated", loadData)
     }
   }, [])
 
@@ -243,6 +275,13 @@ export function EPrescriptionForm() {
     }
   }
 
+  const currentDoctor = doctorsList.find(d => d.id === selectedDoctorId) || {
+    name: profile.doctorName,
+    degrees: profile.doctorDegrees,
+    regNo: profile.doctorRegNo,
+    specialty: "Dental Surgeon"
+  }
+
   return (
     <div className="w-full">
       <Card className="border-slate-200 shadow-sm bg-white">
@@ -264,11 +303,25 @@ export function EPrescriptionForm() {
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           
-          {/* Patient Details & Selector */}
+          {/* Prescribing Physician & Patient Details Selector */}
           <div className="p-4 border rounded-xl bg-slate-50/50 space-y-4">
-            <h3 className="font-semibold text-slate-700 text-sm uppercase tracking-wider">Patient Information</h3>
+            <h3 className="font-semibold text-slate-700 text-sm uppercase tracking-wider">Clinical Details</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="prescribing-doctor">Prescribing Doctor</Label>
+                <Select value={selectedDoctorId} onValueChange={(val) => setSelectedDoctorId(val || "")}>
+                  <SelectTrigger id="prescribing-doctor" className="bg-white">
+                    <SelectValue placeholder="Choose Doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctorsList.map(doc => (
+                      <SelectItem key={doc.id} value={doc.id}>{doc.name} ({doc.specialty})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid gap-1.5">
                 <Label htmlFor="patient-select">Onboarded Patient (Optional)</Label>
                 <Select value={patientId} onValueChange={handlePatientSelect}>
@@ -492,9 +545,9 @@ export function EPrescriptionForm() {
                     <p className="text-xs text-slate-500 font-medium">Contact: {profile.clinicPhone}</p>
                   </div>
                   <div className="text-right space-y-1">
-                    <h2 className="text-xl font-bold text-slate-900 leading-none">{profile.doctorName}</h2>
-                    <p className="text-xs text-blue-600 font-semibold">{profile.doctorDegrees}</p>
-                    <p className="text-[10px] text-slate-400 font-bold">REG NO: {profile.doctorRegNo}</p>
+                    <h2 className="text-xl font-bold text-slate-900 leading-none">{currentDoctor.name}</h2>
+                    <p className="text-xs text-blue-600 font-semibold">{currentDoctor.degrees}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">REG NO: {currentDoctor.regNo}</p>
                   </div>
                 </div>
 
@@ -558,7 +611,7 @@ export function EPrescriptionForm() {
                 <div className="text-center w-48 space-y-1">
                   <div className="border-t border-slate-300 pt-1"></div>
                   <div className="font-bold text-xs text-slate-700 uppercase tracking-wider">Authorized Signature</div>
-                  <div className="text-[10px] text-slate-400 font-medium">{profile.doctorName}</div>
+                  <div className="text-[10px] text-slate-400 font-medium">{currentDoctor.name}</div>
                 </div>
               </div>
             </div>

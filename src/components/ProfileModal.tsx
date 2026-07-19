@@ -1,12 +1,52 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Building2, User, Settings, Phone, MapPin, Award, ShieldAlert, Key, Clock, Copy, Check } from "lucide-react"
+import { Building2, User, Settings, Phone, MapPin, Award, ShieldAlert, Key, Clock, Copy, Check, Plus, Pencil, Trash2, DollarSign, Stethoscope } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+export interface Doctor {
+  id: string
+  name: string
+  specialty: string
+  degrees: string
+  regNo: string
+  timings: string
+  charge: number
+}
+
+export const DEFAULT_DOCTORS: Doctor[] = [
+  {
+    id: "1",
+    name: "Dr. Sarah Jenkins",
+    specialty: "Periodontics",
+    degrees: "BDS, MDS (Periodontics)",
+    regNo: "849201",
+    timings: "Mon - Fri: 10:00 AM - 5:00 PM",
+    charge: 150
+  },
+  {
+    id: "2",
+    name: "Dr. Michael Chen",
+    specialty: "Prosthodontics",
+    degrees: "DDS, MS (Prosthodontics)",
+    regNo: "732910",
+    timings: "Mon - Thu: 9:00 AM - 4:00 PM",
+    charge: 200
+  },
+  {
+    id: "3",
+    name: "Dr. Emily Rodriguez",
+    specialty: "Pediatric Dentistry",
+    degrees: "DDS, MSD (Pedodontics)",
+    regNo: "918273",
+    timings: "Tue - Sat: 11:00 AM - 6:00 PM",
+    charge: 180
+  }
+]
 
 interface ProfileSettings {
   clinicName: string
@@ -14,10 +54,6 @@ interface ProfileSettings {
   clinicPhone: string
   clinicBio?: string
   clinicHours?: string
-  doctorHours?: string
-  doctorName: string
-  doctorDegrees: string
-  doctorRegNo: string
   whatsappEnabled: boolean
   qstashToken: string
   twilioSid: string
@@ -30,10 +66,6 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   clinicPhone: "+1 (555) 123-4567",
   clinicBio: "Welcome to our patient booking portal. Schedule a consultation, dental check-up, or specialized treatment with our dental professionals in just a few clicks.",
   clinicHours: "Mon - Sat: 9:00 AM - 7:00 PM",
-  doctorHours: "Mon - Fri: 10:00 AM - 5:00 PM",
-  doctorName: "Dr. Sarah Jenkins",
-  doctorDegrees: "BDS, MDS (Periodontics)",
-  doctorRegNo: "849201",
   whatsappEnabled: true,
   qstashToken: "",
   twilioSid: "",
@@ -46,14 +78,44 @@ export function ProfileModal({ tenant }: { tenant: string }) {
   const [bookingLink, setBookingLink] = useState("")
   const [copied, setCopied] = useState(false)
 
-  // Load settings on mount
+  // Doctor Directory state
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [isDoctorFormOpen, setIsDoctorFormOpen] = useState(false)
+  const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null)
+  
+  // Doctor form local state
+  const [docName, setDocName] = useState("")
+  const [docSpecialty, setDocSpecialty] = useState("")
+  const [docDegrees, setDocDegrees] = useState("")
+  const [docRegNo, setDocRegNo] = useState("")
+  const [docTimings, setDocTimings] = useState("")
+  const [docCharge, setDocCharge] = useState("150")
+
+  // Load settings & doctors on open
   useEffect(() => {
-    const saved = localStorage.getItem("clinic_profile_settings")
-    if (saved) {
-      try {
-        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) })
-      } catch (e) {
-        console.error("Error loading settings", e)
+    if (isOpen) {
+      // Load Profile
+      const savedProfile = localStorage.getItem("clinic_profile_settings")
+      if (savedProfile) {
+        try {
+          setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(savedProfile) })
+        } catch (e) {
+          console.error("Error loading profile settings", e)
+        }
+      }
+
+      // Load Doctors
+      const savedDocs = localStorage.getItem("clinic_doctors_list")
+      if (savedDocs) {
+        try {
+          setDoctors(JSON.parse(savedDocs))
+        } catch (e) {
+          console.error("Error loading doctors list", e)
+          setDoctors(DEFAULT_DOCTORS)
+        }
+      } else {
+        localStorage.setItem("clinic_doctors_list", JSON.stringify(DEFAULT_DOCTORS))
+        setDoctors(DEFAULT_DOCTORS)
       }
     }
   }, [isOpen])
@@ -74,13 +136,79 @@ export function ProfileModal({ tenant }: { tenant: string }) {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
     localStorage.setItem("clinic_profile_settings", JSON.stringify(settings))
-    // Dispatch event to notify other components
+    localStorage.setItem("clinic_doctors_list", JSON.stringify(doctors))
+    
+    // Dispatch events to notify other modules
     window.dispatchEvent(new Event("clinic-profile-updated"))
+    window.dispatchEvent(new Event("clinic-doctors-updated"))
+    
     setIsOpen(false)
   }
 
   const updateField = (field: keyof ProfileSettings, value: any) => {
     setSettings((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleAddDoctorClick = () => {
+    setEditingDoctorId(null)
+    setDocName("")
+    setDocSpecialty("")
+    setDocDegrees("")
+    setDocRegNo("")
+    setDocTimings("Mon - Fri: 10:00 AM - 5:00 PM")
+    setDocCharge("150")
+    setIsDoctorFormOpen(true)
+  }
+
+  const handleEditDoctorClick = (doc: Doctor) => {
+    setEditingDoctorId(doc.id)
+    setDocName(doc.name)
+    setDocSpecialty(doc.specialty)
+    setDocDegrees(doc.degrees)
+    setDocRegNo(doc.regNo)
+    setDocTimings(doc.timings)
+    setDocCharge(doc.charge.toString())
+    setIsDoctorFormOpen(true)
+  }
+
+  const handleRemoveDoctor = (id: string) => {
+    setDoctors((prev) => prev.filter((d) => d.id !== id))
+  }
+
+  const handleSaveDoctor = () => {
+    if (!docName.trim() || !docDegrees.trim() || !docRegNo.trim()) return
+
+    if (editingDoctorId) {
+      // Update
+      setDoctors((prev) =>
+        prev.map((d) =>
+          d.id === editingDoctorId
+            ? {
+                ...d,
+                name: docName,
+                specialty: docSpecialty,
+                degrees: docDegrees,
+                regNo: docRegNo,
+                timings: docTimings,
+                charge: Number(docCharge) || 150,
+              }
+            : d
+        )
+      )
+    } else {
+      // Add
+      const newDoc: Doctor = {
+        id: `doc_${Date.now()}`,
+        name: docName,
+        specialty: docSpecialty,
+        degrees: docDegrees,
+        regNo: docRegNo,
+        timings: docTimings,
+        charge: Number(docCharge) || 150,
+      }
+      setDoctors((prev) => [...prev, newDoc])
+    }
+    setIsDoctorFormOpen(false)
   }
 
   return (
@@ -108,7 +236,7 @@ export function ProfileModal({ tenant }: { tenant: string }) {
                 <Building2 className="h-4 w-4" /> Clinic
               </TabsTrigger>
               <TabsTrigger value="doctor" className="flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg">
-                <User className="h-4 w-4" /> Doctor
+                <User className="h-4 w-4" /> Doctors
               </TabsTrigger>
               <TabsTrigger value="integrations" className="flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg">
                 <Key className="h-4 w-4" /> Integrations
@@ -203,67 +331,194 @@ export function ProfileModal({ tenant }: { tenant: string }) {
               </div>
             </TabsContent>
 
-            {/* Doctor Settings Tab */}
+            {/* Doctor Settings Tab: Bento Grid Directory */}
             <TabsContent value="doctor" className="space-y-4 outline-none">
-              <div className="space-y-2">
-                <Label htmlFor="doctorName">Doctor Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="doctorName"
-                    value={settings.doctorName}
-                    onChange={(e) => updateField("doctorName", e.target.value)}
-                    className="pl-9 bg-slate-50/50"
-                    placeholder="e.g. Dr. Sarah Jenkins"
-                    required
-                  />
-                </div>
-              </div>
+              {!isDoctorFormOpen ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b">
+                    <h3 className="font-bold text-slate-800">Clinic Practitioners ({doctors.length})</h3>
+                    <Button 
+                      type="button" 
+                      onClick={handleAddDoctorClick} 
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-1 text-xs h-8 px-2.5"
+                    >
+                      <Plus className="h-4 w-4" /> Add Doctor
+                    </Button>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="doctorDegrees">Degrees & Specializations</Label>
-                <div className="relative">
-                  <Award className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="doctorDegrees"
-                    value={settings.doctorDegrees}
-                    onChange={(e) => updateField("doctorDegrees", e.target.value)}
-                    className="pl-9 bg-slate-50/50"
-                    placeholder="e.g. BDS, MDS (Periodontics)"
-                    required
-                  />
-                </div>
-              </div>
+                  {doctors.length === 0 ? (
+                    <div className="text-center p-8 text-slate-400 italic border border-dashed rounded-xl">
+                      No doctors registered yet. Click "Add Doctor" to add one.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {doctors.map((doc) => (
+                        <div 
+                          key={doc.id} 
+                          className="border border-slate-150 rounded-xl p-4 bg-slate-50 flex flex-col justify-between hover:shadow-md hover:border-blue-200 transition-all gap-3 relative group"
+                        >
+                          {/* Floating Actions overlay */}
+                          <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => handleEditDoctorClick(doc)}
+                              className="p-1 bg-white hover:bg-blue-50 border rounded text-slate-500 hover:text-blue-600 transition-colors"
+                              title="Edit Credentials"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDoctor(doc.id)}
+                              className="p-1 bg-white hover:bg-red-50 border rounded text-slate-500 hover:text-red-600 transition-colors"
+                              title="Remove Doctor"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="doctorRegNo">Registration / License Number</Label>
-                <div className="relative">
-                  <ShieldAlert className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="doctorRegNo"
-                    value={settings.doctorRegNo}
-                    onChange={(e) => updateField("doctorRegNo", e.target.value)}
-                    className="pl-9 bg-slate-50/50"
-                    placeholder="e.g. 849201"
-                    required
-                  />
-                </div>
-              </div>
+                          <div className="space-y-3.5">
+                            {/* Prominent Name & Avatar Box */}
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold font-sans text-sm">
+                                {doc.name.replace("Dr. ", "").charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-800 leading-tight">{doc.name}</div>
+                                <div className="text-xs text-slate-500 font-semibold">{doc.specialty || "Dental Surgeon"}</div>
+                              </div>
+                            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="doctorHours">Doctor Consultation Hours / Timings</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="doctorHours"
-                    value={settings.doctorHours}
-                    onChange={(e) => updateField("doctorHours", e.target.value)}
-                    className="pl-9 bg-slate-50/50"
-                    placeholder="e.g. Mon - Fri: 10:00 AM - 5:00 PM"
-                    required
-                  />
+                            {/* Credentials Accent Box */}
+                            <div className="p-2.5 bg-blue-50/50 border border-blue-100/50 rounded-lg text-xs">
+                              <span className="font-bold text-blue-800 block text-[9px] uppercase tracking-wider mb-0.5">Specialization & Degrees</span>
+                              <span className="text-slate-650 font-medium">{doc.degrees}</span>
+                            </div>
+
+                            {/* License & Consultation Fee grid block */}
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="p-2 bg-white border border-slate-200/60 rounded-lg">
+                                <span className="font-semibold text-slate-400 block text-[8px] uppercase tracking-wider mb-0.5">License ID</span>
+                                <span className="text-slate-700 font-bold">Reg #{doc.regNo}</span>
+                              </div>
+                              <div className="p-2 bg-white border border-slate-200/60 rounded-lg">
+                                <span className="font-semibold text-slate-400 block text-[8px] uppercase tracking-wider mb-0.5">Consult Fee</span>
+                                <span className="text-green-700 font-bold">${doc.charge}</span>
+                              </div>
+                            </div>
+
+                            {/* Hours Highlight Box */}
+                            <div className="p-2.5 bg-amber-50/60 border border-amber-100/70 rounded-lg text-xs">
+                              <span className="font-bold text-amber-800 block text-[9px] uppercase tracking-wider mb-0.5">Consultation Hours</span>
+                              <span className="text-slate-650 font-medium flex items-center gap-1 mt-0.5">
+                                <Clock className="h-3.5 w-3.5 text-amber-600" /> {doc.timings}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : (
+                // Add / Edit Form Card
+                <div className="p-4 border border-blue-100 rounded-xl bg-blue-50/30 space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b border-blue-100">
+                    <h3 className="font-bold text-blue-800 text-sm">
+                      {editingDoctorId ? "Edit Doctor Credentials" : "Register New Practitioner"}
+                    </h3>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setIsDoctorFormOpen(false)}
+                      className="h-7 text-xs font-semibold"
+                    >
+                      Back to Directory
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="grid gap-1">
+                      <Label htmlFor="doc-name">Doctor Name</Label>
+                      <Input 
+                        id="doc-name" 
+                        placeholder="e.g. Dr. Sarah Jenkins" 
+                        value={docName} 
+                        onChange={(e) => setDocName(e.target.value)}
+                        className="bg-white h-9"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label htmlFor="doc-spec">Specialty Title</Label>
+                      <Input 
+                        id="doc-spec" 
+                        placeholder="e.g. Orthodontist" 
+                        value={docSpecialty} 
+                        onChange={(e) => setDocSpecialty(e.target.value)}
+                        className="bg-white h-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="grid gap-1">
+                      <Label htmlFor="doc-degrees">Degrees & Specializations</Label>
+                      <Input 
+                        id="doc-degrees" 
+                        placeholder="e.g. BDS, MDS" 
+                        value={docDegrees} 
+                        onChange={(e) => setDocDegrees(e.target.value)}
+                        className="bg-white h-9"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label htmlFor="doc-reg">License / Registration ID</Label>
+                      <Input 
+                        id="doc-reg" 
+                        placeholder="e.g. 849201" 
+                        value={docRegNo} 
+                        onChange={(e) => setDocRegNo(e.target.value)}
+                        className="bg-white h-9"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="grid gap-1">
+                      <Label htmlFor="doc-timings">Consultation Timings</Label>
+                      <Input 
+                        id="doc-timings" 
+                        placeholder="e.g. Mon - Fri: 10am - 5pm" 
+                        value={docTimings} 
+                        onChange={(e) => setDocTimings(e.target.value)}
+                        className="bg-white h-9"
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label htmlFor="doc-charge">Consultation Fee ($)</Label>
+                      <Input 
+                        id="doc-charge" 
+                        type="number"
+                        placeholder="e.g. 150" 
+                        value={docCharge} 
+                        onChange={(e) => setDocCharge(e.target.value)}
+                        className="bg-white h-9"
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    type="button" 
+                    onClick={handleSaveDoctor} 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold mt-2 h-9"
+                  >
+                    Save Doctor Details
+                  </Button>
+                </div>
+              )}
             </TabsContent>
 
             {/* Integrations Settings Tab */}
@@ -291,11 +546,9 @@ export function ProfileModal({ tenant }: { tenant: string }) {
                       value={settings.qstashToken}
                       onChange={(e) => updateField("qstashToken", e.target.value)}
                       className="bg-white"
-                      placeholder="QSTASH_TOKEN"
+                      placeholder="Enter QStash Token"
                     />
-                    <span className="text-[11px] text-slate-400">Used for background scheduling workflows.</span>
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="twilioSid">Twilio Account SID</Label>
                     <Input
@@ -303,10 +556,9 @@ export function ProfileModal({ tenant }: { tenant: string }) {
                       value={settings.twilioSid}
                       onChange={(e) => updateField("twilioSid", e.target.value)}
                       className="bg-white"
-                      placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxx"
+                      placeholder="Enter Twilio Account SID"
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="twilioToken">Twilio Auth Token</Label>
                     <Input
@@ -315,7 +567,7 @@ export function ProfileModal({ tenant }: { tenant: string }) {
                       value={settings.twilioToken}
                       onChange={(e) => updateField("twilioToken", e.target.value)}
                       className="bg-white"
-                      placeholder="Auth Token"
+                      placeholder="Enter Twilio Auth Token"
                     />
                   </div>
                 </div>
@@ -323,11 +575,20 @@ export function ProfileModal({ tenant }: { tenant: string }) {
             </TabsContent>
           </Tabs>
 
-          <div className="flex gap-3 justify-end border-t pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+          <div className="flex justify-end gap-3 border-t pt-4 mt-6">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsOpen(false)}
+              className="font-semibold"
+            >
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/95">
+            <Button 
+              type="submit" 
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+              disabled={isDoctorFormOpen}
+            >
               Save Changes
             </Button>
           </div>

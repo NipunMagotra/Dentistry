@@ -131,25 +131,47 @@ export default function Dashboard() {
     }
   }, [])
 
-  // Load clinic settings
+  // Load clinic settings & doctors list
   useEffect(() => {
     const loadProfile = () => {
+      let nameFallback = "Dr. Sarah Jenkins"
+      const savedDocs = localStorage.getItem("clinic_doctors_list")
+      if (savedDocs) {
+        try {
+          const parsedDocs = JSON.parse(savedDocs)
+          if (parsedDocs.length > 0) {
+            nameFallback = parsedDocs[0].name
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
+
       const saved = localStorage.getItem("clinic_profile_settings")
       if (saved) {
         try {
           const parsed = JSON.parse(saved)
           setProfile({
             clinicName: parsed.clinicName || "City Dental Clinic",
-            doctorName: parsed.doctorName || "Dr. Sarah Jenkins"
+            doctorName: parsed.doctorName || nameFallback
           })
         } catch (e) {
           console.error("Error loading profile in dashboard", e)
         }
+      } else {
+        setProfile({
+          clinicName: "City Dental Clinic",
+          doctorName: nameFallback
+        })
       }
     }
     loadProfile()
     window.addEventListener("clinic-profile-updated", loadProfile)
-    return () => window.removeEventListener("clinic-profile-updated", loadProfile)
+    window.addEventListener("clinic-doctors-updated", loadProfile)
+    return () => {
+      window.removeEventListener("clinic-profile-updated", loadProfile)
+      window.removeEventListener("clinic-doctors-updated", loadProfile)
+    }
   }, [])
 
   // Sync pending requests from localStorage

@@ -105,24 +105,43 @@ export function PatientDirectory() {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [downloadingRx, setDownloadingRx] = useState<any>(null)
   const exportRef = useRef<HTMLDivElement>(null)
+  const [doctorsList, setDoctorsList] = useState<any[]>([])
   const [profile, setProfile] = useState({
     clinicName: "City Dental Clinic",
     doctorName: "Dr. Sarah Jenkins"
   })
 
-  // Load clinic profile settings
+  // Load clinic profile settings & doctors list
   useEffect(() => {
-    const saved = localStorage.getItem("clinic_profile_settings")
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        setProfile({
-          clinicName: parsed.clinicName || "City Dental Clinic",
-          doctorName: parsed.doctorName || "Dr. Sarah Jenkins"
-        })
-      } catch (e) {
-        console.error(e)
+    const loadData = () => {
+      const saved = localStorage.getItem("clinic_profile_settings")
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          setProfile({
+            clinicName: parsed.clinicName || "City Dental Clinic",
+            doctorName: parsed.doctorName || "Dr. Sarah Jenkins"
+          })
+        } catch (e) {
+          console.error(e)
+        }
       }
+
+      const savedDocs = localStorage.getItem("clinic_doctors_list")
+      if (savedDocs) {
+        try {
+          setDoctorsList(JSON.parse(savedDocs))
+        } catch (e) {
+          console.error(e)
+        }
+      }
+    }
+    loadData()
+    window.addEventListener("clinic-profile-updated", loadData)
+    window.addEventListener("clinic-doctors-updated", loadData)
+    return () => {
+      window.removeEventListener("clinic-profile-updated", loadData)
+      window.removeEventListener("clinic-doctors-updated", loadData)
     }
   }, [])
 
@@ -407,83 +426,92 @@ export function PatientDirectory() {
       </Dialog>
 
       {/* Offscreen prescription canvas for programmatically generating downloads */}
-      {downloadingRx && (
-        <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
-          <div 
-            ref={exportRef}
-            className="w-[720px] min-h-[900px] p-10 bg-white text-slate-800 flex flex-col justify-between font-sans"
-          >
-            <div>
-              {/* Header Pad details */}
-              <div className="border-b-4 border-blue-900 pb-6 mb-8 flex justify-between items-start">
-                <div className="space-y-1">
-                  <h1 className="text-3xl font-extrabold text-blue-900 uppercase tracking-wide leading-none">{profile.clinicName}</h1>
-                  <p className="text-xs text-slate-500 font-medium">Contact: {profile.clinicName === "City Dental Clinic" ? "+1 (555) 123-4567" : "Clinic Registry"}</p>
+      {downloadingRx && (() => {
+        const matchedDoc = doctorsList.find(d => d.name === downloadingRx.doctor) || {
+          name: downloadingRx.doctor || profile.doctorName,
+          specialty: "Dental Surgeon",
+          degrees: "BDS, MDS (Periodontics)",
+          regNo: "849201"
+        };
+        return (
+          <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+            <div 
+              ref={exportRef}
+              className="w-[720px] min-h-[900px] p-10 bg-white text-slate-800 flex flex-col justify-between font-sans"
+            >
+              <div>
+                {/* Header Pad details */}
+                <div className="border-b-4 border-blue-900 pb-6 mb-8 flex justify-between items-start">
+                  <div className="space-y-1">
+                    <h1 className="text-3xl font-extrabold text-blue-900 uppercase tracking-wide leading-none">{profile.clinicName}</h1>
+                    <p className="text-xs text-slate-500 font-medium">Contact: {profile.clinicName === "City Dental Clinic" ? "+1 (555) 123-4567" : "Clinic Registry"}</p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <h2 className="text-xl font-bold text-slate-900 leading-none">{matchedDoc.name}</h2>
+                    <p className="text-xs text-blue-600 font-semibold">{matchedDoc.degrees}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">REG NO: {matchedDoc.regNo}</p>
+                  </div>
                 </div>
-                <div className="text-right space-y-1">
-                  <h2 className="text-xl font-bold text-slate-900 leading-none">{downloadingRx.doctor || profile.doctorName}</h2>
-                  <p className="text-xs text-blue-600 font-semibold">Dental Surgeon</p>
-                </div>
-              </div>
 
-              {/* Patient Details */}
-              <div className="grid grid-cols-4 gap-4 p-4 border rounded-xl bg-slate-50/50 mb-8 text-xs font-semibold text-slate-700">
-                <div>
-                  <span className="text-slate-400 block uppercase text-[10px] tracking-wider mb-0.5">Patient Name</span>
-                  <span className="text-slate-900 text-sm font-bold">{selectedPatient?.name}</span>
+                {/* Patient Details */}
+                <div className="grid grid-cols-4 gap-4 p-4 border rounded-xl bg-slate-50/50 mb-8 text-xs font-semibold text-slate-700">
+                  <div>
+                    <span className="text-slate-400 block uppercase text-[10px] tracking-wider mb-0.5">Patient Name</span>
+                    <span className="text-slate-900 text-sm font-bold">{selectedPatient?.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block uppercase text-[10px] tracking-wider mb-0.5">Gender / DOB</span>
+                    <span className="text-slate-900 text-sm font-bold">{selectedPatient?.gender} ({selectedPatient?.dob || "N/A"})</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block uppercase text-[10px] tracking-wider mb-0.5">Phone Contact</span>
+                    <span className="text-slate-900 text-sm font-bold">{selectedPatient?.phone}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-400 block uppercase text-[10px] tracking-wider mb-0.5">Prescribed Date</span>
+                    <span className="text-slate-900 text-sm font-bold">{downloadingRx.date}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block uppercase text-[10px] tracking-wider mb-0.5">Gender / DOB</span>
-                  <span className="text-slate-900 text-sm font-bold">{selectedPatient?.gender} ({selectedPatient?.dob || "N/A"})</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block uppercase text-[10px] tracking-wider mb-0.5">Phone Contact</span>
-                  <span className="text-slate-900 text-sm font-bold">{selectedPatient?.phone}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-slate-400 block uppercase text-[10px] tracking-wider mb-0.5">Prescribed Date</span>
-                  <span className="text-slate-900 text-sm font-bold">{downloadingRx.date}</span>
-                </div>
-              </div>
 
-              {/* Rx Symbol */}
-              <div className="text-4xl font-serif font-extrabold italic text-blue-600 mb-6 leading-none">Rx</div>
+                {/* Rx Symbol */}
+                <div className="text-4xl font-serif font-extrabold italic text-blue-600 mb-6 leading-none">Rx</div>
 
-              {/* Prescribed Medications */}
-              <div className="space-y-4">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b-2 border-slate-200 text-left text-xs uppercase tracking-wider text-slate-400">
-                      <th className="py-2 px-1 w-10 text-center">#</th>
-                      <th className="py-2 px-1">Medication Name</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {downloadingRx.drugs.map((drug: string, i: number) => (
-                      <tr key={i} className="border-b border-slate-100 text-slate-800">
-                        <td className="py-4 px-1 text-center font-bold text-slate-400 text-sm">{i + 1}</td>
-                        <td className="py-4 px-1 font-bold text-base text-slate-800">{drug}</td>
+                {/* Prescribed Medications */}
+                <div className="space-y-4">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200 text-left text-xs uppercase tracking-wider text-slate-400">
+                        <th className="py-2 px-1 w-10 text-center">#</th>
+                        <th className="py-2 px-1">Medication Name</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {downloadingRx.drugs.map((drug: string, i: number) => (
+                        <tr key={i} className="border-b border-slate-100 text-slate-800">
+                          <td className="py-4 px-1 text-center font-bold text-slate-400 text-sm">{i + 1}</td>
+                          <td className="py-4 px-1 font-bold text-base text-slate-800">{drug}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
 
-            {/* Bottom Footer info and signature */}
-            <div className="pt-8 border-t border-slate-200 mt-20 flex justify-between items-end">
-              <div className="text-[10px] text-slate-400 font-semibold max-w-sm leading-relaxed">
-                * Validity of this prescription card is 3 months from the date of issue. Please consult your physician before altering dosage or frequency instructions.
-              </div>
-              <div className="text-center w-48 space-y-1">
-                <div className="border-t border-slate-300 pt-1"></div>
-                <div className="font-bold text-xs text-slate-700 uppercase tracking-wider">Authorized Signature</div>
-                <div className="text-[10px] text-slate-400 font-medium">{downloadingRx.doctor || profile.doctorName}</div>
+              {/* Bottom Footer info and signature */}
+              <div className="pt-8 border-t border-slate-200 mt-20 flex justify-between items-end">
+                <div className="text-[10px] text-slate-400 font-semibold max-w-sm leading-relaxed">
+                  * Validity of this prescription card is 3 months from the date of issue. Please consult your physician before altering dosage or frequency instructions.
+                </div>
+                <div className="text-center w-48 space-y-1">
+                  <div className="border-t border-slate-300 pt-1"></div>
+                  <div className="font-bold text-xs text-slate-700 uppercase tracking-wider">Authorized Signature</div>
+                  <div className="text-[10px] text-slate-400 font-medium">{matchedDoc.name}</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   )
 }

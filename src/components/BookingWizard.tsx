@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -26,7 +26,7 @@ import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
-const doctors = [
+const DEFAULT_DOCTORS = [
   { id: "1", name: "Dr. Sarah Jenkins", charge: 150 },
   { id: "2", name: "Dr. Michael Chen", charge: 200 },
   { id: "3", name: "Dr. Emily Rodriguez", charge: 180 },
@@ -48,6 +48,27 @@ type BookingWizardProps = {
 export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(1)
+  const [doctorsList, setDoctorsList] = useState<any[]>(DEFAULT_DOCTORS)
+
+  // Sync doctors list dynamically from localStorage
+  useEffect(() => {
+    const loadDoctors = () => {
+      const saved = localStorage.getItem("clinic_doctors_list")
+      if (saved) {
+        try {
+          setDoctorsList(JSON.parse(saved))
+        } catch (e) {
+          console.error("Error parsing doctors list in BookingWizard", e)
+          setDoctorsList(DEFAULT_DOCTORS)
+        }
+      } else {
+        setDoctorsList(DEFAULT_DOCTORS)
+      }
+    }
+    loadDoctors()
+    window.addEventListener("clinic-doctors-updated", loadDoctors)
+    return () => window.removeEventListener("clinic-doctors-updated", loadDoctors)
+  }, [open])
 
   // Form State
   const [patientData, setPatientData] = useState({
@@ -72,7 +93,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const isNationalityValid = !!patientData.nationality
   const isGenderValid = !!patientData.gender
 
-  const doctorCharge = doctors.find(d => d.id === selectedDoctor)?.charge
+  const doctorCharge = doctorsList.find(d => d.id === selectedDoctor)?.charge
 
   const handleNext = () => {
     // Enable touching all fields on next attempt to highlight errors if any
@@ -97,7 +118,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       onBookAppointment({
         time: selectedTime,
         patient: patientData.name,
-        doctor: doctors.find(d => d.id === selectedDoctor)?.name || "Doctor",
+        doctor: doctorsList.find(d => d.id === selectedDoctor)?.name || "Doctor",
         status: "Scheduled"
       })
     }
@@ -113,7 +134,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       body: JSON.stringify({
         patientPhone: patientData.phone,
         patientName: patientData.name,
-        doctorName: doctors.find(d => d.id === selectedDoctor)?.name || "Doctor",
+        doctorName: doctorsList.find(d => d.id === selectedDoctor)?.name || "Doctor",
         appointmentDate: date?.toISOString(),
         appointmentTime: selectedTime
       })
@@ -266,7 +287,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                     <SelectValue placeholder="Select a doctor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {doctors.map((doc) => (
+                    {doctorsList.map((doc) => (
                       <SelectItem key={doc.id} value={doc.id}>
                         {doc.name}
                       </SelectItem>
