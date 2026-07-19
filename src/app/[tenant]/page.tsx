@@ -366,8 +366,8 @@ export default function Dashboard() {
         <div className="print:hidden">
           <Tabs defaultValue="appointments" className="w-full">
             <TabsList 
-              style={{ display: "grid", width: "100%" }}
-              className="grid w-full max-w-4xl grid-cols-4 mb-8 bg-slate-200/60 p-1.5 rounded-2xl"
+              style={{ display: "grid", width: "100%", height: "auto" }}
+              className="grid w-full max-w-4xl grid-cols-4 mb-8 bg-slate-200/60 p-1.5 rounded-2xl h-auto"
             >
               <TabsTrigger value="appointments" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all">
                 <CalendarRange className="h-4 w-4" /> Appointments

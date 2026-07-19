@@ -101,8 +101,8 @@ export function ProfileModal({ tenant }: { tenant: string }) {
         <form onSubmit={handleSave} className="space-y-6 pt-4">
           <Tabs defaultValue="clinic" className="w-full">
             <TabsList 
-              style={{ display: "grid", width: "100%" }}
-              className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl"
+              style={{ display: "grid", width: "100%", height: "auto" }}
+              className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl h-auto"
             >
               <TabsTrigger value="clinic" className="flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg">
                 <Building2 className="h-4 w-4" /> Clinic
