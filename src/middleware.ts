@@ -45,8 +45,11 @@ export default async function middleware(req: NextRequest) {
   // Handle Root Domain & WWW
   // If the user visits 'localhost:3000' or 'www.yoursaas.com', route to the marketing/home page
   if (currentHost === rootDomain || currentHost === "www" || currentHost === "localhost" || currentHost === "localhost:3000" || currentHost.includes("vercel.app")) {
-    // Rewrite to the (marketing) home folder
-    return NextResponse.rewrite(new URL(`/home${path === "/" ? "" : path}`, req.url))
+    // Rewrite to the (marketing) home folder only if it is the root path
+    if (url.pathname === "/") {
+      return NextResponse.rewrite(new URL(`/home${searchParams.length > 0 ? `?${searchParams}` : ""}`, req.url))
+    }
+    return NextResponse.next()
   }
 
   // Handle Tenant Subdomains
