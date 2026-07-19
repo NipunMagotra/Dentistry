@@ -67,6 +67,73 @@ export default function Dashboard() {
     }
   }, [])
 
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    patientsThisWeek: 0,
+    revenueToday: 0,
+    completedTodayCount: 0
+  })
+
+  // Load stats from patient directory
+  const loadStats = () => {
+    const saved = localStorage.getItem("patient_directory_list")
+    let patientList = []
+    if (saved) {
+      try {
+        patientList = JSON.parse(saved)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    
+    // Total Patients
+    const totalPatients = patientList.length
+    
+    // Patients added this week (with id starting with p_)
+    const patientsThisWeek = patientList.filter((p: any) => p.id.startsWith("p_")).length
+    
+    // Revenue & Appointments Completed Today
+    const currentDateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+    
+    let revenueToday = 0
+    let completedTodayCount = 0
+    
+    patientList.forEach((patient: any) => {
+      patient.history?.appointments?.forEach((apt: any) => {
+        if (apt.date === currentDateStr && apt.status === "Completed") {
+          completedTodayCount++
+          // Match doctor to charge
+          if (apt.doctor.includes("Jenkins")) {
+            revenueToday += 150
+          } else if (apt.doctor.includes("Chen")) {
+            revenueToday += 200
+          } else if (apt.doctor.includes("Rodriguez")) {
+            revenueToday += 180
+          } else {
+            revenueToday += 150 // fallback charge
+          }
+        }
+      })
+    })
+    
+    setStats({
+      totalPatients,
+      patientsThisWeek,
+      revenueToday,
+      completedTodayCount
+    })
+  }
+
+  useEffect(() => {
+    loadStats()
+    window.addEventListener("patient-directory-updated", loadStats)
+    window.addEventListener("storage", loadStats)
+    return () => {
+      window.removeEventListener("patient-directory-updated", loadStats)
+      window.removeEventListener("storage", loadStats)
+    }
+  }, [])
+
   // Load clinic settings
   useEffect(() => {
     const loadProfile = () => {
@@ -437,10 +504,10 @@ export default function Dashboard() {
                         <CardTitle className="text-slate-500 text-sm font-medium uppercase tracking-wider">Total Patients</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-4xl font-bold text-slate-800">1,248</div>
+                        <div className="text-4xl font-bold text-slate-800">{stats.totalPatients}</div>
                         <p className="text-sm text-green-600 font-medium mt-1 flex items-center gap-1">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                          +12 this week
+                          +{stats.patientsThisWeek} this week
                         </p>
                       </CardContent>
                     </Card>
@@ -449,10 +516,10 @@ export default function Dashboard() {
                         <CardTitle className="text-slate-500 text-sm font-medium uppercase tracking-wider">Revenue Today</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-4xl font-bold text-slate-800">$840</div>
+                        <div className="text-4xl font-bold text-slate-800">${stats.revenueToday}</div>
                         <p className="text-sm text-green-600 font-medium mt-1 flex items-center gap-1">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check-circle-2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-                          4 appointments completed
+                          {stats.completedTodayCount} appointments completed
                         </p>
                       </CardContent>
                     </Card>
