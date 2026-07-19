@@ -9,7 +9,7 @@ import { RescheduleModal } from "@/components/RescheduleModal"
 import { AppointmentDetailsModal } from "@/components/AppointmentDetailsModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare } from "lucide-react"
+import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal } from "lucide-react"
 import Image from "next/image"
 import { ProfileModal } from "@/components/ProfileModal"
 import { ProcessRequestModal } from "@/components/ProcessRequestModal"
@@ -475,45 +475,71 @@ export default function Dashboard() {
                             </div>
 
                             {apt.status !== "Completed" && (
-                              <div className="flex gap-1.5 border-t pt-3 mt-1 text-[11px]">
+                              <div className="flex items-center gap-1.5 border-t pt-3 mt-1 text-[11px]">
+                                {/* Primary action button */}
                                 {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleUpdateStatus(apt.id, "In Progress")
                                     }}
-                                    className="px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded font-semibold transition-colors"
+                                    className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-md font-semibold transition-colors"
                                   >
                                     Start
                                   </button>
                                 )}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleRescheduleClick(apt)
-                                  }}
-                                  className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold transition-colors"
-                                >
-                                  Reschedule
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleCompleteAppointment(apt)
-                                  }}
-                                  className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-semibold transition-colors"
-                                >
-                                  Complete
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleCancelAppointment(apt.id)
-                                  }}
-                                  className="px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded font-semibold transition-colors ml-auto"
-                                >
-                                  Cancel
-                                </button>
+                                {apt.status === "In Progress" && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleCompleteAppointment(apt)
+                                    }}
+                                    className="px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-md font-semibold transition-colors"
+                                  >
+                                    Complete
+                                  </button>
+                                )}
+
+                                {/* Secondary actions — ellipsis menu */}
+                                <div className="relative ml-auto group">
+                                  <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </button>
+                                  <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[130px] z-20">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleRescheduleClick(apt)
+                                      }}
+                                      className="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                                    >
+                                      Reschedule
+                                    </button>
+                                    {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleCompleteAppointment(apt)
+                                        }}
+                                        className="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                                      >
+                                        Mark Complete
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleCancelAppointment(apt.id)
+                                      }}
+                                      className="w-full text-left px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>

@@ -97,6 +97,10 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const [date, setDate] = useState<Date>()
   const [selectedTime, setSelectedTime] = useState("")
 
+  // Compute the start of today for disabling past dates
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   // Validation touch states
   const [nameTouched, setNameTouched] = useState(false)
   const [phoneTouched, setPhoneTouched] = useState(false)
@@ -109,7 +113,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const isNationalityValid = !!patientData.nationality
   const isGenderValid = !!patientData.gender
 
-  const doctorCharge = doctorsList.find(d => d.id === selectedDoctor)?.charge
+  const doctorCharge = doctorsList.find(d => d.name === selectedDoctor)?.charge
 
   const handleNext = () => {
     // Enable touching all fields on next attempt to highlight errors if any
@@ -135,7 +139,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
         time: selectedTime,
         patient: patientData.name,
         phone: `${patientData.countryCode} ${patientData.phone}`,
-        doctor: doctorsList.find(d => d.id === selectedDoctor)?.name || "Doctor",
+        doctor: selectedDoctor,
         status: "Scheduled"
       })
     }
@@ -151,7 +155,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       body: JSON.stringify({
         patientPhone: `${patientData.countryCode} ${patientData.phone}`,
         patientName: patientData.name,
-        doctorName: doctorsList.find(d => d.id === selectedDoctor)?.name || "Doctor",
+        doctorName: selectedDoctor,
         appointmentDate: date?.toISOString(),
         appointmentTime: selectedTime
       })
@@ -322,7 +326,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {doctorsList.map((doc) => (
-                      <SelectItem key={doc.id} value={doc.id}>
+                      <SelectItem key={doc.id} value={doc.name}>
                         {doc.name}
                       </SelectItem>
                     ))}
@@ -365,6 +369,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                       mode="single"
                       selected={date}
                       onSelect={setDate}
+                      disabled={{ before: today }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -401,9 +406,9 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
             <Button onClick={handleNext} disabled={
               (step === 1 && (!isNameValid || !isPhoneValid || !isNationalityValid || !isGenderValid)) ||
               (step === 2 && !selectedDoctor)
-            }>Next</Button>
+            } className="disabled:cursor-not-allowed">Next</Button>
           ) : (
-             <Button onClick={handleComplete} disabled={!date || !selectedTime} className="bg-green-600 hover:bg-green-700 text-white">Confirm Booking</Button>
+             <Button onClick={handleComplete} disabled={!date || !selectedTime} className="bg-green-600 hover:bg-green-700 text-white disabled:cursor-not-allowed">Confirm Booking</Button>
           )}
         </DialogFooter>
       </DialogContent>
