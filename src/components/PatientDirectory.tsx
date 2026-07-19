@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, User, Clock, Pill, FileText } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,12 +55,59 @@ const MOCK_PATIENTS = [
   },
 ]
 
+interface PatientAppointment {
+  date: string
+  doctor: string
+  status: string
+}
+
+interface Prescription {
+  date: string
+  drugs: string[]
+}
+
+interface Patient {
+  id: string
+  name: string
+  phone: string
+  gender: string
+  history: {
+    appointments: PatientAppointment[]
+    prescriptions: Prescription[]
+  }
+}
+
 export function PatientDirectory() {
   const [search, setSearch] = useState("")
-  const [selectedPatient, setSelectedPatient] = useState<typeof MOCK_PATIENTS[0] | null>(null)
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+
+  useEffect(() => {
+    const loadPatients = () => {
+      const saved = localStorage.getItem("patient_directory_list")
+      if (saved) {
+        try {
+          setPatients(JSON.parse(saved))
+        } catch (e) {
+          console.error(e)
+          setPatients(MOCK_PATIENTS)
+        }
+      } else {
+        localStorage.setItem("patient_directory_list", JSON.stringify(MOCK_PATIENTS))
+        setPatients(MOCK_PATIENTS)
+      }
+    }
+    loadPatients()
+    window.addEventListener("patient-directory-updated", loadPatients)
+    window.addEventListener("storage", loadPatients)
+    return () => {
+      window.removeEventListener("patient-directory-updated", loadPatients)
+      window.removeEventListener("storage", loadPatients)
+    }
+  }, [])
 
   // Filter patients based on search input
-  const filteredPatients = MOCK_PATIENTS.filter(p => 
+  const filteredPatients = patients.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.phone.includes(search)
   )

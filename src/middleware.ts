@@ -34,13 +34,6 @@ export default async function middleware(req: NextRequest) {
       currentHost = hostname.replace(`.${rootDomain}`, "")
   }
 
-  // VERCEL MVP OVERRIDE:
-  // If we set NEXT_PUBLIC_DEMO_TENANT in Vercel and the user navigates to /demo-dashboard, 
-  // route them to the tenant dashboard so we can demo the complete auth flow.
-  const demoTenant = process.env.NEXT_PUBLIC_DEMO_TENANT
-  if (demoTenant && url.pathname.startsWith("/demo-dashboard")) {
-    return NextResponse.rewrite(new URL(`/${demoTenant}`, req.url))
-  }
 
   // Handle Root Domain & WWW
   // If the user visits 'localhost:3000' or 'www.yoursaas.com', route to the marketing/home page

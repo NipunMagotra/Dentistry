@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import { BookingWizard } from "@/components/BookingWizard"
 import { EPrescriptionForm } from "@/components/EPrescriptionForm"
 import { PatientDirectory } from "@/components/PatientDirectory"
+import { RescheduleModal } from "@/components/RescheduleModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare } from "lucide-react"
@@ -21,6 +22,12 @@ type Appointment = {
   status: string
 }
 
+const DEFAULT_APPOINTMENTS: Appointment[] = [
+  { id: "1", time: "09:30 AM", patient: "Alice Smith", doctor: "Dr. Sarah Jenkins", status: "Scheduled" },
+  { id: "2", time: "10:30 AM", patient: "Bob Johnson", doctor: "Dr. Michael Chen", status: "In Progress" },
+  { id: "3", time: "02:00 PM", patient: "Charlie Davis", doctor: "Dr. Emily Rodriguez", status: "Scheduled" }
+]
+
 export default function Dashboard() {
   const params = useParams()
   const tenant = params?.tenant as string || "default-clinic"
@@ -34,6 +41,26 @@ export default function Dashboard() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
   const [selectedRequest, setSelectedRequest] = useState<any>(null)
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false)
+
+  // Reschedule Modal states
+  const [selectedRescheduleApt, setSelectedRescheduleApt] = useState<Appointment | null>(null)
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
+
+  // Load active appointments from localStorage or fall back to defaults
+  useEffect(() => {
+    const saved = localStorage.getItem("active_appointments")
+    if (saved) {
+      try {
+        setAppointments(JSON.parse(saved))
+      } catch (e) {
+        console.error(e)
+        setAppointments(DEFAULT_APPOINTMENTS)
+      }
+    } else {
+      localStorage.setItem("active_appointments", JSON.stringify(DEFAULT_APPOINTMENTS))
+      setAppointments(DEFAULT_APPOINTMENTS)
+    }
+  }, [])
 
   // Load clinic settings
   useEffect(() => {
@@ -79,11 +106,17 @@ export default function Dashboard() {
     }
   }, [])
 
+  const updateAppointments = (newApts: Appointment[]) => {
+    setAppointments(newApts)
+    localStorage.setItem("active_appointments", JSON.stringify(newApts))
+  }
+
   const handleAddAppointment = (newApt: Omit<Appointment, "id">) => {
-    setAppointments((prev) => [
-      ...prev,
+    const list = [
+      ...appointments,
       { ...newApt, id: Date.now().toString() }
-    ])
+    ]
+    updateAppointments(list)
   }
 
   const handleApproveRequest = async (approvedApt: {
@@ -97,8 +130,8 @@ export default function Dashboard() {
     if (!selectedRequest) return
 
     // 1. Add to active appointments
-    setAppointments((prev) => [
-      ...prev,
+    const list = [
+      ...appointments,
       {
         id: Date.now().toString(),
         time: approvedApt.time,
@@ -106,7 +139,8 @@ export default function Dashboard() {
         doctor: approvedApt.doctor,
         status: approvedApt.status
       }
-    ])
+    ]
+    updateAppointments(list)
 
     // 2. Remove from pending requests
     const updatedPending = pendingRequests.filter(r => r.id !== selectedRequest.id)
@@ -138,6 +172,87 @@ export default function Dashboard() {
     const updatedPending = pendingRequests.filter(r => r.id !== id)
     setPendingRequests(updatedPending)
     localStorage.setItem("pending_appointments", JSON.stringify(updatedPending))
+  }
+
+  const handleUpdateStatus = (id: string, newStatus: string) => {
+    const list = appointments.map((apt) => (apt.id === id ? { ...apt, status: newStatus } : apt))
+    updateAppointments(list)
+  }
+
+  const handleRescheduleClick = (apt: Appointment) => {
+    setSelectedRescheduleApt(apt)
+    setIsRescheduleModalOpen(true)
+  }
+
+  const handleReschedule = (id: string, newDate: string, newTime: string) => {
+    const list = appointments.map((apt) => (apt.id === id ? { ...apt, time: newTime } : apt))
+    updateAppointments(list)
+
+    const rescheduledApt = appointments.find(a => a.id === id)
+    if (rescheduledApt) {
+      try {
+        fetch("/api/workflow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patientPhone: "+1 (555) 123-4567",
+            patientName: rescheduledApt.patient,
+            doctorName: rescheduledApt.doctor,
+            appointmentDate: newDate,
+            appointmentTime: newTime,
+            type: "Rescheduled"
+          })
+        })
+      } catch (err) {
+        console.error(err)
+      }
+    }
+  }
+
+  const handleCompleteAppointment = (apt: Appointment) => {
+    // Remove from active appointments list
+    const list = appointments.filter(a => a.id !== apt.id)
+    updateAppointments(list)
+
+    // Add record to the patient in localStorage directory
+    const savedPatients = localStorage.getItem("patient_directory_list")
+    let patientList = []
+    if (savedPatients) {
+      try {
+        patientList = JSON.parse(savedPatients)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    const currentDate = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+    let existingPatient = patientList.find((p: any) => p.name.toLowerCase() === apt.patient.toLowerCase())
+    if (existingPatient) {
+      existingPatient.history.appointments.push({
+        date: currentDate,
+        doctor: apt.doctor,
+        status: "Completed"
+      })
+    } else {
+      existingPatient = {
+        id: `p_${Date.now()}`,
+        name: apt.patient,
+        phone: "+1 (555) 0199",
+        gender: "Male",
+        history: {
+          appointments: [
+            { date: currentDate, doctor: apt.doctor, status: "Completed" }
+          ],
+          prescriptions: []
+        }
+      }
+      patientList.push(existingPatient)
+    }
+
+    localStorage.setItem("patient_directory_list", JSON.stringify(patientList))
+
+    // Dispatch directory update custom event
+    window.dispatchEvent(new Event("patient-directory-updated"))
   }
 
   return (
@@ -218,7 +333,10 @@ export default function Dashboard() {
                           <div key={apt.id} className="p-4 border border-slate-100 rounded-xl bg-white shadow-sm flex flex-col gap-3 transition-all hover:shadow-md hover:border-slate-200">
                             <div className="flex justify-between items-start">
                               <div className="font-semibold text-slate-800">{apt.patient}</div>
-                              <div className={`text-xs font-bold px-2.5 py-1 rounded-full ${apt.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                              <div className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                                apt.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                                apt.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                              }`}>
                                 {apt.status}
                               </div>
                             </div>
@@ -229,6 +347,29 @@ export default function Dashboard() {
                               <div className="text-sm text-blue-600 font-semibold flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-blue-500" /> {apt.time}
                               </div>
+                            </div>
+
+                            <div className="flex gap-2 border-t pt-3 mt-1 text-xs">
+                              {apt.status === "Scheduled" && (
+                                <button
+                                  onClick={() => handleUpdateStatus(apt.id, "In Progress")}
+                                  className="px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded font-semibold transition-colors"
+                                >
+                                  Start
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleRescheduleClick(apt)}
+                                className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold transition-colors"
+                              >
+                                Reschedule
+                              </button>
+                              <button
+                                onClick={() => handleCompleteAppointment(apt)}
+                                className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-semibold transition-colors ml-auto"
+                              >
+                                Complete
+                              </button>
                             </div>
                           </div>
                         ))
@@ -396,6 +537,19 @@ export default function Dashboard() {
             }}
             request={selectedRequest}
             onApprove={handleApproveRequest}
+          />
+        )}
+
+        {/* Reschedule Modal */}
+        {selectedRescheduleApt && (
+          <RescheduleModal
+            isOpen={isRescheduleModalOpen}
+            onClose={() => {
+              setIsRescheduleModalOpen(false)
+              setSelectedRescheduleApt(null)
+            }}
+            appointment={selectedRescheduleApt}
+            onReschedule={handleReschedule}
           />
         )}
 

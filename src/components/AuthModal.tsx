@@ -26,13 +26,18 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate network delay for realistic demo
+    // Simulate network delay
     setTimeout(() => {
       setIsLoading(false)
       setIsOpen(false)
-      // Redirect to the dashboard. 
-      // In Vercel demo mode, our middleware intercepts /demo-dashboard and rewrites to the tenant
-      router.push("/demo-dashboard")
+      
+      // Determine dynamic clinic name to redirect to (default to apollo-dental if login)
+      const clinicInput = document.getElementById("clinicName") as HTMLInputElement | null
+      const clinicName = clinicInput?.value 
+        ? clinicInput.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") 
+        : "apollo-dental"
+
+      router.push(`/${clinicName}`)
     }, 800)
   }
 
