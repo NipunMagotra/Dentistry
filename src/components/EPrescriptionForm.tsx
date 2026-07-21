@@ -431,23 +431,32 @@ export function EPrescriptionForm() {
 
             {/* Inputs for selected common drugs */}
             {selectedDrugs.filter(d => !d.isCustom).length > 0 && (
-              <div className="grid gap-3 mt-4 p-4 border rounded-xl bg-slate-50/50">
-                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Dosage Configuration</h4>
+              <div className="grid gap-3 mt-4 p-5 rounded-2xl glass-panel border border-white/40 dark:border-white/10 shadow-sm">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Dosage Configuration</h4>
                 {selectedDrugs.filter(d => !d.isCustom).map(selected => (
-                  <div key={selected.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 pb-3 border-b border-slate-200/60 last:border-0 last:pb-0">
-                    <div className="font-semibold text-sm text-slate-800 min-w-[180px]">{selected.name}</div>
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="w-32">
-                        <Select value={selected.frequency} onValueChange={(val) => handleUpdateDrug(selected.id, "frequency", val || "")}>
-                          <SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Freq" /></SelectTrigger>
-                          <SelectContent>
-                            {FREQUENCIES.map((freq) => <SelectItem key={freq} value={freq}>{freq}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                  <div key={selected.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/5 last:border-0 last:pb-0">
+                    <div className="font-bold text-sm text-foreground min-w-[180px]">{selected.name}</div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Frequency</span>
+                        <div className="w-36">
+                          <Select value={selected.frequency} onValueChange={(val) => handleUpdateDrug(selected.id, "frequency", val || "")}>
+                            <SelectTrigger className="h-10 px-4 rounded-full"><SelectValue placeholder="Freq" /></SelectTrigger>
+                            <SelectContent>
+                              {FREQUENCIES.map((freq) => <SelectItem key={freq} value={freq}>{freq}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Input type="number" min={1} className="w-20 h-9 bg-white" value={selected.days} onChange={(e) => handleUpdateDrug(selected.id, "days", parseInt(e.target.value) || 1)} />
-                        <span className="text-sm text-slate-500 font-medium">Days</span>
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Days</span>
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          className="w-20 h-10 rounded-full text-center font-bold" 
+                          value={selected.days} 
+                          onChange={(e) => handleUpdateDrug(selected.id, "days", parseInt(e.target.value) || 1)} 
+                        />
                       </div>
                     </div>
                   </div>
