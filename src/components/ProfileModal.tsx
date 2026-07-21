@@ -52,6 +52,7 @@ export const DEFAULT_DOCTORS: Doctor[] = [
 
 interface ProfileSettings {
   clinicName: string
+  doctorName?: string
   clinicAddress: string
   clinicPhone: string
   clinicBio?: string
@@ -64,6 +65,7 @@ interface ProfileSettings {
 
 const DEFAULT_SETTINGS: ProfileSettings = {
   clinicName: "City Dental Clinic",
+  doctorName: "Dr. Sarah Jenkins",
   clinicAddress: "123 Health Avenue, Medical District",
   clinicPhone: "+1 (555) 123-4567",
   clinicBio: "Welcome to our patient booking portal. Schedule a consultation, dental check-up, or specialized treatment with our dental professionals in just a few clicks.",
@@ -316,7 +318,7 @@ export function ProfileModal({ tenant }: { tenant: string }) {
             <span className="absolute bottom-0 right-0 size-3 bg-emerald-500 rounded-full border-2 border-background shadow-xs" title="Logged In" />
           </div>
           <div className="hidden sm:flex flex-col text-left pr-2">
-            <span className="text-xs font-bold leading-none text-foreground">{doctors[0]?.name || settings.clinicName || "Account"}</span>
+            <span className="text-xs font-bold leading-none text-foreground">{settings.doctorName || doctors[0]?.name || "Account"}</span>
             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
               ● Online
             </span>
@@ -412,6 +414,21 @@ export function ProfileModal({ tenant }: { tenant: string }) {
                     onChange={(e) => updateField("clinicName", e.target.value)}
                     className="pl-9 bg-slate-50/50"
                     placeholder="e.g. City Dental Clinic"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="doctorName">Doctor / Account Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="doctorName"
+                    value={settings.doctorName || ""}
+                    onChange={(e) => updateField("doctorName", e.target.value)}
+                    className="pl-9 bg-slate-50/50"
+                    placeholder="e.g. Dr. Sarah Jenkins"
                     required
                   />
                 </div>
