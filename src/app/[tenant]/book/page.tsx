@@ -80,7 +80,6 @@ export default function PublicBookingPage() {
       }
     }
 
-    // Load full dynamic doctors list
     const savedDocs = localStorage.getItem("clinic_doctors_list")
     if (savedDocs) {
       try {
@@ -107,7 +106,6 @@ export default function PublicBookingPage() {
 
     setIsSubmitting(true)
 
-    // Simulate database write delay
     setTimeout(() => {
       const selectedDoc = doctorsList.find(d => d.name === selectedDocId)?.name || "Doctor"
       
@@ -119,11 +117,10 @@ export default function PublicBookingPage() {
         date: date,
         time: time,
         reason: reason || "General Consultation",
-        status: "Pending", // Pending receptionist verification
+        status: "Pending",
         createdAt: new Date().toISOString()
       }
 
-      // Add to pending appointments list in localStorage
       const existing = localStorage.getItem("pending_appointments")
       let list = []
       if (existing) {
@@ -136,7 +133,6 @@ export default function PublicBookingPage() {
       list.push(newRequest)
       localStorage.setItem("pending_appointments", JSON.stringify(list))
 
-      // Trigger custom event just in case dashboard is open in another tab
       window.dispatchEvent(new Event("pending-appointments-updated"))
 
       setIsSubmitting(false)
@@ -146,42 +142,43 @@ export default function PublicBookingPage() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-slate-200 shadow-xl bg-white text-center p-6 md:p-8">
-          <div className="mx-auto w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mb-6">
-            <CheckCircle className="w-10 h-10" />
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <Card className="max-w-md w-full glass-panel border border-white/40 dark:border-white/10 shadow-2xl text-center p-8 relative z-10">
+          <div className="mx-auto size-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle className="size-10" />
           </div>
           <CardHeader className="p-0 mb-4">
-            <CardTitle className="text-2xl font-bold text-slate-800">Booking Requested!</CardTitle>
-            <CardDescription className="text-slate-500 text-sm mt-1">
+            <CardTitle className="text-2xl font-bold">Booking Requested!</CardTitle>
+            <CardDescription className="text-muted-foreground text-sm mt-1">
               Your appointment request has been sent to {profile.clinicName}.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0 space-y-6">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-left text-sm space-y-3">
+            <div className="p-4 rounded-2xl glass-panel text-left text-sm space-y-3 border border-black/5 dark:border-white/5">
               <div className="flex justify-between">
-                <span className="text-slate-400">Patient:</span>
-                <span className="font-semibold text-slate-700">{name}</span>
+                <span className="text-muted-foreground">Patient:</span>
+                <span className="font-semibold text-foreground">{name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Doctor:</span>
-                <span className="font-semibold text-slate-700">
+                <span className="text-muted-foreground">Doctor:</span>
+                <span className="font-semibold text-foreground">
                   {doctorsList.find(d => d.name === selectedDocId)?.name}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Date:</span>
-                <span className="font-semibold text-slate-700">{date}</span>
+                <span className="text-muted-foreground">Date:</span>
+                <span className="font-semibold text-foreground">{date}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Time:</span>
-                <span className="font-semibold text-slate-700">{time}</span>
+                <span className="text-muted-foreground">Time:</span>
+                <span className="font-semibold text-foreground">{time}</span>
               </div>
             </div>
             
-            <div className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               We will send you a confirmation message via WhatsApp/SMS once our front desk approves your slot.
-            </div>
+            </p>
 
             <Button 
               onClick={() => {
@@ -194,7 +191,7 @@ export default function PublicBookingPage() {
                 setNameTouched(false)
                 setPhoneTouched(false)
               }}
-              className="w-full bg-primary hover:bg-primary/95 text-white font-semibold h-11"
+              className="w-full bg-primary text-primary-foreground font-semibold rounded-full h-11 shadow-lg shadow-primary/25"
             >
               Book Another Appointment
             </Button>
@@ -205,65 +202,72 @@ export default function PublicBookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row items-stretch">
-      {/* Left Panel: Clinic Info */}
-      <div className="md:w-5/12 bg-gradient-to-br from-primary to-primary/80 text-white p-8 md:p-12 flex flex-col justify-center">
+    <div className="min-h-screen flex flex-col md:flex-row items-stretch relative overflow-hidden">
+      {/* Background Orbs */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Left Panel: Clinic Info (Apple Glass Aesthetic) */}
+      <div className="md:w-5/12 glass-panel p-8 md:p-12 flex flex-col justify-between relative z-10 border-r border-white/20 dark:border-white/5">
         <div className="space-y-8">
-          {/* Clinic Brand */}
-          <div className="flex items-center gap-2 mb-8 md:mb-12">
-            <HeartPulse className="h-8 w-8 text-white/90" />
-            <span className="text-xl font-bold uppercase tracking-wider">Clinic OS Portal</span>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-primary text-primary-foreground rounded-2xl shadow-md">
+              <HeartPulse className="size-6" />
+            </div>
+            <span className="text-lg font-bold tracking-tight uppercase">Clinic OS Portal</span>
           </div>
 
-          {/* Clinic Details */}
-          <div className="space-y-4 pt-6">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+          <div className="space-y-4 pt-4">
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground">
               {profile.clinicName}
             </h1>
-            <p className="text-slate-100 text-sm leading-loose max-w-md">
+            <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
               {profile.clinicBio}
             </p>
           </div>
 
-          {/* Location & Contact Info */}
-          <div className="space-y-4 pt-6 border-t border-white/10 text-sm text-white/90">
-            <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 shrink-0 text-white/70" />
-              <span>{profile.clinicAddress}</span>
+          <div className="space-y-4 pt-6 border-t border-black/5 dark:border-white/5 text-sm">
+            <div className="flex items-start gap-3 text-muted-foreground">
+              <MapPin className="size-5 shrink-0 text-primary mt-0.5" />
+              <span className="text-foreground font-medium">{profile.clinicAddress}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <Phone className="h-5 w-5 shrink-0 text-white/70" />
-              <span>{profile.clinicPhone}</span>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Phone className="size-5 shrink-0 text-primary" />
+              <span className="text-foreground font-medium">{profile.clinicPhone}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 shrink-0 text-white/70" />
-              <span>{profile.clinicHours}</span>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Clock className="size-5 shrink-0 text-primary" />
+              <span className="text-foreground font-medium">{profile.clinicHours}</span>
             </div>
           </div>
         </div>
+
+        <div className="pt-8 text-xs text-muted-foreground font-medium">
+          Powered by Clinic OS Patient Portal
+        </div>
       </div>
 
-      {/* Right Panel: Booking Form */}
-      <div className="flex-1 p-6 md:p-12 flex items-center justify-center">
-        <Card className="max-w-lg w-full border-slate-200 shadow-md bg-white">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-2xl font-bold text-slate-800">Book Appointment</CardTitle>
-            <CardDescription>
+      {/* Right Panel: Booking Form Card */}
+      <div className="flex-1 p-6 md:p-12 flex items-center justify-center relative z-10">
+        <Card className="max-w-xl w-full glass-panel border border-white/40 dark:border-white/10 shadow-2xl p-6 md:p-8">
+          <CardHeader className="pb-6 p-0">
+            <CardTitle className="text-2xl font-bold">Request Appointment</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Select your preferred provider and schedule your visit.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <Label htmlFor="patient-name" className={nameTouched && !isNameValid ? "text-red-500 font-semibold" : ""}>
+              <div className="space-y-2">
+                <Label htmlFor="patient-name" className={nameTouched && !isNameValid ? "text-destructive font-semibold" : ""}>
                   Your Full Name
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <User className="absolute left-4 top-3 size-4 text-muted-foreground" />
                   <Input 
                     id="patient-name" 
                     placeholder="Enter your full name" 
-                    className={cn("pl-9 bg-slate-50/50", nameTouched && !isNameValid ? "border-red-400 focus:ring-red-200" : "")}
+                    className={cn("pl-10", nameTouched && !isNameValid ? "border-destructive focus-visible:ring-destructive/20" : "")}
                     value={name}
                     onBlur={() => setNameTouched(true)}
                     onChange={(e) => setName(e.target.value)}
@@ -271,20 +275,20 @@ export default function PublicBookingPage() {
                   />
                 </div>
                 {nameTouched && !isNameValid && (
-                  <span className="text-[11px] text-red-500 font-medium">Please enter at least 2 letters (no special characters).</span>
+                  <span className="text-[11px] text-destructive font-medium">Please enter at least 2 letters.</span>
                 )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="patient-phone" className={phoneTouched && !isPhoneValid ? "text-red-500 font-semibold" : ""}>
+              <div className="space-y-2">
+                <Label htmlFor="patient-phone" className={phoneTouched && !isPhoneValid ? "text-destructive font-semibold" : ""}>
                   Mobile / WhatsApp Number
                 </Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Phone className="absolute left-4 top-3 size-4 text-muted-foreground" />
                   <Input 
                     id="patient-phone" 
                     placeholder="e.g. +1 (555) 123-4567" 
-                    className={cn("pl-9 bg-slate-50/50", phoneTouched && !isPhoneValid ? "border-red-400 focus:ring-red-200" : "")}
+                    className={cn("pl-10", phoneTouched && !isPhoneValid ? "border-destructive focus-visible:ring-destructive/20" : "")}
                     value={phone}
                     onBlur={() => setPhoneTouched(true)}
                     onChange={(e) => {
@@ -295,18 +299,18 @@ export default function PublicBookingPage() {
                   />
                 </div>
                 {phoneTouched && !isPhoneValid && (
-                  <span className="text-[11px] text-red-500 font-medium">Please enter a valid phone number (minimum 7 digits).</span>
+                  <span className="text-[11px] text-destructive font-medium">Please enter a valid phone number.</span>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
                   <Label>Preferred Doctor</Label>
                   <Select value={selectedDocId} onValueChange={(val) => setSelectedDocId(val || "Dr. Sarah Jenkins")}>
-                    <SelectTrigger className="bg-slate-50/50">
+                    <SelectTrigger className="rounded-full h-10 px-4 border-black/10 dark:border-white/15 bg-white/70 dark:bg-zinc-900/60">
                       <SelectValue placeholder="Select Doctor" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-2xl glass-panel">
                       {doctorsList.map((doc) => (
                         <SelectItem key={doc.id} value={doc.name}>
                           {doc.name}
@@ -316,12 +320,11 @@ export default function PublicBookingPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label htmlFor="appointment-date">Preferred Date</Label>
                   <Input 
                     id="appointment-date" 
                     type="date" 
-                    className="bg-slate-50/50"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     min={new Date().toISOString().split("T")[0]}
@@ -330,14 +333,14 @@ export default function PublicBookingPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <Label>Preferred Time Slot</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label>Time Slot</Label>
                   <Select value={time} onValueChange={(val) => setTime(val || "")}>
-                    <SelectTrigger className="bg-slate-50/50">
+                    <SelectTrigger className="rounded-full h-10 px-4 border-black/10 dark:border-white/15 bg-white/70 dark:bg-zinc-900/60">
                       <SelectValue placeholder="Select Time" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-2xl glass-panel">
                       {TIME_SLOTS.map((slot) => (
                         <SelectItem key={slot} value={slot}>
                           {slot}
@@ -347,36 +350,34 @@ export default function PublicBookingPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="visit-reason">Reason for Visit (Optional)</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="visit-reason">Reason for Visit</Label>
                   <Input 
                     id="visit-reason" 
-                    placeholder="e.g. Toothache, Scaling" 
-                    className="bg-slate-50/50"
+                    placeholder="e.g. Scaling, Pain" 
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-4">
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || !isFormValid}
-                  className="w-full bg-teal-800 hover:bg-teal-900 shadow-md text-white font-semibold h-11"
+                  className="w-full bg-primary text-primary-foreground font-semibold h-11 rounded-full shadow-lg shadow-primary/25"
                 >
                   {isSubmitting ? "Submitting Request..." : "Request Appointment"}
                 </Button>
 
-                {/* Quality Badges - Moved here for better contextual trust */}
-                <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
-                  <div className="flex items-center gap-2.5 text-xs text-slate-500 font-medium">
-                    <ShieldCheck className="h-4 w-4 text-teal-700 shrink-0" />
-                    <span>Verified Clinic Profile & Doctor Credentials</span>
+                <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 space-y-3">
+                  <div className="flex items-center gap-2.5 text-xs text-muted-foreground font-medium">
+                    <ShieldCheck className="size-4 text-emerald-500 shrink-0" />
+                    <span>Verified Clinic Profile & Certified Specialists</span>
                   </div>
-                  <div className="flex items-center gap-2.5 text-xs text-slate-500 font-medium">
-                    <Sparkles className="h-4 w-4 text-teal-700 shrink-0" />
-                    <span>Instant WhatsApp Notification on Approval</span>
+                  <div className="flex items-center gap-2.5 text-xs text-muted-foreground font-medium">
+                    <Sparkles className="size-4 text-primary shrink-0" />
+                    <span>Instant WhatsApp Confirmation Notification</span>
                   </div>
                 </div>
               </div>

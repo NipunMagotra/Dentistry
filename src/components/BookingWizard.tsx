@@ -74,7 +74,6 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const [step, setStep] = useState(1)
   const [doctorsList, setDoctorsList] = useState<any[]>(DEFAULT_DOCTORS)
 
-  // Sync doctors list dynamically from DB
   useEffect(() => {
     const loadDoctors = async () => {
       try {
@@ -88,7 +87,6 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
     loadDoctors()
   }, [open])
 
-  // Form State
   const [patientData, setPatientData] = useState({
     name: "",
     countryCode: "+91",
@@ -100,26 +98,22 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   const [date, setDate] = useState<Date>()
   const [selectedTime, setSelectedTime] = useState("")
 
-  // Compute the start of today for disabling past dates
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  // Validation touch states
   const [nameTouched, setNameTouched] = useState(false)
   const [phoneTouched, setPhoneTouched] = useState(false)
   const [nationalityTouched, setNationalityTouched] = useState(false)
   const [genderTouched, setGenderTouched] = useState(false)
 
-  // Validation rules
   const isNameValid = patientData.name.trim().length >= 2 && /^[a-zA-Z\s.]{2,}$/.test(patientData.name)
   const isPhoneValid = /^\+?[0-9\s\-()]{7,}$/.test(patientData.phone)
   const isNationalityValid = !!patientData.nationality
   const isGenderValid = !!patientData.gender
 
-  const doctorCharge = doctorsList.find(d => d.name === selectedDoctor)?.charge
+  const doctorCharge = doctorsList.find(d => d.name === selectedDoctor || d.id === selectedDoctor)?.charge
 
   const handleNext = () => {
-    // Enable touching all fields on next attempt to highlight errors if any
     setNameTouched(true)
     setPhoneTouched(true)
     setNationalityTouched(true)
@@ -137,13 +131,12 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
 
   const handleComplete = async () => {
     setIsSubmitting(true)
-    console.log("Booking complete", { patientData, selectedDoctor, date, selectedTime })
     
-    // Server Action
+    const docName = doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor
     const result = await createAppointment({
       patientName: patientData.name,
       patientPhone: `${patientData.countryCode} ${patientData.phone}`,
-      doctorName: doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor, // We store ID in state now
+      doctorName: docName,
       appointmentDate: date ? format(date, "yyyy-MM-dd") : "",
       appointmentTime: selectedTime,
       status: "Scheduled"
@@ -153,30 +146,27 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       console.error("Failed to create appointment", result.error)
     }
 
-    // Update local UI state if prop provided
     if (onBookAppointment) {
       onBookAppointment({
         time: selectedTime,
         patient: patientData.name,
         phone: `${patientData.countryCode} ${patientData.phone}`,
-        doctor: doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor,
+        doctor: docName,
         status: "Scheduled"
       })
     }
     
-    // Close modal instantly to optimize INP response
     setOpen(false)
-    setStep(1) // reset
+    setStep(1)
     setIsSubmitting(false)
 
-    // Trigger Upstash Workflow in background
     fetch("/api/workflow", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         patientPhone: `${patientData.countryCode} ${patientData.phone}`,
         patientName: patientData.name,
-        doctorName: doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor,
+        doctorName: docName,
         appointmentDate: date?.toISOString(),
         appointmentTime: selectedTime
       })
@@ -185,7 +175,6 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
     })
   }
 
-  // Handle dialog open/close explicitly to reset state on open
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
       setStep(1)
@@ -207,49 +196,48 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={
-        <Button size="lg" className="w-full text-lg h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm transition-all" />
+        <Button size="lg" className="w-full text-base h-13 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 transition-all" />
       }>
-        Book Appointment
+        + Book New Consultation
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader className="space-y-1.5 pb-2">
-          <DialogTitle className="text-xs font-medium text-slate-400 uppercase tracking-wider">Book a New Appointment</DialogTitle>
+          <DialogTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Appointment Booking Wizard</DialogTitle>
           <DialogDescription className="sr-only">
             Book a new appointment wizard
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-2">
+          {/* M3 Segmented Progress Line */}
+          <div className="flex items-center gap-2 mb-6">
+            <div className={cn("h-1.5 flex-1 rounded-full transition-all duration-300", step >= 1 ? "bg-primary" : "bg-primary/20")} />
+            <div className={cn("h-1.5 flex-1 rounded-full transition-all duration-300", step >= 2 ? "bg-primary" : "bg-primary/20")} />
+            <div className={cn("h-1.5 flex-1 rounded-full transition-all duration-300", step >= 3 ? "bg-primary" : "bg-primary/20")} />
+          </div>
+
           {step === 1 && (
-            <div className="grid gap-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 1 ? "bg-primary" : "bg-primary/20")} />
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 2 ? "bg-primary" : "bg-primary/20")} />
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 3 ? "bg-primary" : "bg-primary/20")} />
-              </div>
+            <div className="grid gap-4 animate-in fade-in-50 duration-200">
               <div className="space-y-1">
-                <h3 className="font-semibold text-lg text-slate-800">New Patient Details</h3>
-                <p className="text-sm text-slate-500">Enter the patient's basic details. <span className="italic">(All fields required)</span></p>
+                <h3 className="font-bold text-lg text-foreground">New Patient Intake</h3>
+                <p className="text-xs text-muted-foreground">Enter basic patient details to initiate consultation.</p>
               </div>
               
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 <Label htmlFor="name" className={nameTouched && !isNameValid ? "text-destructive font-semibold" : ""}>
                   Full Name
                 </Label>
                 <Input 
                   id="name" 
-                  placeholder="John Doe" 
+                  placeholder="e.g. John Doe" 
                   value={patientData.name} 
                   onBlur={() => setNameTouched(true)}
                   onChange={(e) => setPatientData({...patientData, name: e.target.value})} 
-                  className={nameTouched && !isNameValid ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={nameTouched && !isNameValid ? "border-destructive" : ""}
                 />
-                {nameTouched && !isNameValid && (
-                  <span className="text-[11px] text-destructive font-medium">Please enter at least 2 letters (no special characters).</span>
-                )}
               </div>
 
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 <Label htmlFor="phone" className={phoneTouched && !isPhoneValid ? "text-destructive font-semibold" : ""}>
                   Phone Number
                 </Label>
@@ -258,12 +246,14 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                     value={patientData.countryCode} 
                     onValueChange={(val) => setPatientData({...patientData, countryCode: val || "+91"})}
                   >
-                    <SelectTrigger className="w-[110px] shrink-0">
+                    <SelectTrigger className="w-[110px] rounded-full h-10 px-3">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      {COUNTRY_CODES.map((cc) => (
-                        <SelectItem key={cc.code} value={cc.code}>{cc.label}</SelectItem>
+                    <SelectContent className="rounded-2xl glass-panel">
+                      {COUNTRY_CODES.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>
+                          {c.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -272,215 +262,142 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                     placeholder="98765 43210" 
                     value={patientData.phone} 
                     onBlur={() => setPhoneTouched(true)}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9\s\-()]/g, "")
-                      setPatientData({...patientData, phone: val})
-                    }} 
-                    className={phoneTouched && !isPhoneValid ? "border-destructive focus-visible:ring-destructive" : ""}
+                    onChange={(e) => setPatientData({...patientData, phone: e.target.value.replace(/[^0-9\s\-()]/g, "")})} 
+                    className={cn("flex-1", phoneTouched && !isPhoneValid ? "border-destructive" : "")}
                   />
                 </div>
-                {phoneTouched && !isPhoneValid && (
-                  <span className="text-[11px] text-destructive font-medium">Please enter a valid phone number (minimum 7 digits).</span>
-                )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="grid gap-1.5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
                   <Label className={nationalityTouched && !isNationalityValid ? "text-destructive font-semibold" : ""}>
                     Nationality
                   </Label>
-                  <Popover>
-                    <PopoverTrigger 
-                      render={
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "justify-between font-normal",
-                            !patientData.nationality && "text-muted-foreground",
-                            nationalityTouched && !isNationalityValid ? "border-destructive focus-visible:ring-destructive" : ""
-                          )}
-                          onBlur={() => setNationalityTouched(true)}
-                        />
-                      }
-                    >
-                      {patientData.nationality || "Select nationality"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search nationality..." />
-                        <CommandList>
-                          <CommandEmpty>No nationality found.</CommandEmpty>
-                          <CommandGroup>
-                            {NATIONALITIES.map((nat) => (
-                              <CommandItem
-                                key={nat}
-                                value={nat}
-                                onSelect={(val) => {
-                                  setNationalityTouched(true)
-                                  setPatientData({ ...patientData, nationality: val === patientData.nationality ? "" : nat })
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    patientData.nationality === nat ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {nat}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {nationalityTouched && !isNationalityValid && (
-                    <span className="text-[11px] text-destructive font-medium">Required.</span>
-                  )}
+                  <Select 
+                    value={patientData.nationality} 
+                    onValueChange={(val) => setPatientData({...patientData, nationality: val || ""})}
+                  >
+                    <SelectTrigger className="rounded-full h-10 px-4">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl glass-panel">
+                      {NATIONALITIES.map((n) => (
+                        <SelectItem key={n} value={n}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="grid gap-1.5">
+                <div className="grid gap-2">
                   <Label className={genderTouched && !isGenderValid ? "text-destructive font-semibold" : ""}>
                     Gender
                   </Label>
                   <Select 
                     value={patientData.gender} 
-                    onValueChange={(val) => {
-                      setGenderTouched(true)
-                      setPatientData({...patientData, gender: val || ""})
-                    }}
+                    onValueChange={(val) => setPatientData({...patientData, gender: val || ""})}
                   >
-                    <SelectTrigger 
-                      className={genderTouched && !isGenderValid ? "border-destructive focus-visible:ring-destructive" : ""}
-                      onBlur={() => setGenderTouched(true)}
-                    >
+                    <SelectTrigger className="rounded-full h-10 px-4">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-2xl glass-panel">
                       <SelectItem value="Male">Male</SelectItem>
                       <SelectItem value="Female">Female</SelectItem>
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  {genderTouched && !isGenderValid && (
-                    <span className="text-[11px] text-destructive font-medium">Required.</span>
-                  )}
                 </div>
               </div>
             </div>
           )}
 
           {step === 2 && (
-            <div className="grid gap-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 1 ? "bg-primary" : "bg-primary/20")} />
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 2 ? "bg-primary" : "bg-primary/20")} />
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 3 ? "bg-primary" : "bg-primary/20")} />
-              </div>
+            <div className="grid gap-4 animate-in fade-in-50 duration-200">
               <div className="space-y-1">
-                <h3 className="font-semibold text-lg text-slate-800">Choose a Doctor</h3>
-                <p className="text-sm text-slate-500">Select an available doctor for the consultation.</p>
+                <h3 className="font-bold text-lg text-foreground">Doctor Selection</h3>
+                <p className="text-xs text-muted-foreground">Select an available dental specialist for this consultation.</p>
               </div>
-              <div className="grid gap-2">
-                <Label>Doctor</Label>
-                <Select value={selectedDoctor} onValueChange={(val) => setSelectedDoctor(val || "")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a doctor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {doctorsList.map((doc) => (
-                      <SelectItem key={doc.id} value={doc.id}>
-                        {doc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              <div className="grid gap-3">
+                {doctorsList.map((doc) => (
+                  <div 
+                    key={doc.id}
+                    onClick={() => setSelectedDoctor(doc.id)}
+                    className={cn(
+                      "p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between",
+                      selectedDoctor === doc.id 
+                        ? "bg-primary/10 border-primary text-primary font-bold shadow-sm" 
+                        : "glass-panel border-black/5 dark:border-white/10 hover:border-primary/40 text-foreground"
+                    )}
+                  >
+                    <div>
+                      <div className="text-sm font-bold">{doc.name}</div>
+                      <div className="text-xs text-muted-foreground">Consultation Charge: ${doc.charge}</div>
+                    </div>
+                    {selectedDoctor === doc.id && <Check className="size-5 text-primary" />}
+                  </div>
+                ))}
               </div>
-              
-              {doctorCharge !== undefined && (
-                <div className="mt-4 p-4 bg-green-50 text-green-800 rounded-lg border border-green-200">
-                  <div className="text-sm font-medium">Consultation Charge</div>
-                  <div className="text-2xl font-bold">${doctorCharge}</div>
-                </div>
-              )}
             </div>
           )}
 
           {step === 3 && (
-            <div className="grid gap-4">
-               <div className="flex items-center gap-2 mb-2">
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 1 ? "bg-primary" : "bg-primary/20")} />
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 2 ? "bg-primary" : "bg-primary/20")} />
-                <div className={cn("h-1.5 flex-1 rounded-full", step >= 3 ? "bg-primary" : "bg-primary/20")} />
+            <div className="grid gap-4 animate-in fade-in-50 duration-200">
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg text-foreground">Date & Time Slot</h3>
+                <p className="text-xs text-muted-foreground">Choose a date and available time slot for consultation.</p>
               </div>
-               <div className="space-y-1">
-                <h3 className="font-semibold text-lg text-slate-800">Date & Time</h3>
-                <p className="text-sm text-slate-500">Choose when the appointment will take place.</p>
+
+              <div className="space-y-2">
+                <Label>Select Date</Label>
+                <Input 
+                  type="date" 
+                  value={date ? format(date, "yyyy-MM-dd") : ""}
+                  onChange={(e) => setDate(e.target.value ? new Date(e.target.value) : undefined)}
+                  min={new Date().toISOString().split("T")[0]}
+                />
               </div>
-              <div className="grid gap-2 flex flex-col">
-                <Label>Date</Label>
-                <Popover>
-                  <PopoverTrigger render={
-                    <Button
-                      variant={"outline"}
+
+              <div className="space-y-2">
+                <Label>Available Slots</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {timeSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setSelectedTime(slot)}
                       className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !date && "text-muted-foreground"
+                        "py-2 px-3 text-xs font-semibold rounded-full border transition-all cursor-pointer",
+                        selectedTime === slot 
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                          : "glass-panel text-muted-foreground hover:text-foreground border-black/5 dark:border-white/10"
                       )}
-                    />
-                  }>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      disabled={{ before: today }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="grid gap-2 mt-2">
-                <Label>Time Slot</Label>
-                <Select value={selectedTime} onValueChange={(val) => setSelectedTime(val || "")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a time slot" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={slot} value={slot}>
-                        {slot}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex justify-between items-center sm:justify-between">
+        <DialogFooter className="mt-4 flex sm:justify-between items-center gap-2 border-t border-black/5 dark:border-white/5 pt-4">
           {step > 1 ? (
-            <Button variant="outline" onClick={handleBack}>
-              Back
-            </Button>
+            <Button variant="outline" onClick={handleBack} className="rounded-full">Back</Button>
           ) : (
-            <div /> // Placeholder to keep the Next button on the right
+            <div />
           )}
-          
+
           {step < 3 ? (
-            <Button onClick={handleNext} disabled={
-              (step === 1 && (!isNameValid || !isPhoneValid || !isNationalityValid || !isGenderValid)) ||
-              (step === 2 && !selectedDoctor)
-            } className="disabled:cursor-not-allowed">Next</Button>
+            <Button onClick={handleNext} className="rounded-full font-semibold px-6">Continue</Button>
           ) : (
-             <Button onClick={handleComplete} disabled={!date || !selectedTime || isSubmitting} className="bg-green-600 hover:bg-green-700 text-white disabled:cursor-not-allowed">
-                {isSubmitting ? "Confirming..." : "Confirm Booking"}
-             </Button>
+            <Button 
+              onClick={handleComplete} 
+              disabled={isSubmitting || !date || !selectedTime}
+              className="rounded-full font-semibold px-6 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+            >
+              {isSubmitting ? "Booking..." : "Confirm & Save"}
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>

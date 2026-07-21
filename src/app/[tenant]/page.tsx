@@ -10,7 +10,7 @@ import { RescheduleModal } from "@/components/RescheduleModal"
 import { AppointmentDetailsModal } from "@/components/AppointmentDetailsModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal, CheckCircle2, AlertTriangle, CalendarX } from "lucide-react"
+import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal, CheckCircle2, AlertTriangle, CalendarX, TrendingUp, Users, DollarSign, Activity } from "lucide-react"
 import Image from "next/image"
 import { ProfileModal } from "@/components/ProfileModal"
 import { ProcessRequestModal } from "@/components/ProcessRequestModal"
@@ -31,12 +31,6 @@ type Appointment = {
   doctor: string
   status: string
 }
-
-const DEFAULT_APPOINTMENTS: Appointment[] = [
-  { id: "1", time: "09:30 AM", patient: "Alice Smith", doctor: "Dr. Sarah Jenkins", status: "Scheduled" },
-  { id: "2", time: "10:30 AM", patient: "Bob Johnson", doctor: "Dr. Michael Chen", status: "In Progress" },
-  { id: "3", time: "02:00 PM", patient: "Charlie Davis", doctor: "Dr. Emily Rodriguez", status: "Scheduled" }
-]
 
 export default function Dashboard() {
   const params = useParams()
@@ -75,7 +69,6 @@ export default function Dashboard() {
   const loadAppointments = async () => {
     try {
       const apts = await getAppointments()
-      // Only overwrite if we have valid DB records, otherwise keep optimistic state
       if (apts && apts.length > 0) {
         setAppointments(apts)
       }
@@ -106,15 +99,6 @@ export default function Dashboard() {
     completedTodayCount: 0,
     noShowRate: 0
   })
-
-  // Safe localStorage writer with quota error handling
-  const safeSetItem = (key: string, value: string) => {
-    try {
-      localStorage.setItem(key, value)
-    } catch (e) {
-      console.error(`[Storage] Failed to write key "${key}" — quota may be exceeded`, e)
-    }
-  }
 
   // Load clinic settings & doctors list
   useEffect(() => {
@@ -159,10 +143,7 @@ export default function Dashboard() {
     }
   }, [])
 
-  // Pending requests are now loaded via loadAppointments, so we remove the localStorage effect
-  
   const handleAddAppointment = (newApt: any) => {
-    // Optimistically update the UI to instantly show the new appointment
     const optimisticApt = {
       id: Date.now().toString(),
       time: newApt.time,
@@ -172,11 +153,9 @@ export default function Dashboard() {
     }
     setAppointments((prev) => [...prev, optimisticApt])
     
-    // Then attempt to refresh from DB
     startTransition(async () => {
       try {
         const apts = await getAppointments()
-        // Only overwrite if we actually fetched something from DB (protects against missing .env in demo)
         if (apts && apts.length > 0) {
           setAppointments(apts)
         }
@@ -196,7 +175,6 @@ export default function Dashboard() {
   }) => {
     if (!selectedRequest) return
 
-    // Optimistic UI Update: Remove from queue, add to today's schedule
     setPendingRequests(prev => prev.filter(req => req.id !== selectedRequest.id))
     const optimisticApt = {
       id: selectedRequest.id,
@@ -207,7 +185,6 @@ export default function Dashboard() {
     }
     setAppointments(prev => [...prev, optimisticApt])
 
-    // 1. Update appointment in DB
     const result = await updateAppointmentDetails(selectedRequest.id, {
        doctor: approvedApt.doctor,
        date: approvedApt.date,
@@ -221,19 +198,14 @@ export default function Dashboard() {
       return
     }
 
-    // 2. Refresh local state via DB
     startTransition(() => {
       loadAppointments()
     })
 
-    // 3. Close modal instantly to optimize INP
     setIsProcessModalOpen(false)
     setSelectedRequest(null)
+    showToast(`Confirmed appointment for ${approvedApt.patient}`)
 
-    // 4. Show confirmation toast
-    showToast(`✅ Appointment for ${approvedApt.patient} has been confirmed and added to today's schedule.`)
-
-    // 4. Trigger SMS/WhatsApp workflow API call in background
     fetch("/api/workflow", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -250,9 +222,7 @@ export default function Dashboard() {
   }
 
   const handleDeclineRequest = async (id: string) => {
-    // Optimistic UI Update: Remove from queue
     setPendingRequests(prev => prev.filter(req => req.id !== id))
-
     await updateAppointmentStatus(id, "Declined")
     startTransition(() => {
       loadAppointments()
@@ -267,7 +237,6 @@ export default function Dashboard() {
     if (!cancelTargetId) return
     const apt = appointments.find(a => a.id === cancelTargetId)
     
-    // Optimistic UI Update
     setAppointments(prev => prev.map(a => 
       a.id === cancelTargetId ? { ...a, status: "Cancelled" } : a
     ))
@@ -277,29 +246,27 @@ export default function Dashboard() {
       loadAppointments()
     })
     setCancelTargetId(null)
-    if (apt) showToast(`Appointment for ${apt.patient} has been cancelled.`)
+    if (apt) showToast(`Appointment for ${apt.patient} cancelled`)
   }
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
-      // Optimistic UI Update
       setAppointments(prev => prev.map(apt => 
         apt.id === id ? { ...apt, status: newStatus } : apt
       ))
       
       const result = await updateAppointmentStatus(id, newStatus)
       if (result && result.error) {
-        const errorMsg = (result.error as any).message || "Failed to update status"
-        showToast(`❌ Error: ${errorMsg}`)
-        startTransition(() => { loadAppointments() }) // Revert if failed
+        showToast(`❌ Error: ${(result.error as any).message || "Failed"}`)
+        startTransition(() => { loadAppointments() })
         return
       }
       startTransition(() => {
         loadAppointments()
       })
     } catch (error: any) {
-      showToast(`❌ Error: ${error.message || "Unknown error occurred"}`)
-      startTransition(() => { loadAppointments() }) // Revert if failed
+      showToast(`❌ Error: ${error.message || "Unknown error"}`)
+      startTransition(() => { loadAppointments() })
     }
   }
 
@@ -309,7 +276,6 @@ export default function Dashboard() {
   }
 
   const handleReschedule = async (id: string, newDate: string, newTime: string) => {
-    // Optimistic UI Update
     setAppointments(prev => prev.map(apt => 
       apt.id === id ? { ...apt, time: newTime, status: "Rescheduled" } : apt
     ))
@@ -338,12 +304,10 @@ export default function Dashboard() {
   }
 
   const handleCompleteAppointment = async (apt: Appointment) => {
-    // Optimistic UI Update
     setAppointments(prev => prev.map(a => 
       a.id === apt.id ? { ...a, status: "Completed" } : a
     ))
 
-    // Update status to Completed natively via DB
     await updateAppointmentStatus(apt.id, "Completed")
     startTransition(() => {
       loadAppointments()
@@ -351,81 +315,99 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-start justify-center p-4 md:p-8">
-      <div className="max-w-6xl w-full">
+    <div className="min-h-screen flex flex-col items-center justify-start p-4 md:p-8 lg:p-12 relative overflow-hidden">
+      
+      {/* Background Decorative Ambient Orbs (Apple M3 Ambient Mesh) */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="max-w-7xl w-full relative z-10 space-y-8">
         
-        {/* Header (Hidden on print) */}
-        <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-200 print:hidden">
-          <div>
-            <Image 
-              src="/horizontal-logo.png" 
-              alt="Clinic OS Logo" 
-              width={200} 
-              height={50} 
-              className="h-12 w-auto object-contain mb-2"
-              priority 
-            />
-            <p className="text-slate-500 text-sm mt-1">
-              Welcome, <span className="font-semibold text-slate-700">{profile.doctorName}</span>. Manage {profile.clinicName} from one place.
-            </p>
+        {/* Header Glass Dock (Apple Style Top Nav Bar) */}
+        <header className="glass-panel rounded-3xl p-5 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-primary/10 dark:bg-primary/20 rounded-2xl border border-primary/20">
+              <Image 
+                src="/horizontal-logo.png" 
+                alt="Clinic OS Logo" 
+                width={180} 
+                height={45} 
+                className="h-9 w-auto object-contain dark:brightness-200"
+                priority 
+              />
+            </div>
+            <div>
+              <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
+                {profile.clinicName}
+              </h1>
+              <p className="text-xs md:text-sm text-muted-foreground font-medium flex items-center gap-2">
+                <span>Welcome back, <strong className="text-primary font-semibold">{profile.doctorName}</strong></span>
+              </p>
+            </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {pendingRequests.length > 0 && (
-              <div className="relative p-2 bg-amber-50 rounded-full border border-amber-100 text-amber-600 animate-bounce-subtle">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
+              <div className="relative p-2.5 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                <Bell className="size-5" />
+                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] size-5 rounded-full flex items-center justify-center font-bold shadow-md">
                   {pendingRequests.length}
                 </span>
               </div>
             )}
             <ProfileModal tenant={tenant} />
           </div>
-        </div>
+        </header>
 
-        {/* Tabs (Hidden on print) */}
+        {/* Navigation Tabs (Apple Segmented Glass Control) */}
         <div className="print:hidden">
-          <Tabs defaultValue="appointments" className="w-full">
-            <TabsList 
-              style={{ display: "grid", width: "100%", height: "auto" }}
-              className="grid w-full max-w-4xl grid-cols-4 mb-8 bg-slate-200/60 p-1.5 rounded-2xl h-auto"
-            >
-              <TabsTrigger value="appointments" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all">
-                <CalendarRange className="h-4 w-4" /> Appointments
-              </TabsTrigger>
-              <TabsTrigger value="prescriptions" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all">
-                <FileText className="h-4 w-4" /> E-Prescriptions
-              </TabsTrigger>
-              <TabsTrigger value="directory" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all">
-                <User className="h-4 w-4" /> Patient Directory
-              </TabsTrigger>
-              <TabsTrigger value="requests" className="flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all relative">
-                <Inbox className="h-4 w-4" /> 
-                <span>Requests Queue</span>
-                {pendingRequests.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
-                    {pendingRequests.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="appointments" className="w-full space-y-8">
+            <div className="flex justify-center">
+              <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full max-w-3xl h-14 p-1.5 glass-panel rounded-full shadow-lg">
+                <TabsTrigger value="appointments" className="text-sm font-semibold rounded-full gap-2">
+                  <CalendarRange className="size-4" /> Appointments
+                </TabsTrigger>
+                <TabsTrigger value="prescriptions" className="text-sm font-semibold rounded-full gap-2">
+                  <FileText className="size-4" /> E-Prescriptions
+                </TabsTrigger>
+                <TabsTrigger value="directory" className="text-sm font-semibold rounded-full gap-2">
+                  <User className="size-4" /> Patients
+                </TabsTrigger>
+                <TabsTrigger value="requests" className="text-sm font-semibold rounded-full gap-2 relative">
+                  <Inbox className="size-4" /> Requests
+                  {pendingRequests.length > 0 && (
+                    <span className="ml-1 bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      {pendingRequests.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </div>
             
             {/* Appointments Tab Content */}
             <TabsContent value="appointments" className="mt-0 outline-none">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                {/* Side Panel: Today's Appointments */}
+                {/* Left Side: Today's Appointments List */}
                 <div className="lg:col-span-1 space-y-4">
-                  <Card className="h-[75vh] flex flex-col border-slate-200 shadow-sm bg-white/50 backdrop-blur-sm">
-                    <CardHeader className="pb-4 border-b">
-                      <CardTitle className="text-xl font-bold text-slate-800">Today's Appointments</CardTitle>
-                    <CardDescription>You have {appointments.filter(a => a.status !== "Completed").length} appointment{appointments.filter(a => a.status !== "Completed").length !== 1 ? "s" : ""} today.</CardDescription>
+                  <Card className="h-[75vh] flex flex-col border border-white/40 dark:border-white/10 glass-panel">
+                    <CardHeader className="pb-4 border-b border-black/5 dark:border-white/5">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg font-bold">Today's Schedule</CardTitle>
+                        <span className="text-xs font-semibold px-3 py-1 bg-primary/10 text-primary rounded-full">
+                          {appointments.filter(a => a.status !== "Completed").length} Pending
+                        </span>
+                      </div>
+                      <CardDescription>Real-time queue management for {profile.doctorName}</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 overflow-auto p-4 flex flex-col space-y-4">
+
+                    <CardContent className="flex-1 overflow-auto p-4 flex flex-col gap-3">
                       {appointments.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center text-slate-400 text-sm space-y-3">
-                          <CalendarX className="w-12 h-12 text-slate-200" />
-                          <p>No appointments booked yet. Use the wizard to add one.</p>
+                        <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center text-muted-foreground text-sm gap-3">
+                          <div className="p-4 bg-muted/50 rounded-full">
+                            <CalendarX className="size-8 text-muted-foreground/60" />
+                          </div>
+                          <p className="font-medium">No appointments scheduled for today.</p>
                         </div>
                       ) : (
                         appointments.map((apt) => (
@@ -435,96 +417,71 @@ export default function Dashboard() {
                               setSelectedDetailsApt(apt)
                               setIsDetailsModalOpen(true)
                             }}
-                            className={`p-4 border border-slate-100 rounded-xl shadow-sm flex flex-col gap-3 transition-all cursor-pointer ${
-                              apt.status === "Completed" ? "opacity-60 bg-slate-50" : "bg-white hover:shadow-md hover:border-slate-200"
+                            className={`p-4 rounded-2xl transition-all cursor-pointer border ${
+                              apt.status === "Completed" 
+                                ? "opacity-60 bg-muted/30 border-black/5 dark:border-white/5" 
+                                : "glass-panel glass-card border-white/50 dark:border-white/10 shadow-sm hover:shadow-md"
                             }`}
                           >
                             <div className="flex justify-between items-start">
-                              <div className="font-semibold text-slate-800">{apt.patient}</div>
-                              <div className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                                apt.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                                apt.status === 'Rescheduled' ? 'bg-amber-50 text-amber-800 border border-amber-200/50' :
-                                apt.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                              <div className="font-bold text-foreground text-base">{apt.patient}</div>
+                              <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${
+                                apt.status === 'In Progress' ? 'bg-primary text-primary-foreground shadow-xs' :
+                                apt.status === 'Rescheduled' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+                                apt.status === 'Completed' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'
                               }`}>
                                 {apt.status}
-                              </div>
+                              </span>
                             </div>
-                            <div className="flex flex-col gap-2">
-                              <div className="text-sm text-slate-500 flex items-center gap-2">
-                                <User className="h-4 w-4 text-slate-400" /> {apt.doctor}
+
+                            <div className="flex flex-col gap-1.5 mt-2">
+                              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                <User className="size-3.5 text-primary" /> {apt.doctor}
                               </div>
-                              <div className="text-sm text-slate-700 font-semibold flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-slate-400" /> {apt.time}
+                              <div className="text-xs text-foreground font-semibold flex items-center gap-1.5">
+                                <Clock className="size-3.5 text-primary" /> {apt.time}
                               </div>
                             </div>
 
                             {apt.status !== "Completed" && (
-                              <div className="flex items-center gap-1.5 border-t pt-3 mt-1 text-[11px]">
-                                {/* Primary action button */}
+                              <div className="flex items-center gap-2 border-t border-black/5 dark:border-white/5 pt-3 mt-3">
                                 {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
-                                  <button
+                                  <Button
+                                    size="xs"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleUpdateStatus(apt.id, "In Progress")
                                     }}
-                                    className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-md font-semibold transition-colors"
+                                    className="bg-primary text-primary-foreground font-semibold rounded-full"
                                   >
-                                    Start
-                                  </button>
+                                    Start Consultation
+                                  </Button>
                                 )}
                                 {apt.status === "In Progress" && (
-                                  <button
+                                  <Button
+                                    size="xs"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleCompleteAppointment(apt)
                                     }}
-                                    className="px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-md font-semibold transition-colors"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-full"
                                   >
                                     Complete
-                                  </button>
+                                  </Button>
                                 )}
 
-                                {/* Secondary actions — ellipsis menu */}
-                                <div className="relative ml-auto group">
+                                <div className="ml-auto">
                                   <Button
                                     variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="h-10 w-10 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                                    size="icon-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleRescheduleClick(apt)
+                                    }}
+                                    className="text-muted-foreground hover:text-foreground"
                                   >
-                                    <MoreHorizontal className="h-4 w-4" />
+                                    <MoreHorizontal className="size-4" />
                                   </Button>
-                                  <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[130px] z-20">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleRescheduleClick(apt)
-                                      }}
-                                      className="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                                    >
-                                      Reschedule
-                                    </button>
-                                    {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleCompleteAppointment(apt)
-                                        }}
-                                        className="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                                      >
-                                        Mark Complete
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleCancelAppointment(apt.id)
-                                      }}
-                                      className="w-full text-left px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
                                 </div>
                               </div>
                             )}
@@ -535,60 +492,71 @@ export default function Dashboard() {
                   </Card>
                 </div>
 
-                {/* Main Content Area */}
-                <div className="lg:col-span-2 space-y-6 flex flex-col justify-center">
-                  <div className="bg-white py-6 px-8 md:px-12 rounded-2xl shadow-sm border border-slate-200 text-center space-y-6">
-                    <div className="space-y-2">
-                      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
-                        Front Desk
+                {/* Right Side: Quick Front Desk & Google M3 Metric Chips */}
+                <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
+                  <Card className="glass-panel border border-white/40 dark:border-white/10 p-8 md:p-10 text-center space-y-6">
+                    <div className="space-y-3 max-w-xl mx-auto">
+                      <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold tracking-wide uppercase">
+                        <Activity className="size-3.5" /> Front Desk Hub
+                      </div>
+                      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
+                        Book & Onboard Patient
                       </h2>
-                      <p className="text-slate-500 text-lg max-w-lg mx-auto">
-                        Welcome! Use the button below to quickly onboard a new patient and book their consultation.
+                      <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
+                        Select patient details below to quickly issue consultations, assign doctors, and notify patients via WhatsApp.
                       </p>
                     </div>
                     
-                    <div className="max-w-md mx-auto pt-8">
+                    <div className="max-w-md mx-auto pt-4">
                       <BookingWizard onBookAppointment={handleAddAppointment} />
                     </div>
-                  </div>
-                  
+                  </Card>
+
+                  {/* Material M3 Metric Containers */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <Card className="border-slate-200 shadow-sm">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-600 text-sm font-medium uppercase tracking-wider">Total Patients</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-4xl font-bold text-slate-800">{stats.totalPatients}</div>
-                        <p className="text-sm text-green-600 font-medium mt-1 flex items-center gap-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                          +{stats.patientsThisWeek} this week
+                    <Card className="glass-panel p-5 border border-white/40 dark:border-white/10 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Patients</span>
+                        <div className="p-2 bg-primary/10 text-primary rounded-full">
+                          <Users className="size-4" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <div className="text-3xl font-extrabold text-foreground">{stats.totalPatients}</div>
+                        <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                          <TrendingUp className="size-3.5" /> +{stats.patientsThisWeek} this week
                         </p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="border-slate-200 shadow-sm">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-600 text-sm font-medium uppercase tracking-wider">Revenue Today</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-4xl font-bold text-slate-800">${stats.revenueToday}</div>
-                        <p className="text-sm text-green-600 font-medium mt-1 flex items-center gap-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check-circle-2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-                          {stats.completedTodayCount} appointments
-                        </p>
-                      </CardContent>
+                      </div>
                     </Card>
 
-                    <Card className="border-slate-200 shadow-sm">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-slate-600 text-sm font-medium uppercase tracking-wider">No-Show Rate</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-4xl font-bold text-slate-800">{stats.noShowRate}%</div>
-                        <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-1">
-                          vs previous week
+                    <Card className="glass-panel p-5 border border-white/40 dark:border-white/10 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Today's Revenue</span>
+                        <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full">
+                          <DollarSign className="size-4" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <div className="text-3xl font-extrabold text-foreground">${stats.revenueToday}</div>
+                        <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                          <CheckCircle2 className="size-3.5" /> {stats.completedTodayCount} consultations
                         </p>
-                      </CardContent>
+                      </div>
+                    </Card>
+
+                    <Card className="glass-panel p-5 border border-white/40 dark:border-white/10 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">No-Show Rate</span>
+                        <div className="p-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full">
+                          <Clock className="size-4" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <div className="text-3xl font-extrabold text-foreground">{stats.noShowRate}%</div>
+                        <p className="text-xs text-muted-foreground font-medium mt-1">
+                          Optimized via SMS reminders
+                        </p>
+                      </div>
                     </Card>
                   </div>
                 </div>
@@ -596,84 +564,84 @@ export default function Dashboard() {
               </div>
             </TabsContent>
 
-            {/* E-Prescriptions Tab Content */}
+            {/* E-Prescriptions Tab */}
             <TabsContent value="prescriptions" className="mt-0 outline-none">
               <EPrescriptionForm />
             </TabsContent>
 
-            {/* Patient Directory Tab Content */}
+            {/* Patient Directory Tab */}
             <TabsContent value="directory" className="mt-0 outline-none">
               <PatientDirectory />
             </TabsContent>
 
-            {/* Requests Queue Tab Content */}
+            {/* Requests Queue Tab */}
             <TabsContent value="requests" className="mt-0 outline-none">
-              <Card className="border-slate-200 shadow-sm">
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-xl font-bold text-slate-800">Incoming Appointment Requests</CardTitle>
+              <Card className="glass-panel p-6 border border-white/40 dark:border-white/10">
+                <CardHeader className="border-b border-black/5 dark:border-white/5 pb-4">
+                  <CardTitle className="text-xl font-bold">Incoming Appointment Requests</CardTitle>
                   <CardDescription>
-                    Verify details, fill in missing intake information, and approve requests sent via your public portal.
+                    Review patient requests submitted through your online portal and add them directly to your schedule.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="pt-6">
                   {pendingRequests.length === 0 ? (
                     <div className="py-16 text-center space-y-3">
-                      <div className="mx-auto w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600 border border-green-100">
-                        <CheckSquare className="w-6 h-6" />
+                      <div className="mx-auto size-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-600">
+                        <CheckSquare className="size-6" />
                       </div>
-                      <h3 className="font-semibold text-slate-800 text-lg">All caught up!</h3>
-                      <p className="text-sm text-slate-400 max-w-sm mx-auto">
-                        No pending requests from your booking page. Keep sharing your public booking link on Google and WhatsApp!
+                      <h3 className="font-bold text-foreground text-lg">All requests processed!</h3>
+                      <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                        There are no pending requests in the queue. Share your online booking link to receive new appointments.
                       </p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {pendingRequests.map((req) => (
-                        <Card key={req.id} className="border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors shadow-none">
-                          <CardContent className="p-5 flex flex-col justify-between h-full gap-4">
+                        <Card key={req.id} className="glass-panel p-5 border border-white/40 dark:border-white/10 hover:shadow-xl transition-all">
+                          <CardContent className="p-0 flex flex-col justify-between h-full gap-4">
                             <div className="space-y-3">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h4 className="font-bold text-slate-800 text-lg">{req.patient}</h4>
-                                  <p className="text-xs text-slate-400 mt-0.5">Submitted: {new Date(req.createdAt).toLocaleDateString()}</p>
+                                  <h4 className="font-bold text-foreground text-lg">{req.patient}</h4>
+                                  <p className="text-xs text-muted-foreground">Received: {new Date(req.createdAt).toLocaleDateString()}</p>
                                 </div>
-                                <span className="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-semibold border border-amber-200">
+                                <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs px-3 py-1 rounded-full font-bold border border-amber-500/20">
                                   {req.status}
                                 </span>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-slate-600 bg-white p-3 rounded-lg border border-slate-100">
+                              <div className="grid grid-cols-2 gap-3 text-xs bg-muted/40 p-3 rounded-2xl border border-black/5 dark:border-white/5">
                                 <div>
-                                  <span className="text-xs text-slate-400 block">Phone</span>
-                                  <span className="font-medium text-xs break-all">{req.phone}</span>
+                                  <span className="text-muted-foreground block text-[10px]">Phone</span>
+                                  <span className="font-semibold">{req.phone}</span>
                                 </div>
                                 <div>
-                                  <span className="text-xs text-slate-400 block">Assigned Doctor</span>
-                                  <span className="font-medium text-xs">{req.doctor}</span>
+                                  <span className="text-muted-foreground block text-[10px]">Assigned Doctor</span>
+                                  <span className="font-semibold">{req.doctor}</span>
                                 </div>
-                                <div className="mt-1">
-                                  <span className="text-xs text-slate-400 block">Date</span>
-                                  <span className="font-semibold text-xs text-primary">{req.date}</span>
+                                <div>
+                                  <span className="text-muted-foreground block text-[10px]">Requested Date</span>
+                                  <span className="font-bold text-primary">{req.date}</span>
                                 </div>
-                                <div className="mt-1">
-                                  <span className="text-xs text-slate-400 block">Time Slot</span>
-                                  <span className="font-semibold text-xs text-primary">{req.time}</span>
+                                <div>
+                                  <span className="text-muted-foreground block text-[10px]">Time Slot</span>
+                                  <span className="font-bold text-primary">{req.time}</span>
                                 </div>
                               </div>
 
-                              <p className="text-xs text-slate-500 italic bg-blue-50/30 p-2.5 rounded border border-blue-50">
-                                <span className="font-bold not-italic">Note:</span> "{req.reason}"
+                              <p className="text-xs text-muted-foreground italic bg-primary/5 p-3 rounded-xl border border-primary/10">
+                                <span className="font-bold not-italic">Reason:</span> "{req.reason}"
                               </p>
                             </div>
 
-                            <div className="flex gap-2 border-t pt-3">
+                            <div className="flex gap-3 border-t border-black/5 dark:border-white/5 pt-4">
                               <Button 
                                 variant="outline" 
                                 size="sm" 
                                 onClick={() => handleDeclineRequest(req.id)}
-                                className="flex-1 text-red-500 hover:text-red-600 hover:bg-red-50/50 border-red-100 hover:border-red-200 gap-1 h-9"
+                                className="flex-1 text-destructive hover:bg-destructive/10 border-destructive/20 rounded-full"
                               >
-                                <Trash2 className="w-4 h-4" /> Decline
+                                <Trash2 className="size-4" /> Decline
                               </Button>
                               <Button 
                                 size="sm" 
@@ -681,9 +649,9 @@ export default function Dashboard() {
                                   setSelectedRequest(req)
                                   setIsProcessModalOpen(true)
                                 }}
-                                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/95 gap-1 h-9"
+                                className="flex-1 bg-primary text-primary-foreground font-semibold rounded-full shadow-md"
                               >
-                                <CheckSquare className="w-4 h-4" /> Process
+                                <CheckSquare className="size-4" /> Process & Confirm
                               </Button>
                             </div>
                           </CardContent>
@@ -737,39 +705,31 @@ export default function Dashboard() {
             onReschedule={handleRescheduleClick}
           />
         )}
-
-        {/* E-Prescription Print Output - It needs to be rendered without Tab wrappers hiding it during print */}
-        {/* We keep EPrescriptionForm logic inside the tab, but since the form itself contains the print:block logic, 
-            it will only print if the tab is active. That's usually fine since the doctor will click Print while on the tab. */}
       </div>
 
       {/* Cancel Confirmation Dialog */}
       <Dialog open={!!cancelTargetId} onOpenChange={(open) => !open && setCancelTargetId(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" /> Cancel Appointment
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="size-5" /> Cancel Appointment
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to cancel this appointment? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-6 flex sm:justify-end gap-3">
-            <Button variant="outline" onClick={() => setCancelTargetId(null)}>Keep Appointment</Button>
-            <Button variant="destructive" onClick={confirmCancelAppointment} className="bg-red-600 hover:bg-red-700">Yes, Cancel It</Button>
+            <Button variant="outline" onClick={() => setCancelTargetId(null)} className="rounded-full">Keep Appointment</Button>
+            <Button variant="destructive" onClick={confirmCancelAppointment} className="rounded-full font-semibold">Yes, Cancel It</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Global Toast Notification */}
       {toast.visible && (
-        <div className="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl z-50 flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          {toast.message.includes("✅") ? (
-            <CheckCircle2 className="h-5 w-5 text-green-400" />
-          ) : (
-            <CheckCircle2 className="h-5 w-5 text-blue-400" />
-          )}
-          <span className="font-medium text-sm">{toast.message.replace("✅ ", "")}</span>
+        <div className="fixed bottom-6 right-6 glass-panel bg-slate-950/90 text-white px-5 py-3 rounded-full shadow-2xl z-50 flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 border border-white/20">
+          <CheckCircle2 className="size-5 text-emerald-400" />
+          <span className="font-medium text-sm">{toast.message}</span>
         </div>
       )}
     </div>
