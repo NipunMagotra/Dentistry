@@ -22,10 +22,29 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${outfit.variable} font-sans h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col relative">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col relative bg-background text-foreground transition-colors duration-300">
         {children}
-        <div className="fixed bottom-2 right-2 text-[10px] text-slate-400/80 font-mono select-none pointer-events-none z-50 print:hidden">
+        <div className="fixed bottom-2 right-2 text-[10px] text-muted-foreground/60 font-mono select-none pointer-events-none z-50 print:hidden">
           v{packageJson.version}
         </div>
       </body>

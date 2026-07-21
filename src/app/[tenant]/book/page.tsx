@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
 
 const TIME_SLOTS = [
@@ -210,11 +211,14 @@ export default function PublicBookingPage() {
       {/* Left Panel: Clinic Info (Apple Glass Aesthetic) */}
       <div className="md:w-5/12 glass-panel p-8 md:p-12 flex flex-col justify-between relative z-10 border-r border-white/20 dark:border-white/5">
         <div className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-primary text-primary-foreground rounded-2xl shadow-md">
-              <HeartPulse className="size-6" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-primary text-primary-foreground rounded-2xl shadow-md">
+                <HeartPulse className="size-6" />
+              </div>
+              <span className="text-lg font-bold tracking-tight uppercase">Clinic OS Portal</span>
             </div>
-            <span className="text-lg font-bold tracking-tight uppercase">Clinic OS Portal</span>
+            <ThemeToggle />
           </div>
 
           <div className="space-y-4 pt-4">

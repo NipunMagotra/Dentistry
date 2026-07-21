@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal, CheckCircle2, AlertTriangle, CalendarX, TrendingUp, Users, DollarSign, Activity } from "lucide-react"
 import Image from "next/image"
 import { ProfileModal } from "@/components/ProfileModal"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import { ProcessRequestModal } from "@/components/ProcessRequestModal"
 import { Button } from "@/components/ui/button"
 import {
@@ -355,6 +356,7 @@ export default function Dashboard() {
                 </span>
               </div>
             )}
+            <ThemeToggle />
             <ProfileModal tenant={tenant} />
           </div>
         </header>
