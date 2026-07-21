@@ -318,15 +318,15 @@ export default function Dashboard() {
     <div className="min-h-screen flex flex-col items-center justify-start p-4 md:p-8 lg:p-12 relative overflow-hidden">
       
       {/* Background Decorative Ambient Orbs (Apple M3 Ambient Mesh) */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none animate-subtle-float" />
+      <div className="absolute top-1/2 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-subtle-float" style={{ animationDelay: "3s" }} />
 
-      <div className="max-w-7xl w-full relative z-10 space-y-8">
+      <div className="max-w-7xl w-full relative z-10 space-y-8 animate-fade-in-up">
         
         {/* Header Glass Dock (Apple Style Top Nav Bar) */}
-        <header className="glass-panel rounded-3xl p-5 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
+        <header className="glass-panel rounded-3xl p-5 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden transition-spring hover:shadow-xl">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-primary/10 dark:bg-primary/20 rounded-2xl border border-primary/20">
+            <div className="p-2.5 bg-primary/10 dark:bg-primary/20 rounded-2xl border border-primary/20 transition-transform hover:scale-105">
               <Image 
                 src="/horizontal-logo.png" 
                 alt="Clinic OS Logo" 
@@ -348,7 +348,7 @@ export default function Dashboard() {
           
           <div className="flex items-center gap-3">
             {pendingRequests.length > 0 && (
-              <div className="relative p-2.5 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-600 dark:text-amber-400">
+              <div className="relative p-2.5 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse-glow">
                 <Bell className="size-5" />
                 <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] size-5 rounded-full flex items-center justify-center font-bold shadow-md">
                   {pendingRequests.length}

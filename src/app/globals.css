@@ -151,12 +151,51 @@
   }
 }
 
+/* Keyframes for Subtle Micro-Animations */
+@keyframes subtleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.96); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-subtle-float {
+  animation: subtleFloat 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.transition-spring {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* Apple Glass & Material M3 Utilities */
 .glass-panel {
   background-color: rgb(255 255 255 / 0.7);
   backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgb(255 255 255 / 0.5);
   box-shadow: 0 10px 35px -10px rgba(0, 0, 0, 0.05), 0 0 1px 1px rgba(255, 255, 255, 0.6) inset;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark .glass-panel {
@@ -171,12 +210,12 @@
 }
 
 .glass-card:hover {
-  transform: translateY(-2px) scale(1.005);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px) scale(1.008);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.09);
 }
 
 .dark .glass-card:hover {
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.55);
 }
 
 /* Material You Pill Containers */
@@ -186,7 +225,7 @@
 }
 
 .m3-pill:active {
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
 /* Dynamic Gradient Accents */

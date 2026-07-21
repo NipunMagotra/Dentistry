@@ -93,9 +93,29 @@ export function ProfileModal({ tenant }: { tenant: string }) {
   const [docTimings, setDocTimings] = useState("")
   const [docCharge, setDocCharge] = useState("150")
 
+  // Account Profile Avatar state
+  const [avatar, setAvatar] = useState<string>("")
+
+  // Load avatar on mount and when modal opens
+  const loadAvatar = () => {
+    const savedAvatar = localStorage.getItem("clinic_user_avatar")
+    if (savedAvatar) {
+      setAvatar(savedAvatar)
+    } else {
+      setAvatar("https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80")
+    }
+  }
+
+  useEffect(() => {
+    loadAvatar()
+    window.addEventListener("clinic-avatar-updated", loadAvatar)
+    return () => window.removeEventListener("clinic-avatar-updated", loadAvatar)
+  }, [])
+
   // Load settings & doctors on open
   useEffect(() => {
     if (isOpen) {
+      loadAvatar()
       // Load Profile
       const savedProfile = localStorage.getItem("clinic_profile_settings")
       if (savedProfile) {
@@ -135,14 +155,38 @@ export function ProfileModal({ tenant }: { tenant: string }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const handleAvatarSelect = (url: string) => {
+    setAvatar(url)
+    localStorage.setItem("clinic_user_avatar", url)
+    window.dispatchEvent(new Event("clinic-avatar-updated"))
+  }
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64 = reader.result as string
+        setAvatar(base64)
+        localStorage.setItem("clinic_user_avatar", base64)
+        window.dispatchEvent(new Event("clinic-avatar-updated"))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
     localStorage.setItem("clinic_profile_settings", JSON.stringify(settings))
     localStorage.setItem("clinic_doctors_list", JSON.stringify(doctors))
+    if (avatar) {
+      localStorage.setItem("clinic_user_avatar", avatar)
+    }
     
     // Dispatch events to notify other modules
     window.dispatchEvent(new Event("clinic-profile-updated"))
     window.dispatchEvent(new Event("clinic-doctors-updated"))
+    window.dispatchEvent(new Event("clinic-avatar-updated"))
     
     setIsOpen(false)
   }
@@ -253,8 +297,31 @@ export function ProfileModal({ tenant }: { tenant: string }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger render={<button className="focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-full transition-transform hover:scale-105 active:scale-95" />}>
-        <User className="h-10 w-10 p-2 bg-slate-200 rounded-full text-slate-600 animate-pulse-subtle cursor-pointer" />
+      <DialogTrigger render={
+        <button className="focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-full transition-transform hover:scale-105 active:scale-95 relative group cursor-pointer" />
+      }>
+        <div className="relative flex items-center gap-2.5 p-1 rounded-full bg-background/50 border border-white/20 dark:border-white/10 glass-panel shadow-sm">
+          <div className="relative">
+            {avatar ? (
+              <img 
+                src={avatar} 
+                alt="Account Avatar" 
+                className="size-10 rounded-full object-cover border-2 border-primary shadow-sm" 
+              />
+            ) : (
+              <div className="size-10 bg-primary text-primary-foreground font-bold text-base rounded-full flex items-center justify-center border-2 border-primary shadow-sm">
+                {settings.clinicName ? settings.clinicName.charAt(0) : "A"}
+              </div>
+            )}
+            <span className="absolute bottom-0 right-0 size-3 bg-emerald-500 rounded-full border-2 border-background shadow-xs" title="Logged In" />
+          </div>
+          <div className="hidden sm:flex flex-col text-left pr-2">
+            <span className="text-xs font-bold leading-none text-foreground">{doctors[0]?.name || settings.clinicName || "Account"}</span>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+              ● Online
+            </span>
+          </div>
+        </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl bg-white max-h-[85vh] overflow-hidden flex flex-col gap-0 p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
@@ -262,7 +329,7 @@ export function ProfileModal({ tenant }: { tenant: string }) {
             <Settings className="h-6 w-6 text-primary animate-spin-slow" /> Profile & Account Settings
           </DialogTitle>
           <DialogDescription>
-            Manage your clinic details, doctor credentials, and external API integrations.
+            Manage your account avatar, clinic details, doctor credentials, and external API integrations.
           </DialogDescription>
         </DialogHeader>
 
@@ -274,7 +341,7 @@ export function ProfileModal({ tenant }: { tenant: string }) {
               className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl h-auto"
             >
               <TabsTrigger value="clinic" className="flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg">
-                <Building2 className="h-4 w-4" /> Clinic
+                <Building2 className="h-4 w-4" /> Clinic & Account
               </TabsTrigger>
               <TabsTrigger value="doctor" className="flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg">
                 <User className="h-4 w-4" /> Doctors
@@ -285,7 +352,56 @@ export function ProfileModal({ tenant }: { tenant: string }) {
             </TabsList>
 
             {/* Clinic Settings Tab */}
-            <TabsContent value="clinic" className="space-y-4 outline-none">
+            <TabsContent value="clinic" className="space-y-5 outline-none">
+              
+              {/* Account Profile Picture Section */}
+              <div className="p-4 rounded-2xl glass-panel border border-primary/20 bg-primary/5 space-y-3">
+                <Label className="text-xs font-bold uppercase tracking-wider text-primary">Account Profile Picture</Label>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="relative">
+                    {avatar ? (
+                      <img src={avatar} alt="Account Profile" className="size-16 rounded-full object-cover border-2 border-primary shadow-md" />
+                    ) : (
+                      <div className="size-16 bg-primary text-primary-foreground font-extrabold text-2xl rounded-full flex items-center justify-center border-2 border-primary">
+                        D
+                      </div>
+                    )}
+                    <span className="absolute bottom-0 right-0 size-4 bg-emerald-500 rounded-full border-2 border-background" title="Logged In" />
+                  </div>
+
+                  <div className="space-y-2 flex-1 text-center sm:text-left">
+                    <div className="text-xs font-medium text-muted-foreground">Select a preset or upload your photo:</div>
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAvatarSelect("https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80")}
+                        className="text-xs px-3 py-1 rounded-full bg-white dark:bg-zinc-800 border hover:border-primary font-medium"
+                      >
+                        👩‍⚕️ Doctor F
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAvatarSelect("https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80")}
+                        className="text-xs px-3 py-1 rounded-full bg-white dark:bg-zinc-800 border hover:border-primary font-medium"
+                      >
+                        👨‍⚕️ Doctor M
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAvatarSelect("https://images.unsplash.com/photo-1594824813566-78a0d4c8290f?w=150&auto=format&fit=crop&q=80")}
+                        className="text-xs px-3 py-1 rounded-full bg-white dark:bg-zinc-800 border hover:border-primary font-medium"
+                      >
+                        🩺 Specialist
+                      </button>
+
+                      <label className="text-xs px-3 py-1 rounded-full bg-primary text-primary-foreground font-semibold cursor-pointer shadow-xs hover:bg-primary/90">
+                        Upload Custom Photo
+                        <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="clinicName">Clinic Name</Label>
                 <div className="relative">
