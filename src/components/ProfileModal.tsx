@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 const DEFAULT_DOCTORS = [
   { id: "1", name: "Dr. Sarah Jenkins", specialty: "Periodontics", degrees: "BDS, MDS (Periodontics)", regNo: "849201", timings: "Mon - Sat: 9:00 AM - 5:00 PM", charge: 150 },
@@ -80,7 +79,16 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   }, [isOpen])
 
   const updateField = (field: string, value: any) => {
-    setSettings((prev) => ({ ...prev, [field]: value }))
+    setSettings((prev) => {
+      const updated = { ...prev, [field]: value }
+      try {
+        localStorage.setItem("clinic_profile_settings", JSON.stringify(updated))
+        window.dispatchEvent(new Event("clinic-profile-updated"))
+      } catch (e) {
+        console.error(e)
+      }
+      return updated
+    })
   }
 
   const handleAvatarSelect = (url: string) => {
@@ -135,8 +143,8 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
     reader.readAsDataURL(file)
   }
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     try {
       localStorage.setItem("clinic_profile_settings", JSON.stringify(settings))
       localStorage.setItem("clinic_doctors_list", JSON.stringify(doctors))
@@ -175,10 +183,10 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   const handleSaveDoctor = () => {
     if (!docName.trim()) return
 
-    if (editingDoctorId) {
-      // Edit existing
-      setDoctors((prev) =>
-        prev.map((d) =>
+    setDoctors((prev) => {
+      let updated: any[]
+      if (editingDoctorId) {
+        updated = prev.map((d) =>
           d.id === editingDoctorId
             ? {
                 ...d,
@@ -191,26 +199,41 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
               }
             : d
         )
-      )
-    } else {
-      // Add new
-      const newDoc = {
-        id: `doc_${Date.now()}`,
-        name: docName.trim(),
-        specialty: docSpecialty.trim() || "General Practitioner",
-        degrees: docDegrees.trim() || "BDS",
-        regNo: docRegNo.trim() || "100200",
-        timings: docTimings.trim() || "Mon - Sat: 9:00 AM - 5:00 PM",
-        charge: Number(docCharge) || 150
+      } else {
+        const newDoc = {
+          id: `doc_${Date.now()}`,
+          name: docName.trim(),
+          specialty: docSpecialty.trim() || "General Practitioner",
+          degrees: docDegrees.trim() || "BDS",
+          regNo: docRegNo.trim() || "100200",
+          timings: docTimings.trim() || "Mon - Sat: 9:00 AM - 5:00 PM",
+          charge: Number(docCharge) || 150
+        }
+        updated = [...prev, newDoc]
       }
-      setDoctors((prev) => [...prev, newDoc])
-    }
+      try {
+        localStorage.setItem("clinic_doctors_list", JSON.stringify(updated))
+        window.dispatchEvent(new Event("clinic-doctors-updated"))
+      } catch (e) {
+        console.error(e)
+      }
+      return updated
+    })
 
     setIsDoctorFormOpen(false)
   }
 
   const handleRemoveDoctor = (id: string) => {
-    setDoctors((prev) => prev.filter((d) => d.id !== id))
+    setDoctors((prev) => {
+      const updated = prev.filter((d) => d.id !== id)
+      try {
+        localStorage.setItem("clinic_doctors_list", JSON.stringify(updated))
+        window.dispatchEvent(new Event("clinic-doctors-updated"))
+      } catch (e) {
+        console.error(e)
+      }
+      return updated
+    })
   }
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
@@ -248,7 +271,9 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
           </div>
         </div>
       } />
-      <DialogContent className="sm:max-w-xl max-w-[95vw] glass-panel rounded-3xl border border-white/40 dark:border-white/10 max-h-[85vh] overflow-hidden flex flex-col gap-0 p-0">
+      <DialogContent className="sm:max-w-xl max-w-[95vw] glass-panel rounded-3xl border border-white/40 dark:border-white/10 max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+        
+        {/* Header (Always Visible) */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-black/5 dark:border-white/5 shrink-0">
           <DialogTitle className="text-xl sm:text-2xl font-extrabold text-foreground flex items-center gap-2">
             <Settings className="size-6 text-primary" /> Profile & Account Settings
@@ -258,9 +283,10 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
           </DialogDescription>
         </DialogHeader>
 
+        {/* Scrollable Form Body */}
         <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
-          <ScrollArea className="flex-1 px-6 pt-4">
-            <Tabs defaultValue="clinic" className="w-full pb-6">
+          <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[60vh]">
+            <Tabs defaultValue="clinic" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6 glass-panel border border-black/5 dark:border-white/5 p-1 rounded-full">
               <TabsTrigger value="clinic" className="flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-full">
                 <Building2 className="size-4" /> Clinic
@@ -651,23 +677,24 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
               )}
             </TabsContent>
           </Tabs>
-          </ScrollArea>
+          </div>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-2 border-t border-black/5 dark:border-white/5 px-6 py-4 bg-muted/30 shrink-0">
+          {/* Sticky Bottom Footer - ALWAYS visible pinned at bottom */}
+          <div className="p-4 border-t border-black/5 dark:border-white/5 bg-background/95 backdrop-blur-md shrink-0 flex flex-col sm:flex-row justify-end gap-3.5 z-20">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => setIsOpen(false)}
               className="rounded-full w-full sm:w-auto font-semibold"
             >
-              Cancel
+              Close
             </Button>
             <Button 
               type="submit" 
-              className="rounded-full w-full sm:w-auto bg-primary text-primary-foreground font-bold shadow-md"
+              className="rounded-full w-full sm:w-auto bg-primary text-primary-foreground font-extrabold px-8 shadow-md"
               disabled={isDoctorFormOpen}
             >
-              Save Changes
+              Save & Close
             </Button>
           </div>
         </form>
