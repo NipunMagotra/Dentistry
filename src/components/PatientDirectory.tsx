@@ -21,59 +21,8 @@ import { cn } from "@/lib/utils"
 
 const MOCK_XRAY = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%230f172a'/><text x='50%' y='40%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%233b82f6' text-anchor='middle'>DENTAL X-RAY SCAN</text><path d='M80,180 Q100,100 120,180 T160,180 T200,180 T240,180 T280,180 T320,180' stroke='%2338bdf8' stroke-width='4' fill='none' opacity='0.7'/><circle cx='200' cy='160' r='6' fill='%23ef4444'/><text x='50%' y='80%' font-family='sans-serif' font-size='12' fill='%2364748b' text-anchor='middle'>Panoramic Scan - Target region shaded red</text></svg>"
 
-// Mock Data for the Demo
-const MOCK_PATIENTS = [
-  {
-    id: "p1",
-    name: "Alice Smith",
-    phone: "+1 555-0100",
-    gender: "Female",
-    dob: "Nov 14, 1991",
-    allergies: "Penicillin",
-    attachments: [
-      { id: "att_1", name: "Panoramic_Scan.svg", url: MOCK_XRAY, date: "Jan 05, 2024" }
-    ],
-    history: {
-      appointments: [
-        { date: "Oct 12, 2023", doctor: "Dr. Sarah Jenkins", status: "Completed", reason: "Routine Clean & Checkup", notes: "Mild plaque buildup. Advised scaling." },
-        { date: "Jan 05, 2024", doctor: "Dr. Michael Chen", status: "Completed", reason: "Deep Scaling & Polishing", notes: "Scaling completed. Gums healthy." },
-      ],
-      prescriptions: [
-        { date: "Oct 12, 2023", doctor: "Dr. Sarah Jenkins", drugs: ["Amoxicillin 500mg (1-0-1) 5 Days", "Ibuprofen 400mg (1-0-1) 3 Days"] }
-      ]
-    }
-  },
-  {
-    id: "p2",
-    name: "Bob Johnson",
-    phone: "+1 555-0101",
-    gender: "Male",
-    dob: "May 23, 1988",
-    allergies: "None",
-    attachments: [],
-    history: {
-      appointments: [
-        { date: "Nov 22, 2023", doctor: "Dr. Emily Rodriguez", status: "Completed", reason: "Tooth Extraction", notes: "Lower left molar extraction. Prescribed paracetamol." },
-      ],
-      prescriptions: [
-        { date: "Nov 22, 2023", doctor: "Dr. Emily Rodriguez", drugs: ["Paracetamol 500mg (1-1-1) 3 Days"] }
-      ]
-    }
-  },
-  {
-    id: "p3",
-    name: "Charlie Davis",
-    phone: "+1 555-0102",
-    gender: "Male",
-    dob: "Aug 09, 1995",
-    allergies: "Sulfa Drugs",
-    attachments: [],
-    history: {
-      appointments: [],
-      prescriptions: []
-    }
-  },
-]
+// Empty initial state for real accounts
+const MOCK_PATIENTS: any[] = []
 
 export function PatientDirectory() {
   const [search, setSearch] = useState("")

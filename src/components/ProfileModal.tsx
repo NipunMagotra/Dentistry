@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Building2, Phone, MapPin, Clock, Key, Check, Settings, Copy, User, Plus, Trash2, Pencil, Stethoscope } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Building2, Phone, MapPin, Clock, Key, Check, Settings, Copy, User, Plus, Trash2, Pencil, Stethoscope, LogOut } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,21 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [avatar, setAvatar] = useState<string>("")
+  const router = useRouter()
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("clinic_account_email")
+      localStorage.removeItem("clinic_profile_settings")
+      localStorage.removeItem("clinic_doctors_list")
+      localStorage.removeItem("patient_directory_list")
+      window.dispatchEvent(new Event("clinic-profile-updated"))
+    } catch (e) {
+      console.error(e)
+    }
+    setIsOpen(false)
+    router.push("/home")
+  }
   
   // Profile settings state
   const [settings, setSettings] = useState({
@@ -680,22 +696,32 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
           </div>
 
           {/* Sticky Bottom Footer - ALWAYS visible pinned at bottom */}
-          <div className="p-4 border-t border-black/5 dark:border-white/5 bg-background/95 backdrop-blur-md shrink-0 flex flex-col sm:flex-row justify-end gap-3.5 z-20">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsOpen(false)}
-              className="rounded-full w-full sm:w-auto font-semibold"
+          <div className="p-4 border-t border-black/5 dark:border-white/5 bg-background/95 backdrop-blur-md shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 z-20">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleLogout}
+              className="rounded-full w-full sm:w-auto font-bold flex items-center justify-center gap-1.5"
             >
-              Close
+              <LogOut className="size-4" /> Log Out
             </Button>
-            <Button 
-              type="submit" 
-              className="rounded-full w-full sm:w-auto bg-primary text-primary-foreground font-extrabold px-8 shadow-md"
-              disabled={isDoctorFormOpen}
-            >
-              Save & Close
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto justify-end">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsOpen(false)}
+                className="rounded-full w-full sm:w-auto font-semibold"
+              >
+                Close
+              </Button>
+              <Button 
+                type="submit" 
+                className="rounded-full w-full sm:w-auto bg-primary text-primary-foreground font-extrabold px-8 shadow-md"
+                disabled={isDoctorFormOpen}
+              >
+                Save & Close
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
