@@ -365,17 +365,17 @@ export default function Dashboard() {
         <div className="print:hidden">
           <Tabs defaultValue="appointments" className="w-full space-y-8">
             <div className="flex justify-center">
-              <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full max-w-3xl h-14 p-1.5 glass-panel rounded-full shadow-lg">
-                <TabsTrigger value="appointments" className="text-sm font-semibold rounded-full gap-2">
+              <TabsList className="grid grid-cols-2 sm:flex sm:justify-center w-full max-w-3xl h-auto sm:h-14 p-1.5 glass-panel rounded-2xl sm:rounded-full shadow-lg gap-1">
+                <TabsTrigger value="appointments" className="text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full py-2.5 sm:py-0 px-3 sm:px-5 gap-1.5">
                   <CalendarRange className="size-4" /> Appointments
                 </TabsTrigger>
-                <TabsTrigger value="prescriptions" className="text-sm font-semibold rounded-full gap-2">
+                <TabsTrigger value="prescriptions" className="text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full py-2.5 sm:py-0 px-3 sm:px-5 gap-1.5">
                   <FileText className="size-4" /> E-Prescriptions
                 </TabsTrigger>
-                <TabsTrigger value="directory" className="text-sm font-semibold rounded-full gap-2">
+                <TabsTrigger value="directory" className="text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full py-2.5 sm:py-0 px-3 sm:px-5 gap-1.5">
                   <User className="size-4" /> Patients
                 </TabsTrigger>
-                <TabsTrigger value="requests" className="text-sm font-semibold rounded-full gap-2 relative">
+                <TabsTrigger value="requests" className="text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full py-2.5 sm:py-0 px-3 sm:px-5 gap-1.5 relative">
                   <Inbox className="size-4" /> Requests
                   {pendingRequests.length > 0 && (
                     <span className="ml-1 bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-bold">

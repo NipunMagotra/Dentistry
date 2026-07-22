@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as ShadcnCalendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { CalendarRange, Calendar, Clock } from "lucide-react"
@@ -30,20 +28,19 @@ interface RescheduleModalProps {
 }
 
 export function RescheduleModal({ isOpen, onClose, appointment, onReschedule }: RescheduleModalProps) {
-  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [date, setDate] = useState<string>("")
   const [time, setTime] = useState("")
 
-  // Default to today's date format or current slot on open
   useEffect(() => {
     if (appointment) {
-      setDate(new Date())
+      setDate(new Date().toISOString().split("T")[0])
       setTime(appointment.time)
     }
   }, [appointment, isOpen])
 
   const handleSave = () => {
     if (!appointment || !date || !time) return
-    onReschedule(appointment.id, format(date, "yyyy-MM-dd"), time)
+    onReschedule(appointment.id, date, time)
     onClose()
   }
 
@@ -51,52 +48,36 @@ export function RescheduleModal({ isOpen, onClose, appointment, onReschedule }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[400px] bg-white">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <CalendarRange className="h-5 w-5 text-primary" /> Reschedule Appointment
+      <DialogContent className="sm:max-w-[420px] max-w-[95vw] glass-panel p-6 rounded-3xl border border-white/40 dark:border-white/10">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
+            <CalendarRange className="size-5 text-primary" /> Reschedule Appointment
           </DialogTitle>
-          <DialogDescription>
-            Modify date or select a new time slot for {appointment.patient}.
+          <DialogDescription className="text-xs text-muted-foreground">
+            Modify date or select a new time slot for <strong>{appointment.patient}</strong>.
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4 space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="res-date">Select Date</Label>
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal bg-slate-50/50",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4 text-slate-400" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                }
-              />
-              <PopoverContent className="w-auto p-0" align="start">
-                <ShadcnCalendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(d) => setDate(d)}
-                  disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
-                />
-              </PopoverContent>
-            </Popover>
+            <Label htmlFor="res-date">Select New Date</Label>
+            <Input 
+              id="res-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              className="rounded-full"
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label>Select Time Slot</Label>
             <Select value={time} onValueChange={(val) => setTime(val || "")}>
-              <SelectTrigger className="bg-slate-50/50">
+              <SelectTrigger className="rounded-full h-10 px-4">
                 <SelectValue placeholder="Select Time" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-2xl glass-panel">
                 {TIME_SLOTS.map((slot) => (
                   <SelectItem key={slot} value={slot}>
                     {slot}
@@ -107,11 +88,11 @@ export function RescheduleModal({ isOpen, onClose, appointment, onReschedule }: 
           </div>
         </div>
 
-        <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+          <Button variant="outline" onClick={onClose} className="rounded-full w-full sm:w-auto font-semibold">
             Cancel
           </Button>
-          <Button onClick={handleSave} className="bg-primary text-primary-foreground hover:bg-primary/95">
+          <Button onClick={handleSave} className="rounded-full w-full sm:w-auto bg-primary text-primary-foreground font-bold shadow-md">
             Confirm Reschedule
           </Button>
         </DialogFooter>
