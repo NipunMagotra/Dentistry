@@ -3,6 +3,7 @@
 import { Building2, CheckCircle2, ShieldCheck, Zap, Stethoscope, Printer, MessageSquare } from "lucide-react"
 import { AuthModal } from "@/components/AuthModal"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { ClinicLogo } from "@/components/ClinicLogo"
 import Image from "next/image"
 
 export default function HomePage() {
@@ -12,14 +13,7 @@ export default function HomePage() {
       {/* Navigation */}
       <header className="px-6 lg:px-12 h-20 flex items-center justify-between glass-panel border-b border-black/10 dark:border-white/10 sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <Image 
-            src="/horizontal-logo.png" 
-            alt="Clinic OS Logo" 
-            width={180} 
-            height={45} 
-            className="h-10 w-auto object-contain dark:brightness-200"
-            priority 
-          />
+          <ClinicLogo size="md" />
         </div>
         <nav className="hidden md:flex gap-8 text-sm font-medium text-muted-foreground">
           <a href="#features" className="hover:text-primary transition-colors">Features</a>

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Building2, Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import Image from "next/image"
+import { ClinicLogo } from "@/components/ClinicLogo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -55,14 +55,8 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
       </DialogTrigger>
       <DialogContent className="sm:max-w-md glass-panel p-6 border border-white/40 dark:border-white/10 rounded-3xl">
         <DialogHeader className="text-center space-y-3 pt-2">
-          <div className="mx-auto flex items-center justify-center p-3 bg-primary/10 rounded-2xl">
-            <Image 
-              src="/square-logo.png" 
-              alt="Clinic OS Logo" 
-              width={44} 
-              height={44} 
-              className="h-11 w-11 object-contain" 
-            />
+          <div className="mx-auto flex items-center justify-center">
+            <ClinicLogo size="lg" />
           </div>
           <DialogTitle className="text-2xl font-extrabold text-foreground text-center">
             {tab === "login" ? "Welcome back" : "Create your clinic"}
