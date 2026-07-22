@@ -14,7 +14,6 @@ import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare,
 import Image from "next/image"
 import { ProfileModal } from "@/components/ProfileModal"
 import { ThemeToggle } from "@/components/ThemeToggle"
-import { ClinicLogo } from "@/components/ClinicLogo"
 import { ProcessRequestModal } from "@/components/ProcessRequestModal"
 import { Button } from "@/components/ui/button"
 import {
@@ -328,8 +327,17 @@ export default function Dashboard() {
         {/* Header Glass Dock (Apple Style Top Nav Bar) */}
         <header className="glass-panel rounded-3xl p-5 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden transition-spring hover:shadow-xl">
           <div className="flex items-center gap-4">
-            <ClinicLogo size="md" />
-            <div className="border-l border-black/10 dark:border-white/10 pl-4">
+            <div className="p-2.5 bg-primary/10 dark:bg-primary/20 rounded-2xl border border-primary/20 transition-transform hover:scale-105">
+              <Image 
+                src="/horizontal-logo.png" 
+                alt="Clinic OS Logo" 
+                width={180} 
+                height={45} 
+                className="h-9 w-auto object-contain dark:brightness-200"
+                priority 
+              />
+            </div>
+            <div>
               <h1 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
                 {profile.clinicName}
               </h1>
