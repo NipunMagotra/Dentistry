@@ -26,18 +26,23 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   const [avatar, setAvatar] = useState<string>("")
   const router = useRouter()
 
-  const handleLogout = () => {
+  const handleLogout = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     try {
       localStorage.removeItem("clinic_account_email")
       localStorage.removeItem("clinic_profile_settings")
       localStorage.removeItem("clinic_doctors_list")
       localStorage.removeItem("patient_directory_list")
+      localStorage.removeItem("clinic_account_avatar")
       window.dispatchEvent(new Event("clinic-profile-updated"))
     } catch (e) {
       console.error(e)
     }
     setIsOpen(false)
-    router.push("/home")
+    window.location.href = "/home"
   }
   
   // Profile settings state
