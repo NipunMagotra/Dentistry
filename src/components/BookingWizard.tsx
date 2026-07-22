@@ -331,7 +331,7 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                   >
                     <div>
                       <div className="text-sm font-bold">{doc.name}</div>
-                      <div className="text-xs text-muted-foreground">Consultation Charge: ${doc.charge}</div>
+                      <div className="text-xs text-muted-foreground">Consultation Charge: ₹{doc.charge}</div>
                     </div>
                     {selectedDoctor === doc.id && <Check className="size-5 text-primary" />}
                   </div>

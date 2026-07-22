@@ -10,7 +10,7 @@ import { RescheduleModal } from "@/components/RescheduleModal"
 import { AppointmentDetailsModal } from "@/components/AppointmentDetailsModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal, CheckCircle2, AlertTriangle, CalendarX, TrendingUp, Users, DollarSign, Activity } from "lucide-react"
+import { Clock, User, CalendarRange, FileText, Bell, Inbox, Trash2, CheckSquare, MoreHorizontal, CheckCircle2, AlertTriangle, CalendarX, TrendingUp, Users, IndianRupee, Activity } from "lucide-react"
 import Image from "next/image"
 import { ProfileModal } from "@/components/ProfileModal"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -535,11 +535,11 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Today's Revenue</span>
                         <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full">
-                          <DollarSign className="size-4" />
+                          <IndianRupee className="size-4" />
                         </div>
                       </div>
                       <div className="mt-4">
-                        <div className="text-3xl font-extrabold text-foreground">${stats.revenueToday}</div>
+                        <div className="text-3xl font-extrabold text-foreground">₹{stats.revenueToday}</div>
                         <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
                           <CheckCircle2 className="size-3.5" /> {stats.completedTodayCount} consultations
                         </p>

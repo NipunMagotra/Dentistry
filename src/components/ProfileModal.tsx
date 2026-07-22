@@ -517,7 +517,7 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
                             </div>
                             <div className="p-2 glass-panel border border-black/5 dark:border-white/5 rounded-xl">
                               <span className="font-semibold text-muted-foreground block text-[8px] uppercase tracking-wider mb-0.5">Consult Fee</span>
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">${doc.charge}</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">₹{doc.charge}</span>
                             </div>
                           </div>
                         </div>
@@ -596,7 +596,7 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
                         />
                       </div>
                       <div className="grid gap-1">
-                        <Label htmlFor="subdoc-charge">Consult Fee ($)</Label>
+                        <Label htmlFor="subdoc-charge">Consult Fee (₹)</Label>
                         <Input 
                           id="subdoc-charge" 
                           type="number"
