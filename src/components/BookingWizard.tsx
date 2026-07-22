@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { getDoctors, createAppointment } from "@/app/actions"
+import { queueOfflineAction, isOnline } from "@/lib/offlineSync"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -133,17 +134,22 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
     setIsSubmitting(true)
     
     const docName = doctorsList.find(d => d.id === selectedDoctor)?.name || selectedDoctor
-    const result = await createAppointment({
+    const payload = {
       patientName: patientData.name,
       patientPhone: `${patientData.countryCode} ${patientData.phone}`,
       doctorName: docName,
       appointmentDate: date ? format(date, "yyyy-MM-dd") : "",
       appointmentTime: selectedTime,
       status: "Scheduled"
-    })
+    }
 
-    if (!result.success) {
-      console.error("Failed to create appointment", result.error)
+    if (isOnline()) {
+      const result = await createAppointment(payload)
+      if (!result.success) {
+        console.error("Failed to create appointment", result.error)
+      }
+    } else {
+      queueOfflineAction("BOOK_APPOINTMENT", payload)
     }
 
     if (onBookAppointment) {
@@ -160,19 +166,21 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
     setStep(1)
     setIsSubmitting(false)
 
-    fetch("/api/workflow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        patientPhone: `${patientData.countryCode} ${patientData.phone}`,
-        patientName: patientData.name,
-        doctorName: docName,
-        appointmentDate: date?.toISOString(),
-        appointmentTime: selectedTime
+    if (isOnline()) {
+      fetch("/api/workflow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientPhone: `${patientData.countryCode} ${patientData.phone}`,
+          patientName: patientData.name,
+          doctorName: docName,
+          appointmentDate: date?.toISOString(),
+          appointmentTime: selectedTime
+        })
+      }).catch((err) => {
+        console.error("Failed to trigger workflow", err)
       })
-    }).catch((err) => {
-      console.error("Failed to trigger workflow", err)
-    })
+    }
   }
 
   const handleOpenChange = (newOpen: boolean) => {

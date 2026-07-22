@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition } from "react"
 import { searchPatients, deletePatient } from "@/app/actions"
+import { queueOfflineAction, isOnline } from "@/lib/offlineSync"
 import { Search, User, Clock, Pill, FileText, AlertTriangle, Download, Paperclip, Upload, Trash2 } from "lucide-react"
 import { toPng } from "html-to-image"
 import { Input } from "@/components/ui/input"
@@ -255,10 +256,14 @@ export function PatientDirectory() {
     setSelectedPatient(null)
     setShowConfirmDelete(false)
 
-    const result = await deletePatient(id)
-    if (!result.success) {
-      console.error("Failed to delete patient", result.error)
-      fetchPatients()
+    if (isOnline()) {
+      const result = await deletePatient(id)
+      if (!result.success) {
+        console.error("Failed to delete patient", result.error)
+        fetchPatients()
+      }
+    } else {
+      queueOfflineAction("DELETE_PATIENT", { id })
     }
   }
 

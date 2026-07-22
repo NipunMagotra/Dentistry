@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { getDoctors, searchPatients, createSecurePrescription } from "@/app/actions"
+import { queueOfflineAction, isOnline } from "@/lib/offlineSync"
 import { toPng } from "html-to-image"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -211,12 +212,17 @@ export function EPrescriptionForm() {
     // Also persist prescription to DB for patient history
     if (patientId && patientId !== "custom") {
       const drugStrings = selectedDrugs.map(d => `${d.name} (${d.frequency}) ${d.days} Days`)
-      createSecurePrescription({
+      const payload = {
         patientId: patientId,
         doctorName: currentDoctor.name,
         drugs: drugStrings,
         notes: "Generated via E-Prescription Pad"
-      }).catch(err => console.error("Failed to save prescription to DB", err))
+      }
+      if (isOnline()) {
+        createSecurePrescription(payload).catch(err => console.error("Failed to save prescription to DB", err))
+      } else {
+        queueOfflineAction("CREATE_PRESCRIPTION", payload)
+      }
     }
   }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from "react"
 import { useParams } from "next/navigation"
 import { getAppointments, getPendingRequests, updateAppointmentStatus, updateAppointmentDetails, getClinicStats } from "@/app/actions"
+import { queueOfflineAction, isOnline } from "@/lib/offlineSync"
 import { BookingWizard } from "@/components/BookingWizard"
 import { EPrescriptionForm } from "@/components/EPrescriptionForm"
 import { PatientDirectory } from "@/components/PatientDirectory"
@@ -256,18 +257,20 @@ export default function Dashboard() {
         apt.id === id ? { ...apt, status: newStatus } : apt
       ))
       
-      const result = await updateAppointmentStatus(id, newStatus)
-      if (result && result.error) {
-        showToast(`❌ Error: ${(result.error as any).message || "Failed"}`)
-        startTransition(() => { loadAppointments() })
-        return
+      if (isOnline()) {
+        const result = await updateAppointmentStatus(id, newStatus)
+        if (result && result.error) {
+          showToast(`❌ Error: ${(result.error as any).message || "Failed"}`)
+          startTransition(() => loadAppointments())
+        } else {
+          showToast(`Appointment status updated to ${newStatus}`)
+        }
+      } else {
+        queueOfflineAction("UPDATE_STATUS", { id, status: newStatus })
+        showToast(`⚡ Saved offline: Status updated to ${newStatus}`)
       }
-      startTransition(() => {
-        loadAppointments()
-      })
     } catch (error: any) {
       showToast(`❌ Error: ${error.message || "Unknown error"}`)
-      startTransition(() => { loadAppointments() })
     }
   }
 
