@@ -38,8 +38,8 @@ export function PatientDirectory() {
 
   // Clinic Profile State
   const [profile, setProfile] = useState({
-    clinicName: "City Dental Clinic",
-    doctorName: "Dr. Sarah Jenkins"
+    clinicName: "Raina Dentistry",
+    doctorName: "Dr. Anoop Raina"
   })
 
   // Dynamic Doctors List State
@@ -308,7 +308,7 @@ export function PatientDirectory() {
                   <div 
                     key={patient.id} 
                     onClick={() => setSelectedPatient(patient)}
-                    className="p-4 rounded-2xl glass-panel border border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
+                    className="p-3.5 sm:p-4 rounded-2xl glass-panel border border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
                   >
                     <div className="flex items-center gap-3.5">
                       <div className="size-11 bg-primary/10 text-primary rounded-full flex items-center justify-center font-extrabold text-base border border-primary/20 shrink-0">
@@ -327,8 +327,24 @@ export function PatientDirectory() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-primary font-bold text-xs sm:text-sm flex items-center gap-1 self-end sm:self-center">
-                      View History &rarr;
+
+                    <div className="flex items-center gap-2 self-end sm:self-center" onClick={(e) => e.stopPropagation()}>
+                      <a
+                        href={`tel:${(patient.phone || '').replace(/[^\d+]/g, '')}`}
+                        className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold transition-all shadow-2xs flex items-center gap-1 px-3"
+                        title="Call Patient"
+                      >
+                        📞 Call
+                      </a>
+                      <a
+                        href={`https://wa.me/${(patient.phone || '').replace(/[^\d+]/g, '')}?text=Hello%20${encodeURIComponent(patient.name)},%20this%20is%20Raina%20Dentistry...`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-bold transition-all flex items-center gap-1 px-3"
+                        title="Message on WhatsApp"
+                      >
+                        💬 WhatsApp
+                      </a>
                     </div>
                   </div>
                 )
@@ -340,11 +356,11 @@ export function PatientDirectory() {
 
       {/* Patient History Dialog */}
       <Dialog open={!!selectedPatient} onOpenChange={(open) => !open && handleDialogClose()}>
-        <DialogContent className="sm:max-w-2xl max-w-[95vw] glass-panel p-0 overflow-hidden rounded-3xl border border-white/40 dark:border-white/10">
+        <DialogContent className="w-[94vw] max-w-2xl max-h-[88vh] glass-panel p-0 overflow-hidden rounded-2xl sm:rounded-3xl border border-white/40 dark:border-white/10 flex flex-col">
           {!showConfirmDelete ? (
             <>
-              <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-black/5 dark:border-white/5 bg-muted/30">
-                <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+              <DialogHeader className="p-4 sm:p-6 pb-3 border-b border-black/5 dark:border-white/5 bg-muted/30">
+                <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2 text-foreground">
                   <User className="size-5 text-primary" />
                   {selectedPatient?.name}'s Medical History
                 </DialogTitle>
@@ -353,7 +369,7 @@ export function PatientDirectory() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="grid gap-6 px-4 sm:px-6 py-4 max-h-[55vh] overflow-y-auto pr-2">
+              <div className="grid gap-4 sm:gap-6 p-4 sm:p-6 max-h-[65vh] overflow-y-auto flex-1">
                 {/* Allergies Section */}
                 <div className={`p-3.5 rounded-2xl border flex items-center gap-3 ${
                   selectedPatient?.allergies && selectedPatient.allergies !== "None"

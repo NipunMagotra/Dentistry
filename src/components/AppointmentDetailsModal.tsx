@@ -10,6 +10,7 @@ type Appointment = {
   id: string
   time: string
   patient: string
+  phone?: string
   doctor: string
   status: string
 }
@@ -35,6 +36,9 @@ export function AppointmentDetailsModal({
 
   if (!appointment) return null
 
+  const rawPhone = appointment.phone || "+91 88250 70547"
+  const cleanPhone = rawPhone.replace(/[^\d+]/g, '')
+
   const handleConfirmDelete = () => {
     onDelete(appointment.id)
     setShowConfirmDelete(false)
@@ -49,7 +53,7 @@ export function AppointmentDetailsModal({
           onClose()
         }
       }}>
-        <DialogContent className="sm:max-w-[450px] max-w-[95vw] glass-panel p-6 rounded-3xl border border-white/40 dark:border-white/10">
+        <DialogContent className="sm:max-w-[480px] max-w-[95vw] glass-panel p-6 rounded-3xl border border-white/40 dark:border-white/10">
           <DialogHeader className="pb-2">
             <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
               <Calendar className="size-5 text-primary" /> Appointment Information
@@ -78,7 +82,7 @@ export function AppointmentDetailsModal({
                   <Clock className="size-4 text-primary" /> {appointment.time}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center pb-2 border-b border-black/5 dark:border-white/5">
                 <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Current Status</span>
                 <span className={`text-xs font-bold px-3 py-1 rounded-full ${
                   appointment.status === 'In Progress' ? 'bg-primary/10 text-primary' :
@@ -87,6 +91,24 @@ export function AppointmentDetailsModal({
                 }`}>
                   {appointment.status}
                 </span>
+              </div>
+
+              {/* 1-Click Call & WhatsApp Action Buttons */}
+              <div className="pt-1 flex gap-2">
+                <a 
+                  href={`tel:${cleanPhone}`} 
+                  className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                >
+                  📞 Call Patient
+                </a>
+                <a 
+                  href={`https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(appointment.patient)},%20this%20is%20Raina%20Dentistry.%20Regarding%20your%20appointment%20at%20${encodeURIComponent(appointment.time)}...`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex-1 py-2 px-3 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-emerald-500/20"
+                >
+                  💬 WhatsApp
+                </a>
               </div>
             </div>
           </div>

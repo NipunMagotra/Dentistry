@@ -39,7 +39,7 @@ const COMMON_DRUGS = [
 const FREQUENCIES = ["1-0-0", "1-0-1", "1-1-1", "0-1-0", "0-0-1", "SOS"]
 
 const DEFAULT_DOCTORS = [
-  { id: "1", name: "Dr. Sarah Jenkins", specialty: "Periodontics", degrees: "BDS, MDS (Periodontics)", regNo: "849201", charge: 150 },
+  { id: "1", name: "Dr. Anoop Raina", specialty: "Endodontist & Cosmetic Dentist", degrees: "BDS, MDS (Endodontics)", regNo: "882507", charge: 200 },
   { id: "2", name: "Dr. Michael Chen", specialty: "Prosthodontics", degrees: "DDS, MS (Prosthodontics)", regNo: "732910", charge: 200 },
   { id: "3", name: "Dr. Emily Rodriguez", specialty: "Pediatric Dentistry", degrees: "DDS, MSD (Pedodontics)", regNo: "918273", charge: 180 }
 ]
@@ -68,12 +68,12 @@ export function EPrescriptionForm() {
 
   // Clinic profile settings
   const [profile, setProfile] = useState({
-    clinicName: "City Dental Clinic",
-    clinicAddress: "123 Health Avenue, Medical District",
-    clinicPhone: "+1 (555) 123-4567",
-    doctorName: "Dr. Sarah Jenkins",
-    doctorDegrees: "BDS, MDS (Periodontics)",
-    doctorRegNo: "849201"
+    clinicName: "Raina Dentistry",
+    clinicAddress: "Raina Dentistry, Main Medical Square",
+    clinicPhone: "+91 88250 70547",
+    doctorName: "Dr. Anoop Raina",
+    doctorDegrees: "BDS, MDS (Endodontics)",
+    doctorRegNo: "882507"
   })
 
   // Preview / Generation states
@@ -288,10 +288,10 @@ export function EPrescriptionForm() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 space-y-6">
+        <CardContent className="p-3 sm:p-6 space-y-4 sm:space-y-6">
           
           {/* Prescribing Physician & Patient Details Selector */}
-          <div className="p-4 sm:p-6 rounded-2xl glass-panel border border-white/40 dark:border-white/10 space-y-4">
+          <div className="p-3.5 sm:p-6 rounded-2xl glass-panel border border-white/40 dark:border-white/10 space-y-4">
             <h3 className="font-bold text-primary text-xs uppercase tracking-widest">Clinical Details</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -643,6 +643,14 @@ export function EPrescriptionForm() {
             </Button>
             <Button
               type="button"
+              onClick={() => window.print()}
+              className="w-full sm:w-auto bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-full flex items-center justify-center gap-1.5"
+            >
+              <FileText className="size-4" />
+              Print / Save PDF
+            </Button>
+            <Button
+              type="button"
               onClick={handleCopyImage}
               disabled={isGenerating}
               className="w-full sm:w-auto bg-primary text-primary-foreground font-semibold rounded-full flex items-center justify-center gap-1.5"
@@ -654,7 +662,7 @@ export function EPrescriptionForm() {
               ) : (
                 <Copy className="size-4" />
               )}
-              {copySuccess ? "Image Copied!" : "Copy Image for WhatsApp"}
+              {copySuccess ? "Image Copied!" : "Copy Image"}
             </Button>
             <Button
               type="button"

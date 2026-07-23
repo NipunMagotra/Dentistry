@@ -39,9 +39,14 @@ export default function Dashboard() {
   const tenant = params?.tenant as string || "default-clinic"
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [profile, setProfile] = useState({
-    clinicName: "City Dental Clinic",
-    doctorName: "Dr. Sarah Jenkins"
+    clinicName: "Raina Dentistry",
+    doctorName: "Dr. Anoop Raina"
   })
+
+  // Navigation tab state for mobile/desktop sync
+  const [activeTab, setActiveTab] = useState("appointments")
+  // Role Workspace View (Receptionist vs Doctor)
+  const [role, setRole] = useState<"receptionist" | "doctor">("doctor")
 
   // Pending requests state & modals
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
@@ -319,16 +324,16 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-4 md:p-8 lg:p-12 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-start p-3 sm:p-6 md:p-8 lg:p-12 pb-24 sm:pb-8 relative overflow-x-hidden">
       
       {/* Background Decorative Ambient Orbs (Apple M3 Ambient Mesh) */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none animate-subtle-float" />
-      <div className="absolute top-1/2 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-subtle-float" style={{ animationDelay: "3s" }} />
+      <div className="absolute -top-32 -left-32 w-72 h-72 sm:w-96 sm:h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none animate-subtle-float" />
+      <div className="absolute top-1/2 -right-32 w-72 h-72 sm:w-96 sm:h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-subtle-float" style={{ animationDelay: "3s" }} />
 
-      <div className="max-w-7xl w-full relative z-10 space-y-8 animate-fade-in-up">
+      <div className="max-w-7xl w-full relative z-10 space-y-4 sm:space-y-8 animate-fade-in-up">
         
-        {/* Header Glass Dock (Apple Style Top Nav Bar) */}
-        <header className="glass-panel rounded-3xl p-5 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden transition-spring hover:shadow-xl">
+        {/* Desktop Header Glass Dock */}
+        <header className="hidden sm:flex glass-panel rounded-3xl p-5 md:px-8 items-center justify-between gap-4 print:hidden transition-spring hover:shadow-xl">
           <div className="flex items-center gap-4">
             <div className="p-2.5 bg-primary/10 dark:bg-primary/20 rounded-2xl border border-primary/20 transition-transform hover:scale-105">
               <Image 
@@ -351,6 +356,16 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Role Workspace Switcher */}
+            <button 
+              type="button"
+              onClick={() => setRole(r => r === "doctor" ? "receptionist" : "doctor")}
+              className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              title="Click to toggle Workspace Role"
+            >
+              {role === "doctor" ? "🩺 Doctor Mode" : "📋 Receptionist Mode"}
+            </button>
+
             {pendingRequests.length > 0 && (
               <div className="relative p-2.5 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse-glow">
                 <Bell className="size-5" />
@@ -364,21 +379,55 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Navigation Tabs (Apple Segmented Glass Control) */}
+        {/* Compact Mobile Header Dock */}
+        <header className="flex sm:hidden glass-panel rounded-2xl p-3 px-4 items-center justify-between gap-3 print:hidden shadow-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <Image 
+              src="/horizontal-logo.png" 
+              alt="Clinic OS Logo" 
+              width={100} 
+              height={26} 
+              className="h-5 w-auto object-contain dark:brightness-200 shrink-0"
+              priority 
+            />
+            <button
+              type="button"
+              onClick={() => setRole(r => r === "doctor" ? "receptionist" : "doctor")}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0"
+            >
+              {role === "doctor" ? "🩺 Doctor" : "📋 Reception"}
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2 shrink-0">
+            {pendingRequests.length > 0 && (
+              <div className="relative p-2 bg-amber-500/10 rounded-full border border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse-glow">
+                <Bell className="size-4" />
+                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[9px] size-4 rounded-full flex items-center justify-center font-bold shadow-xs">
+                  {pendingRequests.length}
+                </span>
+              </div>
+            )}
+            <ThemeToggle />
+            <ProfileModal tenant={tenant} />
+          </div>
+        </header>
+
+        {/* Navigation Tabs (Apple Segmented Glass Control on Desktop) */}
         <div className="print:hidden">
-          <Tabs defaultValue="appointments" className="w-full space-y-8">
-            <div className="flex justify-center">
-              <TabsList className="grid grid-cols-2 sm:flex sm:justify-center w-full max-w-3xl h-auto sm:h-14 p-1.5 glass-panel rounded-2xl sm:rounded-full shadow-lg gap-1">
-                <TabsTrigger value="appointments" className="text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full py-2.5 sm:py-0 px-3 sm:px-5 gap-1.5">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4 sm:space-y-8">
+            <div className="hidden sm:flex sm:justify-center">
+              <TabsList className="flex justify-center w-full max-w-3xl h-14 p-1.5 glass-panel rounded-full shadow-lg gap-1">
+                <TabsTrigger value="appointments" className="text-xs sm:text-sm font-semibold rounded-full py-0 px-5 gap-1.5">
                   <CalendarRange className="size-4" /> Appointments
                 </TabsTrigger>
-                <TabsTrigger value="prescriptions" className="text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full py-2.5 sm:py-0 px-3 sm:px-5 gap-1.5">
+                <TabsTrigger value="prescriptions" className="text-xs sm:text-sm font-semibold rounded-full py-0 px-5 gap-1.5">
                   <FileText className="size-4" /> E-Prescriptions
                 </TabsTrigger>
-                <TabsTrigger value="directory" className="text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full py-2.5 sm:py-0 px-3 sm:px-5 gap-1.5">
+                <TabsTrigger value="directory" className="text-xs sm:text-sm font-semibold rounded-full py-0 px-5 gap-1.5">
                   <User className="size-4" /> Patients
                 </TabsTrigger>
-                <TabsTrigger value="requests" className="text-xs sm:text-sm font-semibold rounded-xl sm:rounded-full py-2.5 sm:py-0 px-3 sm:px-5 gap-1.5 relative">
+                <TabsTrigger value="requests" className="text-xs sm:text-sm font-semibold rounded-full py-0 px-5 gap-1.5 relative">
                   <Inbox className="size-4" /> Requests
                   {pendingRequests.length > 0 && (
                     <span className="ml-1 bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-bold">
@@ -388,29 +437,88 @@ export default function Dashboard() {
                 </TabsTrigger>
               </TabsList>
             </div>
+
+            {/* Mobile Fixed Bottom Glass Navigation Dock */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/85 backdrop-blur-xl border-t border-border/50 px-3 py-1.5 shadow-2xl print:hidden">
+              <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("appointments")}
+                  className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all ${
+                    activeTab === "appointments" 
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs" 
+                      : "text-muted-foreground hover:text-foreground font-medium"
+                  }`}
+                >
+                  <CalendarRange className="size-5" />
+                  <span className="text-[10px] mt-1 font-semibold leading-none">Schedule</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("prescriptions")}
+                  className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all ${
+                    activeTab === "prescriptions" 
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs" 
+                      : "text-muted-foreground hover:text-foreground font-medium"
+                  }`}
+                >
+                  <FileText className="size-5" />
+                  <span className="text-[10px] mt-1 font-semibold leading-none">Rx</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("directory")}
+                  className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all ${
+                    activeTab === "directory" 
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs" 
+                      : "text-muted-foreground hover:text-foreground font-medium"
+                  }`}
+                >
+                  <User className="size-5" />
+                  <span className="text-[10px] mt-1 font-semibold leading-none">Patients</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("requests")}
+                  className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all relative ${
+                    activeTab === "requests" 
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs" 
+                      : "text-muted-foreground hover:text-foreground font-medium"
+                  }`}
+                >
+                  <Inbox className="size-5" />
+                  <span className="text-[10px] mt-1 font-semibold leading-none">Requests</span>
+                  {pendingRequests.length > 0 && (
+                    <span className="absolute top-1 right-2.5 bg-amber-500 text-white text-[9px] size-4 rounded-full flex items-center justify-center font-bold shadow-xs">
+                      {pendingRequests.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
             
             {/* Appointments Tab Content */}
             <TabsContent value="appointments" className="mt-0 outline-none">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                 
                 {/* Left Side: Today's Appointments List */}
                 <div className="lg:col-span-1 space-y-4">
-                  <Card className="h-[75vh] flex flex-col border border-white/40 dark:border-white/10 glass-panel">
-                    <CardHeader className="pb-4 border-b border-black/5 dark:border-white/5">
+                  <Card className="h-auto max-h-[420px] lg:h-[75vh] flex flex-col border border-white/40 dark:border-white/10 glass-panel shadow-xs">
+                    <CardHeader className="p-4 pb-3 border-b border-black/5 dark:border-white/5">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-bold">Today's Schedule</CardTitle>
-                        <span className="text-xs font-semibold px-3 py-1 bg-primary/10 text-primary rounded-full">
+                        <CardTitle className="text-base sm:text-lg font-bold">Today's Schedule</CardTitle>
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-primary/10 text-primary rounded-full">
                           {appointments.filter(a => a.status !== "Completed").length} Pending
                         </span>
                       </div>
-                      <CardDescription>Real-time queue management for {profile.doctorName}</CardDescription>
+                      <CardDescription className="text-xs">Real-time queue management for {profile.doctorName}</CardDescription>
                     </CardHeader>
 
-                    <CardContent className="flex-1 overflow-auto p-4 flex flex-col gap-3">
+                    <CardContent className="flex-1 overflow-auto p-3 sm:p-4 flex flex-col gap-2.5">
                       {appointments.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center text-muted-foreground text-sm gap-3">
-                          <div className="p-4 bg-muted/50 rounded-full">
-                            <CalendarX className="size-8 text-muted-foreground/60" />
+                        <div className="flex-1 flex flex-col items-center justify-center min-h-[160px] text-center text-muted-foreground text-xs sm:text-sm gap-2">
+                          <div className="p-3 bg-muted/50 rounded-full">
+                            <CalendarX className="size-6 text-muted-foreground/60" />
                           </div>
                           <p className="font-medium">No appointments scheduled for today.</p>
                         </div>
@@ -422,15 +530,15 @@ export default function Dashboard() {
                               setSelectedDetailsApt(apt)
                               setIsDetailsModalOpen(true)
                             }}
-                            className={`p-4 rounded-2xl transition-all cursor-pointer border ${
+                            className={`p-3.5 rounded-xl sm:rounded-2xl transition-all cursor-pointer border ${
                               apt.status === "Completed" 
                                 ? "opacity-60 bg-muted/30 border-black/5 dark:border-white/5" 
-                                : "glass-panel glass-card border-white/50 dark:border-white/10 shadow-sm hover:shadow-md"
+                                : "glass-panel glass-card border-white/50 dark:border-white/10 shadow-2xs hover:shadow-xs"
                             }`}
                           >
                             <div className="flex justify-between items-start">
-                              <div className="font-bold text-foreground text-base">{apt.patient}</div>
-                              <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${
+                              <div className="font-bold text-foreground text-sm sm:text-base">{apt.patient}</div>
+                              <span className={`text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
                                 apt.status === 'In Progress' ? 'bg-primary text-primary-foreground shadow-xs' :
                                 apt.status === 'Rescheduled' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
                                 apt.status === 'Completed' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'
@@ -439,7 +547,7 @@ export default function Dashboard() {
                               </span>
                             </div>
 
-                            <div className="flex flex-col gap-1.5 mt-2">
+                            <div className="flex flex-col gap-1 mt-1.5">
                               <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                                 <User className="size-3.5 text-primary" /> {apt.doctor}
                               </div>
@@ -449,7 +557,7 @@ export default function Dashboard() {
                             </div>
 
                             {apt.status !== "Completed" && (
-                              <div className="flex items-center gap-2 border-t border-black/5 dark:border-white/5 pt-3 mt-3">
+                              <div className="flex items-center gap-2 border-t border-black/5 dark:border-white/5 pt-2.5 mt-2.5">
                                 {(apt.status === "Scheduled" || apt.status === "Rescheduled") && (
                                   <Button
                                     size="xs"
@@ -457,7 +565,7 @@ export default function Dashboard() {
                                       e.stopPropagation()
                                       handleUpdateStatus(apt.id, "In Progress")
                                     }}
-                                    className="bg-primary text-primary-foreground font-semibold rounded-full"
+                                    className="bg-primary text-primary-foreground font-semibold rounded-full text-xs"
                                   >
                                     Start Consultation
                                   </Button>
@@ -469,7 +577,7 @@ export default function Dashboard() {
                                       e.stopPropagation()
                                       handleCompleteAppointment(apt)
                                     }}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-full"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-full text-xs"
                                   >
                                     Complete
                                   </Button>
@@ -498,67 +606,67 @@ export default function Dashboard() {
                 </div>
 
                 {/* Right Side: Quick Front Desk & Google M3 Metric Chips */}
-                <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
-                  <Card className="glass-panel border border-white/40 dark:border-white/10 p-8 md:p-10 text-center space-y-6">
-                    <div className="space-y-3 max-w-xl mx-auto">
-                      <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold tracking-wide uppercase">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6 flex flex-col justify-between">
+                  <Card className="glass-panel border border-white/40 dark:border-white/10 p-5 sm:p-8 md:p-10 text-center space-y-4 sm:space-y-6">
+                    <div className="space-y-2 sm:space-y-3 max-w-xl mx-auto">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-wide uppercase">
                         <Activity className="size-3.5" /> Front Desk Hub
                       </div>
-                      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
                         Book & Onboard Patient
                       </h2>
-                      <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
+                      <p className="text-muted-foreground text-xs sm:text-sm md:text-base leading-relaxed">
                         Select patient details below to quickly issue consultations, assign doctors, and notify patients via WhatsApp.
                       </p>
                     </div>
                     
-                    <div className="max-w-md mx-auto pt-4">
+                    <div className="max-w-md mx-auto pt-2 sm:pt-4">
                       <BookingWizard onBookAppointment={handleAddAppointment} />
                     </div>
                   </Card>
 
                   {/* Material M3 Metric Containers */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <Card className="glass-panel p-5 border border-white/40 dark:border-white/10 flex flex-col justify-between">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
+                    <Card className="glass-panel p-3.5 sm:p-5 border border-white/40 dark:border-white/10 flex flex-col justify-between">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Patients</span>
-                        <div className="p-2 bg-primary/10 text-primary rounded-full">
-                          <Users className="size-4" />
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Patients</span>
+                        <div className="p-1.5 sm:p-2 bg-primary/10 text-primary rounded-full">
+                          <Users className="size-3.5 sm:size-4" />
                         </div>
                       </div>
-                      <div className="mt-4">
-                        <div className="text-3xl font-extrabold text-foreground">{stats.totalPatients}</div>
-                        <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                          <TrendingUp className="size-3.5" /> +{stats.patientsThisWeek} this week
+                      <div className="mt-2 sm:mt-4">
+                        <div className="text-2xl sm:text-3xl font-extrabold text-foreground">{stats.totalPatients}</div>
+                        <p className="text-[10px] sm:text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                          <TrendingUp className="size-3 sm:size-3.5" /> +{stats.patientsThisWeek} this week
                         </p>
                       </div>
                     </Card>
 
-                    <Card className="glass-panel p-5 border border-white/40 dark:border-white/10 flex flex-col justify-between">
+                    <Card className="glass-panel p-3.5 sm:p-5 border border-white/40 dark:border-white/10 flex flex-col justify-between">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Today's Revenue</span>
-                        <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full">
-                          <IndianRupee className="size-4" />
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">Today's Revenue</span>
+                        <div className="p-1.5 sm:p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full">
+                          <IndianRupee className="size-3.5 sm:size-4" />
                         </div>
                       </div>
-                      <div className="mt-4">
-                        <div className="text-3xl font-extrabold text-foreground">₹{stats.revenueToday}</div>
-                        <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5" /> {stats.completedTodayCount} consultations
+                      <div className="mt-2 sm:mt-4">
+                        <div className="text-2xl sm:text-3xl font-extrabold text-foreground">₹{stats.revenueToday}</div>
+                        <p className="text-[10px] sm:text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                          <CheckCircle2 className="size-3 sm:size-3.5" /> {stats.completedTodayCount} consultations
                         </p>
                       </div>
                     </Card>
 
-                    <Card className="glass-panel p-5 border border-white/40 dark:border-white/10 flex flex-col justify-between">
+                    <Card className="glass-panel p-3.5 sm:p-5 border border-white/40 dark:border-white/10 col-span-2 sm:col-span-1 flex flex-col justify-between">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">No-Show Rate</span>
-                        <div className="p-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full">
-                          <Clock className="size-4" />
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">No-Show Rate</span>
+                        <div className="p-1.5 sm:p-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full">
+                          <Clock className="size-3.5 sm:size-4" />
                         </div>
                       </div>
-                      <div className="mt-4">
-                        <div className="text-3xl font-extrabold text-foreground">{stats.noShowRate}%</div>
-                        <p className="text-xs text-muted-foreground font-medium mt-1">
+                      <div className="mt-2 sm:mt-4">
+                        <div className="text-2xl sm:text-3xl font-extrabold text-foreground">{stats.noShowRate}%</div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium mt-1">
                           Optimized via SMS reminders
                         </p>
                       </div>

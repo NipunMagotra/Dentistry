@@ -37,7 +37,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
 const DEFAULT_DOCTORS = [
-  { id: "1", name: "Dr. Sarah Jenkins", charge: 150 },
+  { id: "1", name: "Dr. Anoop Raina", charge: 200 },
   { id: "2", name: "Dr. Michael Chen", charge: 200 },
   { id: "3", name: "Dr. Emily Rodriguez", charge: 180 },
 ]
@@ -146,12 +146,18 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
     if (isOnline()) {
       const result = await createAppointment(payload)
       if (!result.success) {
+        setIsSubmitting(false)
+        if (result.error === "CONFLICT") {
+          alert(`❌ ${result.message || "Time slot is already occupied for this doctor."}`)
+          return
+        }
         console.error("Failed to create appointment", result.error)
       }
     } else {
       queueOfflineAction("BOOK_APPOINTMENT", payload)
     }
 
+    setIsSubmitting(false)
     if (onBookAppointment) {
       onBookAppointment({
         time: selectedTime,
@@ -204,11 +210,11 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={
-        <Button size="lg" className="w-full text-base h-13 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 transition-all" />
+        <Button size="lg" className="w-full text-sm sm:text-base h-11 sm:h-13 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-lg shadow-primary/25 transition-all" />
       }>
         + Book New Consultation
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[94vw] max-w-[500px] max-h-[88vh] overflow-y-auto p-4 sm:p-6 rounded-2xl sm:rounded-3xl">
         <DialogHeader className="space-y-1.5 pb-2">
           <DialogTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Appointment Booking Wizard</DialogTitle>
           <DialogDescription className="sr-only">

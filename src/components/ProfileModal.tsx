@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 
 const DEFAULT_DOCTORS = [
-  { id: "1", name: "Dr. Sarah Jenkins", specialty: "Periodontics", degrees: "BDS, MDS (Periodontics)", regNo: "849201", timings: "Mon - Sat: 9:00 AM - 5:00 PM", charge: 150 },
+  { id: "1", name: "Dr. Anoop Raina", specialty: "Endodontist & Cosmetic Dentist", degrees: "BDS, MDS (Endodontics)", regNo: "882507", timings: "Mon - Sat: 9:00 AM - 7:00 PM", charge: 200 },
   { id: "2", name: "Dr. Michael Chen", specialty: "Prosthodontics", degrees: "DDS, MS (Prosthodontics)", regNo: "732910", timings: "Mon - Fri: 10:00 AM - 6:00 PM", charge: 200 },
   { id: "3", name: "Dr. Emily Rodriguez", specialty: "Pediatric Dentistry", degrees: "DDS, MSD (Pedodontics)", regNo: "918273", timings: "Tue - Sun: 9:00 AM - 4:00 PM", charge: 180 }
 ]
@@ -47,13 +47,13 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   
   // Profile settings state
   const [settings, setSettings] = useState({
-    clinicName: "City Dental Clinic",
-    doctorName: "Dr. Sarah Jenkins",
-    clinicPhone: "+1 (555) 123-4567",
-    clinicAddress: "123 Health Avenue, Medical District",
+    clinicName: "Raina Dentistry",
+    doctorName: "Dr. Anoop Raina",
+    clinicPhone: "+91 88250 70547",
+    clinicAddress: "Raina Dentistry, Main Medical Square",
     clinicHours: "Mon - Sat: 9:00 AM - 7:00 PM",
-    clinicBio: "Leading dental health & aesthetic surgery center specializing in pain-free root canals and modern dental implants.",
-    whatsappEnabled: false,
+    clinicBio: "Premier dental care center led by Dr. Anoop Raina specializing in painless root canal treatments, implants, and cosmetic smile designs.",
+    whatsappEnabled: true,
     qstashToken: "",
     twilioSid: "",
     twilioToken: "",
@@ -292,12 +292,12 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
           </div>
         </div>
       } />
-      <DialogContent className="sm:max-w-xl max-w-[95vw] glass-panel rounded-3xl border border-white/40 dark:border-white/10 max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="w-[94vw] max-w-xl max-h-[88vh] glass-panel rounded-2xl sm:rounded-3xl border border-white/40 dark:border-white/10 flex flex-col p-0 overflow-hidden shadow-2xl">
         
         {/* Header (Always Visible) */}
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-black/5 dark:border-white/5 shrink-0">
-          <DialogTitle className="text-xl sm:text-2xl font-extrabold text-foreground flex items-center gap-2">
-            <Settings className="size-6 text-primary" /> Profile & Account Settings
+        <DialogHeader className="px-4 sm:px-6 pt-5 pb-3 border-b border-black/5 dark:border-white/5 shrink-0">
+          <DialogTitle className="text-lg sm:text-2xl font-extrabold text-foreground flex items-center gap-2">
+            <Settings className="size-5 sm:size-6 text-primary" /> Profile & Account Settings
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             Manage your account avatar, clinic details, doctor credentials, and external API integrations.
@@ -306,7 +306,7 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
 
         {/* Scrollable Form Body */}
         <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[60vh]">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 sm:py-4 max-h-[65vh]">
             <Tabs defaultValue="clinic" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6 glass-panel border border-black/5 dark:border-white/5 p-1 rounded-full">
               <TabsTrigger value="clinic" className="flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-full">

@@ -102,6 +102,24 @@ export async function createAppointment(data: any) {
       patientId = patient.id
     }
 
+    // Conflict Check: Prevent double-booking doctor at the same date & time slot
+    const { data: existingSlots } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('doctor_name', data.doctorName)
+      .eq('appointment_date', data.appointmentDate)
+      .eq('appointment_time', data.appointmentTime)
+      .neq('status', 'Cancelled')
+      .neq('status', 'Declined')
+
+    if (existingSlots && existingSlots.length > 0) {
+      return { 
+        success: false, 
+        error: 'CONFLICT', 
+        message: `Conflict: ${data.doctorName} is already booked at ${data.appointmentTime} on ${data.appointmentDate}.` 
+      }
+    }
+
     const { error: aError } = await supabase
       .from('appointments')
       .insert([{
