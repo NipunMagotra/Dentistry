@@ -323,54 +323,7 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
             {/* Clinic Settings Tab */}
             <TabsContent value="clinic" className="space-y-4 outline-none">
               
-              {/* Account Profile Picture Section */}
-              <div className="p-4 rounded-2xl glass-panel border border-primary/20 bg-primary/5 space-y-3">
-                <Label className="text-xs font-extrabold uppercase tracking-widest text-primary">Account Profile Picture</Label>
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <div className="relative shrink-0">
-                    {avatar ? (
-                      <img src={avatar} alt="Account Profile" className="size-16 rounded-full object-cover border-2 border-primary shadow-md" />
-                    ) : (
-                      <div className="size-16 bg-primary text-primary-foreground font-extrabold text-2xl rounded-full flex items-center justify-center border-2 border-primary">
-                        D
-                      </div>
-                    )}
-                    <span className="absolute bottom-0 right-0 size-4 bg-emerald-500 rounded-full border-2 border-background" title="Logged In" />
-                  </div>
 
-                  <div className="space-y-2 flex-1 text-center sm:text-left">
-                    <div className="text-xs font-medium text-muted-foreground">Select a preset or upload your photo:</div>
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleAvatarSelect("https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80")}
-                        className="text-xs px-3 py-1 rounded-full glass-panel border border-black/10 dark:border-white/10 hover:border-primary font-bold"
-                      >
-                        👩‍⚕️ Doctor F
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAvatarSelect("https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80")}
-                        className="text-xs px-3 py-1 rounded-full glass-panel border border-black/10 dark:border-white/10 hover:border-primary font-bold"
-                      >
-                        👨‍⚕️ Doctor M
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAvatarSelect("https://images.unsplash.com/photo-1594824813566-78a0d4c8290f?w=150&auto=format&fit=crop&q=80")}
-                        className="text-xs px-3 py-1 rounded-full glass-panel border border-black/10 dark:border-white/10 hover:border-primary font-bold"
-                      >
-                        🩺 Specialist
-                      </button>
-
-                      <label className="text-xs px-3 py-1 rounded-full bg-primary text-primary-foreground font-bold cursor-pointer shadow-xs hover:bg-primary/90">
-                        Upload Custom Photo
-                        <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="clinicName">Clinic Name</Label>
