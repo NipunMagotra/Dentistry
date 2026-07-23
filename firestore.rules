@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --------------------------------------------------------------------------
+    // ZERO-TRUST SERVER-ONLY FIRESTORE RULES
+    // --------------------------------------------------------------------------
+    // Clinic OS processes ALL database queries server-side via Next.js Server 
+    // Actions using the Firebase Admin SDK (`firebase-admin`).
+    //
+    // The Firebase Admin SDK bypasses security rules using Service Account 
+    // credentials on the server.
+    //
+    // Denying all direct client SDK reads/writes (`allow read, write: if false;`)
+    // completely eliminates OWASP A01 Broken Access Control & IDOR attacks from 
+    // client-side browsers.
+    // --------------------------------------------------------------------------
+
+    match /clinics/{tenantId} {
+      allow read, write: if false;
+
+      match /{allSubcollections=**} {
+        allow read, write: if false;
+      }
+    }
+
+    // Default deny for all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

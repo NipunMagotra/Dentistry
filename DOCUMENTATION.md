@@ -52,19 +52,19 @@ Intercepts all incoming requests and features a **Dual-Mode Router** to support 
 
 ## 3. 🗃️ Data Persistence & Security
 
-The application is fully integrated with a production-grade **Supabase PostgreSQL** backend, replacing all legacy `localStorage` client-side state.
+The application is fully integrated with a production-grade **Firebase Cloud Firestore** NoSQL backend with true Pay-As-You-Go pricing.
 
 ### The Security Pillars
-1. **Multi-Tenant Data Isolation (RLS)**: Every single table includes a `tenant_id`. Row-Level Security intercept queries at the database kernel level to block any data that does not belong to the currently authenticated tenant session.
-2. **Column-Level Encryption**: Integration with Supabase Vault (AES-256-GCM) ensures sensitive medical fields (e.g., `sensitive_notes` on prescriptions) are encrypted at rest.
-3. **Role-Based Access Control (RBAC)**: A three-tiered role schema (`system_admin`, `clinic_admin`, `clinic_staff`) strictly controls database mutations.
-4. **Audit Logging**: An immutable, verifiable trail of all data mutations triggered automatically via PostgreSQL functions and triggers.
+1. **Multi-Tenant Data Isolation**: Every clinic tenant operates under an isolated sub-collection hierarchy (`/clinics/{tenantId}/...`). `getTenantDb()` reads the `x-tenant-id` header passed from middleware to scope all queries automatically.
+2. **AES-256-GCM Encryption**: Sensitive medical fields (e.g., `sensitive_notes` on prescriptions) are encrypted at rest using Node's native `crypto` library before being written to Firestore.
+3. **Firestore Security Rules**: Configured in `firestore.rules` for strict document path access control.
+4. **Audit & Verification**: Verification script (`scripts/verify-dr.ts`) validates tenant sub-collection isolation and encryption.
 
-### Core Data Entities
-- **`patients`**: The master CRM containing all registered patients.
-- **`appointments`**: The daily queue of active and pending scheduled visits.
+### Core Data Collections (`/clinics/{tenantId}/...`)
+- **`patients`**: The master CRM containing all registered patients per clinic.
+- **`appointments`**: The daily queue of active and pending scheduled visits per clinic.
 - **`prescriptions`**: Medical documents linking patients, doctors, and treatments (supports encrypted notes).
-- **`staff_accounts` & `memberships`**: The RBAC system defining who can access what clinic.
+- **`doctors`**: Staff practitioners registry per clinic.
 
 ---
 
@@ -106,8 +106,8 @@ Powered by `@upstash/workflow`, this API route executes in isolated steps that c
 
 ## 6. 🚨 Future Scalability & Architecture Notes
 
-With the successful migration to Supabase PostgreSQL, Upstash Workflows, and Vercel Edge routing, the prototype limitations have been resolved. As the platform scales, consider these future enhancements:
+With the successful migration to Firebase Cloud Firestore, Upstash Workflows, and Vercel Edge routing, the prototype limitations have been resolved. As the platform scales, consider these future enhancements:
 
 1. **Patient Authentication Portal**: Implement an auth layer allowing patients to log in and securely view their own e-prescriptions and upcoming appointments.
 2. **Stripe Billing Engine**: Integrate a payment gateway into the dashboard to support automated invoicing and digital payment collection for completed visits.
-3. **S3 Storage for Diagnostics**: While text data is secure, implement Supabase Storage buckets or AWS S3 to support high-resolution X-ray and diagnostic imaging uploads directly within the Patient Directory.
+3. **Storage for Diagnostics**: While text data is secure, implement Firebase Storage or AWS S3 / Cloudflare R2 to support high-resolution X-ray and diagnostic imaging uploads directly within the Patient Directory.

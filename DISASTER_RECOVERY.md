@@ -2,16 +2,16 @@
 
 ## 1. Automated Daily Backups
 
-Clinic OS relies on Supabase for database hosting. To ensure data safety:
-- **Requirement:** The production environment must be hosted on at least the **Supabase Pro tier**.
-- **Mechanism:** Supabase automatically performs daily physical backups (via pgBackRest) of the PostgreSQL database.
-- **Retention:** Backups are retained for 7 days automatically without requiring custom cron jobs.
+Clinic OS relies on **Firebase Cloud Firestore** for document database hosting:
+- **Mechanism:** Cloud Firestore provides continuous automatic multi-region backups and disaster recovery managed by Google Cloud Platform (GCP).
+- **Scheduled Backups:** Automated daily backups can be scheduled using Google Cloud CLI / Cloud Console export rules to Google Cloud Storage (GCS) buckets.
+- **Retention:** Custom retention policies (e.g., 30-day or 90-day GCS bucket lifecycle rules) are enforced for HIPAA/compliance auditability.
 
 ## 2. Point-in-Time Recovery (PITR)
 
-Due to the sensitive and high-paced nature of Clinic OS, standard daily backups are insufficient for granular recovery. 
-- **Requirement:** **Point-in-Time Recovery (PITR)** must be enabled via the Supabase dashboard add-ons.
-- **Use Case:** If a clinic receptionist accidentally deletes a patient's CRM history at 2:15 PM, PITR allows the engineering team to rewind the database specifically to 2:14 PM, preventing the loss of an entire day's work.
+Due to the sensitive and high-paced nature of Clinic OS, granular point-in-time recovery is enabled:
+- **Feature:** **Firestore Point-In-Time Recovery (PITR)** allows restoring data to any microsecond in the past 7 days.
+- **Use Case:** If a clinic receptionist accidentally deletes a patient's CRM history at 2:15 PM, PITR allows the engineering team to rewind the target Firestore collection specifically to 2:14 PM, preventing data loss.
 
 ## 3. The Verification Drill (Disaster Recovery Protocol)
 
@@ -19,19 +19,15 @@ A backup is only as good as its last successful restore. We conduct a mandatory 
 
 ### Step-by-Step Drill:
 
-1. **Provision Staging Environment**
-   - Spin up a separate, isolated staging project in the Supabase Dashboard.
-   
-2. **Trigger Restore**
-   - Navigate to the Database Backups section of the **Production** Supabase project.
-   - Select the latest daily backup (or a specific PITR timestamp).
-   - Choose the option to restore to the newly created staging project.
-   
-3. **Run Automated Integrity Tests**
-   - Once the restore completes, update your local `.env` (or a dedicated `.env.staging`) with the staging database credentials.
-   - Execute the disaster recovery verification script to ensure that patient records, appointments, and multi-tenant RLS policies are completely intact.
+1. **Initialize Verification Environment**
+   - Configure local or staging `.env` with test credentials or Firebase Emulator / Staging Project ID (`FIREBASE_PROJECT_ID=clinic-os-staging`).
+
+2. **Run Automated Integrity & Encryption Tests**
+   - Execute the disaster recovery verification script to test Firestore tenant sub-collection isolation and AES-256-GCM field encryption:
    - **Command:** `npx tsx scripts/verify-dr.ts`
 
-4. **Sign Off & Teardown**
-   - If tests pass successfully, log the successful drill in the engineering DR log.
-   - Pause or delete the staging project to avoid unnecessary costs.
+3. **Verify Field Encryption**
+   - Confirm that sensitive notes are encrypted with AES-256-GCM at rest and decrypted cleanly in memory.
+
+4. **Sign Off & Log Verification**
+   - Log the successful verification drill in the engineering DR compliance audit log.

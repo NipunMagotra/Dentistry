@@ -18,51 +18,55 @@ export const config = {
 
 export default async function proxy(req: NextRequest) {
   const url = req.nextUrl
-  const hostname = req.headers.get("host") || "localhost:3000"
-  const searchParams = req.nextUrl.searchParams.toString()
-  const path = `${url.pathname}${searchParams.length > 0 ? `?${searchParams}` : ""}`
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000"
   
-  let currentHost = hostname
-  if (hostname.endsWith(`.${rootDomain}`)) {
-      currentHost = hostname.replace(`.${rootDomain}`, "")
+  // 1. Normalize host (strip port numbers and convert to lowercase)
+  const rawHost = req.headers.get("host") || "localhost:3000"
+  const hostWithoutPort = rawHost.split(":")[0].toLowerCase()
+  
+  const rawRootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000"
+  const rootDomainClean = rawRootDomain.split(":")[0].toLowerCase()
+  
+  const searchParams = url.searchParams.toString()
+  const path = `${url.pathname}${searchParams.length > 0 ? `?${searchParams}` : ""}`
+
+  let currentHost = hostWithoutPort
+  if (hostWithoutPort.endsWith(`.${rootDomainClean}`)) {
+    currentHost = hostWithoutPort.replace(`.${rootDomainClean}`, "")
   }
 
   let resolvedTenantId = ""
   let isPathBased = false
 
-  // Detect if we are on a root domain (or vercel app domain)
-  if (currentHost === rootDomain || currentHost === "www" || currentHost.startsWith("localhost") || currentHost.includes("vercel.app")) {
+  // Detect root domain, localhost, or vercel staging app
+  if (currentHost === rootDomainClean || currentHost === "www" || currentHost.startsWith("localhost") || currentHost.includes("vercel.app")) {
     if (url.pathname === "/") {
       const response = NextResponse.rewrite(new URL(`/home${searchParams.length > 0 ? `?${searchParams}` : ""}`, req.url))
       response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+      response.headers.set('Cache-Control', 'no-store, max-age=0')
       return response
     }
 
-    // Extract tenant from path for free Vercel testing (e.g. /city-dental)
     const segments = url.pathname.split("/").filter(Boolean)
     if (segments.length > 0 && segments[0] !== "home") {
-      resolvedTenantId = segments[0]
+      resolvedTenantId = segments[0].toLowerCase()
       isPathBased = true
     } else {
-      // If path is /home or something else without a tenant, let it pass
       const response = NextResponse.next()
       response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
       return response
     }
   } else {
-    // We are on a custom subdomain (e.g. city-dental.yourbrand.com)
-    resolvedTenantId = currentHost
+    // Custom subdomain
+    resolvedTenantId = currentHost.toLowerCase()
   }
 
-  // Set the tenant ID in headers for Server Actions to read
+  // 2. Overwrite x-tenant-id header (prevents header spoofing)
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-tenant-id', resolvedTenantId)
 
-  // Rewrite the URL if it came from a subdomain
   const rewriteUrl = isPathBased
-    ? new URL(path, req.url) // Already has the path, just pass through
-    : new URL(`/${resolvedTenantId}${path === "/" ? "" : path}`, req.url) // Rewrite subdomain to path
+    ? new URL(path, req.url)
+    : new URL(`/${resolvedTenantId}${path === "/" ? "" : path}`, req.url)
 
   const response = NextResponse.rewrite(rewriteUrl, {
     request: {
@@ -70,32 +74,31 @@ export default async function proxy(req: NextRequest) {
     },
   })
 
-  // Add HSTS Header globally
+  // 3. Prevent Edge CDN Cross-Tenant Cache Leakage
+  response.headers.set('Vary', 'Host, x-tenant-id')
+  response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate')
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
 
-  // Generate and set Secure JWT Cookie for Tenant Session
-  const jwtSecret = process.env.SUPABASE_JWT_SECRET
-  if (jwtSecret) {
-    const secret = new TextEncoder().encode(jwtSecret)
-    const token = await new SignJWT({ 
-        role: 'authenticated', 
-        tenant_id: resolvedTenantId 
-      })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(secret)
-
-    // Store custom JWT securely as an HTTP-only cookie
-    response.cookies.set({
-      name: 'tenant_session',
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 3600 // 1 hour
+  // 4. Tenant Session JWT Cookie
+  const jwtSecret = process.env.SESSION_SECRET || process.env.SUPABASE_JWT_SECRET || 'clinic-os-secure-tenant-session-secret'
+  const secret = new TextEncoder().encode(jwtSecret)
+  const token = await new SignJWT({ 
+      role: 'authenticated', 
+      tenant_id: resolvedTenantId 
     })
-  }
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(secret)
+
+  response.cookies.set({
+    name: 'tenant_session',
+    value: token,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 3600
+  })
 
   return response
 }
