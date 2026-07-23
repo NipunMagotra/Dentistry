@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useTransition } from "react"
 import { searchPatients, deletePatient } from "@/app/actions"
 import { queueOfflineAction, isOnline } from "@/lib/offlineSync"
-import { Search, User, Clock, Pill, FileText, AlertTriangle, Download, Paperclip, Upload, Trash2 } from "lucide-react"
+import { Search, User, Clock, Pill, FileText, AlertTriangle, Download, Paperclip, Upload, Trash2, Activity } from "lucide-react"
+import { VisualOdontogram } from "@/components/VisualOdontogram"
 import { toPng } from "html-to-image"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -379,6 +380,17 @@ export function PatientDirectory() {
                   <span className="font-extrabold text-xs uppercase tracking-wider">Allergies:</span>
                   <span className="font-semibold text-sm">{selectedPatient?.allergies || "None"}</span>
                 </div>
+
+                {/* Visual Odontogram Chart Section */}
+                {selectedPatient && (
+                  <div className="pt-2">
+                    <VisualOdontogram
+                      patientId={selectedPatient.id}
+                      patientName={selectedPatient.name}
+                      initialChartData={selectedPatient.dental_chart || {}}
+                    />
+                  </div>
+                )}
 
                 {/* Past Appointments */}
                 <div className="space-y-3">

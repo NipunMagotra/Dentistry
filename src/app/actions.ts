@@ -291,7 +291,8 @@ export async function searchPatients(query: string = '', filter: string = 'All')
         age: pData.age || 'N/A',
         created_at: pData.created_at,
         appointments,
-        prescriptions
+        prescriptions,
+        dental_chart: pData.dental_chart || {}
       })
     }
 
@@ -299,6 +300,22 @@ export async function searchPatients(query: string = '', filter: string = 'All')
   } catch (error) {
     console.error('Failed to search patients:', error)
     return []
+  }
+}
+
+export async function saveDentalChart(patientId: string, chartData: any) {
+  try {
+    const { patientsRef } = await getTenantDb()
+    await patientsRef.doc(patientId).update({
+      dental_chart: chartData,
+      updated_at: new Date().toISOString()
+    })
+
+    revalidatePath('/[tenant]', 'page')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to save dental chart:', error)
+    return { success: false, error: String(error) }
   }
 }
 
