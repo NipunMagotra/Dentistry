@@ -324,7 +324,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-3 sm:p-6 md:p-8 lg:p-12 pb-24 sm:pb-8 relative overflow-x-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-start p-3 sm:p-6 md:p-8 lg:p-12 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-16 relative overflow-x-hidden">
       
       {/* Background Decorative Ambient Orbs (Apple M3 Ambient Mesh) */}
       <div className="absolute -top-32 -left-32 w-72 h-72 sm:w-96 sm:h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none animate-subtle-float" />
@@ -840,7 +840,7 @@ export default function Dashboard() {
 
       {/* Global Toast Notification */}
       {toast.visible && (
-        <div className="fixed bottom-6 right-6 glass-panel bg-slate-950/90 text-white px-5 py-3 rounded-full shadow-2xl z-50 flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 border border-white/20">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] sm:bottom-6 right-4 sm:right-6 glass-panel bg-slate-950/90 text-white px-5 py-3 rounded-full shadow-2xl z-50 flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 border border-white/20">
           <CheckCircle2 className="size-5 text-emerald-400" />
           <span className="font-medium text-sm">{toast.message}</span>
         </div>
