@@ -4,7 +4,7 @@ Clinic OS is a modern, ultra-fast, intuitive clinic management platform built sp
 
 ## 🚀 Tech Stack
 
-- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/)
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
 - **UI & Styling**: [Tailwind CSS v4](https://tailwindcss.com/) & [Shadcn UI](https://ui.shadcn.com/)
 - **Typography**: [Outfit](https://fonts.google.com/specimen/Outfit) (Google Fonts)
 - **Database (Live)**: [Firebase Cloud Firestore](https://firebase.google.com/) (NoSQL Document Store + Multi-Tenant Hierarchy + AES-256-GCM Encryption)
