@@ -4,6 +4,8 @@ import { getTenantDb } from '@/lib/firebase-admin'
 import { encryptNotes, decryptNotes } from '@/lib/encryption'
 import { revalidatePath } from 'next/cache'
 import { setSessionCookie, clearSessionCookie, getSession, requireAuth } from '@/lib/auth'
+import { NotificationService } from '@/lib/notifications'
+import { Timestamp } from 'firebase-admin/firestore'
 
 export async function loginUser(data: { email: string; clinicName?: string }) {
   try {
@@ -520,3 +522,79 @@ export async function getClinicStats() {
     }
   }
 }
+
+export async function sendManualAppointmentReminder(appointmentId: string) {
+  try {
+    await requireAuth()
+    const { appointmentsRef, patientsRef, clinicRef } = await getTenantDb()
+
+    const aptDoc = await appointmentsRef.doc(appointmentId).get()
+    if (!aptDoc.exists) {
+      return { success: false, error: 'Appointment not found' }
+    }
+
+    const apt = aptDoc.data()!
+    if (apt.status === 'Cancelled' || apt.status === 'Declined') {
+      return { success: false, error: 'Cannot send reminder for a cancelled appointment' }
+    }
+
+    const clinicSnap = await clinicRef.get()
+    const clinicData = clinicSnap.exists ? clinicSnap.data()! : {}
+
+    const clinicName = clinicData.name || clinicData.clinicName || 'Clinic OS Dental'
+    const clinicPhone = clinicData.phone || clinicData.clinicPhone || ''
+    const clinicAddress = clinicData.address || clinicData.clinicAddress || ''
+    const clinicLogoUrl = clinicData.logoUrl || ''
+
+    let patientName = apt.patient_name || 'Patient'
+    let patientEmail = apt.patient_email || ''
+    let patientPhone = apt.patient_phone || ''
+
+    if (apt.patient_id) {
+      const patientDoc = await patientsRef.doc(apt.patient_id).get()
+      if (patientDoc.exists) {
+        const pData = patientDoc.data()!
+        patientName = pData.name || patientName
+        patientEmail = pData.email || patientEmail
+        patientPhone = pData.phone || patientPhone
+      }
+    }
+
+    if (!patientEmail) {
+      return { success: false, error: 'Patient has no email address on file' }
+    }
+
+    const results = await NotificationService.sendAppointmentReminder({
+      patientName,
+      patientEmail,
+      patientPhone,
+      clinicName,
+      doctorName: apt.doctor_name || 'Clinic Specialist',
+      appointmentDate: apt.appointment_date,
+      appointmentTime: apt.appointment_time,
+      clinicPhone,
+      clinicAddress,
+      clinicLogoUrl
+    })
+
+    const resendResult = results.find(r => r.provider === 'Resend')
+
+    if (resendResult && resendResult.success) {
+      await aptDoc.ref.update({
+        reminderSent: true,
+        reminderSentAt: Timestamp.now(),
+        reminderType: 'email',
+        updated_at: new Date().toISOString()
+      })
+
+      revalidatePath('/[tenant]', 'page')
+      return { success: true }
+    }
+
+    return { success: false, error: resendResult?.error || 'Failed to dispatch email reminder' }
+  } catch (error: any) {
+    console.error('Failed to send manual reminder:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
