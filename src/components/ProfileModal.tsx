@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { logoutUser } from "@/app/actions"
 import { Building2, Phone, MapPin, Clock, Key, Check, Settings, Copy, User, Plus, Trash2, Pencil, Stethoscope, LogOut } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -27,12 +28,13 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   const [avatar, setAvatar] = useState<string>("")
   const router = useRouter()
 
-  const handleLogout = (e?: React.MouseEvent) => {
+  const handleLogout = async (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault()
       e.stopPropagation()
     }
     try {
+      await logoutUser()
       localStorage.removeItem("clinic_account_email")
       localStorage.removeItem("clinic_profile_settings")
       localStorage.removeItem("clinic_doctors_list")
@@ -55,7 +57,6 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
     clinicHours: "Mon - Sat: 9:00 AM - 7:00 PM",
     clinicBio: "Premier dental care center led by Dr. Anoop Raina specializing in painless root canal treatments, implants, and cosmetic smile designs.",
     whatsappEnabled: true,
-    qstashToken: "",
     twilioSid: "",
     twilioToken: "",
   })
@@ -693,18 +694,11 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
                 />
               </div>
 
-              {settings.whatsappEnabled && (
+               {settings.whatsappEnabled && (
                 <div className="space-y-4 p-4 rounded-2xl glass-panel border border-primary/20 bg-primary/5">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="qstashToken">QStash Token</Label>
-                    <Input
-                      id="qstashToken"
-                      type="password"
-                      value={settings.qstashToken}
-                      onChange={(e) => updateField("qstashToken", e.target.value)}
-                      placeholder="Enter QStash Token"
-                    />
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    100% Free WhatsApp Messaging is enabled via your self-hosted WhatsApp Gateway (<code className="text-primary font-mono font-semibold">scripts/whatsapp-gateway.js</code>).
+                  </p>
                   <div className="space-y-1.5">
                     <Label htmlFor="twilioSid">Twilio Account SID</Label>
                     <Input

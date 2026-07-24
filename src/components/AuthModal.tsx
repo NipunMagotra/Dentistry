@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { loginUser, signupUser } from "@/app/actions"
 import { Building2, Mail, Lock, Eye, EyeOff, User, Phone, MapPin, Clock, Award, ShieldCheck, IndianRupee, ArrowRight, ArrowLeft } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import Image from "next/image"
@@ -51,7 +52,7 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
     }
   }
 
-  const handleFinalSignup = (e: React.FormEvent) => {
+  const handleFinalSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
@@ -88,38 +89,46 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
       console.error("Failed to save onboarding credentials", err)
     }
 
-    setTimeout(() => {
-      setIsLoading(false)
-      setIsOpen(false)
+    const res = await signupUser({ email, clinicName })
+    setIsLoading(false)
+    setIsOpen(false)
+    if (res.success && res.tenantId) {
+      router.push(`/${res.tenantId}`)
+    } else {
       const tenantId = clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "my-clinic"
       router.push(`/${tenantId}`)
-    }, 600)
+    }
   }
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
+    let activeClinicName = "apollo-dental"
     if (email) {
       localStorage.setItem("clinic_account_email", email)
       window.dispatchEvent(new Event("clinic-profile-updated"))
     }
 
-    setTimeout(() => {
-      setIsLoading(false)
-      setIsOpen(false)
-      const savedProfile = localStorage.getItem("clinic_profile_settings")
-      let tenantId = "apollo-dental"
-      if (savedProfile) {
-        try {
-          const parsed = JSON.parse(savedProfile)
-          if (parsed.clinicName) {
-            tenantId = parsed.clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-")
-          }
-        } catch (err) {}
-      }
+    const savedProfile = localStorage.getItem("clinic_profile_settings")
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile)
+        if (parsed.clinicName) {
+          activeClinicName = parsed.clinicName
+        }
+      } catch (err) {}
+    }
+
+    const res = await loginUser({ email, clinicName: activeClinicName })
+    setIsLoading(false)
+    setIsOpen(false)
+    if (res.success && res.tenantId) {
+      router.push(`/${res.tenantId}`)
+    } else {
+      const tenantId = activeClinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
       router.push(`/${tenantId}`)
-    }, 600)
+    }
   }
 
   return (

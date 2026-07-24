@@ -9,10 +9,8 @@ Clinic OS is a modern, ultra-fast, intuitive clinic management platform built sp
 - **Framework**: [Next.js 16 (App Router)](https://nextjs.org/) with Turbopack & Proxy Middleware
 - **UI & Styling**: [Tailwind CSS v4](https://tailwindcss.com/) & [Shadcn UI](https://ui.shadcn.com/)
 - **Typography**: [Outfit](https://fonts.google.com/specimen/Outfit) (Google Fonts)
-- **Database (Live)**: [Firebase Cloud Firestore](https://firebase.google.com/) (NoSQL Document Store + Multi-Tenant Hierarchy + AES-256-GCM Encryption)
-- **Background Jobs**: [Upstash Workflow](https://upstash.com/docs/workflow/getstarted) (Durable execution for SMS & WhatsApp)
-- **WhatsApp Gateway**: Baileys / WhatsApp Web JS microservice for **100% Free WhatsApp messaging**
-- **Deployment target**: [Vercel](https://vercel.com/) (Edge Runtime)
+- **WhatsApp Gateway**: Self-hosted Baileys microservice (`scripts/whatsapp-gateway.js`) for **100% Free WhatsApp messaging**
+- **Deployment target**: [Vercel](https://vercel.com/) (Edge & Serverless Runtime)
 
 ---
 
@@ -23,7 +21,7 @@ Clinic OS is a modern, ultra-fast, intuitive clinic management platform built sp
 3. **No-Typing E-Prescriptions**: A doctor-friendly interface using checkboxes for common medications, automatically calculating frequencies and durations.
 4. **Native Medical Print Engine**: Uses pure CSS (`@media print`) to instantly format the screen into a professional, clinic-branded A4 medical prescription ready for physical printing or PDF export—no heavy PDF libraries required.
 5. **Patient Directory & History**: Instantly search for patients and pull up a historical log of their past appointments and prescribed medications.
-6. **Parallel Notification Pipeline**: Integrates Upstash Workflow to handle immediate WhatsApp & SMS booking confirmations and delayed day-of-treatment reminders without managing a persistent cron server.
+6. **Instant WhatsApp Notifications**: Direct zero-cost messaging pipeline via self-hosted WhatsApp Gateway.
 7. **Zero-Trust Security**: Enforces path-isolated `/clinics/{tenantId}/...` Firestore sub-collections, zero-trust security rules (`firestore.rules`), and transparent **AES-256-GCM encryption** for sensitive notes.
 
 ---
@@ -56,7 +54,7 @@ See the complete step-by-step production deployment guide in **[HOSTING_GUIDE.md
 ### Quick Deployment Steps:
 1. Push code to your GitHub repository.
 2. Import the repository into your Vercel Dashboard.
-3. Configure Environment Variables (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `ENCRYPTION_SECRET`, `SESSION_SECRET`, `QSTASH_*`).
+3. Configure Environment Variables (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `ENCRYPTION_SECRET`, `SESSION_SECRET`, `WHATSAPP_GATEWAY_URL`).
 4. Deploy!
 
 *Vercel Routing Note: Free `.vercel.app` domains support path-based routing (e.g. `your-app.vercel.app/city-dental`). For custom domain wildcard subdomains, attach your domain with `*.yourdomain.com` enabled.*

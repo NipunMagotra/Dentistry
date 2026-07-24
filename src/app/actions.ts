@@ -3,9 +3,67 @@
 import { getTenantDb } from '@/lib/firebase-admin'
 import { encryptNotes, decryptNotes } from '@/lib/encryption'
 import { revalidatePath } from 'next/cache'
+import { setSessionCookie, clearSessionCookie, getSession, requireAuth } from '@/lib/auth'
+
+export async function loginUser(data: { email: string; clinicName?: string }) {
+  try {
+    const email = data.email.trim()
+    const clinicName = data.clinicName || "My Dental Clinic"
+    const tenantId = clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
+
+    await setSessionCookie({
+      email,
+      tenantId,
+      role: 'authenticated'
+    })
+
+    return { success: true, tenantId }
+  } catch (error) {
+    console.error('Failed to login:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function signupUser(data: { email: string; clinicName: string }) {
+  try {
+    const email = data.email.trim()
+    const clinicName = data.clinicName.trim()
+    const tenantId = clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "my-clinic"
+
+    await setSessionCookie({
+      email,
+      tenantId,
+      role: 'authenticated'
+    })
+
+    return { success: true, tenantId }
+  } catch (error) {
+    console.error('Failed to signup:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function logoutUser() {
+  try {
+    await clearSessionCookie()
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to logout:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getAuthSession() {
+  try {
+    return await getSession()
+  } catch (error) {
+    return null
+  }
+}
 
 export async function getAppointments(date?: string) {
   try {
+    await requireAuth()
     const { appointmentsRef, patientsRef } = await getTenantDb()
     
     let query = appointmentsRef.where('status', '!=', 'Pending')
@@ -61,6 +119,7 @@ export async function getAppointments(date?: string) {
 
 export async function getPendingRequests() {
   try {
+    await requireAuth()
     const { appointmentsRef, patientsRef } = await getTenantDb()
     const snapshot = await appointmentsRef.where('status', '==', 'Pending').get()
     const requests: any[] = []
@@ -102,6 +161,7 @@ export async function getPendingRequests() {
 
 export async function createAppointment(data: any) {
   try {
+    await requireAuth()
     const { appointmentsRef, patientsRef } = await getTenantDb()
 
     // 1. Ensure patient exists or create new
@@ -169,6 +229,7 @@ export async function createAppointment(data: any) {
 
 export async function updateAppointmentStatus(id: string, status: string) {
   try {
+    await requireAuth()
     const { appointmentsRef } = await getTenantDb()
     await appointmentsRef.doc(id).update({
       status,
@@ -185,6 +246,7 @@ export async function updateAppointmentStatus(id: string, status: string) {
 
 export async function updateAppointmentDetails(id: string, data: any) {
   try {
+    await requireAuth()
     const { appointmentsRef } = await getTenantDb()
     await appointmentsRef.doc(id).update({
       doctor_name: data.doctor,
@@ -204,6 +266,7 @@ export async function updateAppointmentDetails(id: string, data: any) {
 
 export async function getDoctors() {
   try {
+    await requireAuth()
     const { doctorsRef } = await getTenantDb()
     const snapshot = await doctorsRef.get()
 
@@ -232,6 +295,7 @@ export async function getDoctors() {
 
 export async function searchPatients(query: string = '', filter: string = 'All') {
   try {
+    await requireAuth()
     const { patientsRef, appointmentsRef, prescriptionsRef } = await getTenantDb()
     const snapshot = await patientsRef.get()
     let patients: any[] = []
@@ -305,6 +369,7 @@ export async function searchPatients(query: string = '', filter: string = 'All')
 
 export async function saveDentalChart(patientId: string, chartData: any) {
   try {
+    await requireAuth()
     const { patientsRef } = await getTenantDb()
     await patientsRef.doc(patientId).update({
       dental_chart: chartData,
@@ -321,6 +386,7 @@ export async function saveDentalChart(patientId: string, chartData: any) {
 
 export async function deletePatient(id: string) {
   try {
+    await requireAuth()
     const { patientsRef, appointmentsRef, prescriptionsRef } = await getTenantDb()
     
     // 1. Delete patient document
@@ -346,6 +412,7 @@ export async function deletePatient(id: string) {
 
 export async function createSecurePrescription(data: any) {
   try {
+    await requireAuth()
     const { appointmentsRef, prescriptionsRef } = await getTenantDb()
     
     let appointmentId = data.appointmentId
@@ -382,6 +449,7 @@ export async function createSecurePrescription(data: any) {
 
 export async function getClinicStats() {
   try {
+    await requireAuth()
     const { patientsRef, appointmentsRef } = await getTenantDb()
 
     // 1. Total Patients

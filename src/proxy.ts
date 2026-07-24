@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { SignJWT } from 'jose'
+import { jwtVerify } from 'jose'
 
 export const config = {
   matcher: [
@@ -64,6 +64,52 @@ export default async function proxy(req: NextRequest) {
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-tenant-id', resolvedTenantId)
 
+  // 3. Determine if current sub-path is explicitly public or private
+  let tenantSubPath = url.pathname
+  if (isPathBased && resolvedTenantId) {
+    const segments = url.pathname.split("/").filter(Boolean)
+    tenantSubPath = "/" + segments.slice(1).join("/")
+  }
+
+  const normalizedSubPath = tenantSubPath.toLowerCase()
+  const isPublicRoute = 
+    normalizedSubPath === "/book" || 
+    normalizedSubPath.startsWith("/book/") ||
+    normalizedSubPath === "/booking" || 
+    normalizedSubPath.startsWith("/booking/") ||
+    url.pathname.startsWith("/api/workflow")
+
+  // 4. Authorization check for private tenant routes
+  if (!isPublicRoute) {
+    const authToken = req.cookies.get('auth_token')?.value
+    let isAuthenticated = false
+
+    if (authToken) {
+      try {
+        const jwtSecret = process.env.SESSION_SECRET || process.env.SUPABASE_JWT_SECRET || 'clinic-os-secure-tenant-session-secret'
+        const secret = new TextEncoder().encode(jwtSecret)
+        const { payload } = await jwtVerify(authToken, secret)
+        
+        const sessionTenantId = ((payload.tenantId || payload.tenant_id) as string || '').toLowerCase()
+        if (sessionTenantId && sessionTenantId === resolvedTenantId) {
+          isAuthenticated = true
+        }
+      } catch (err) {
+        isAuthenticated = false
+      }
+    }
+
+    if (!isAuthenticated) {
+      // Unauthenticated access to private tenant route -> Redirect to landing page / home
+      const loginUrl = new URL("/home", req.url)
+      loginUrl.searchParams.set("auth_required", "true")
+      loginUrl.searchParams.set("redirect", url.pathname)
+      const redirectResponse = NextResponse.redirect(loginUrl)
+      redirectResponse.headers.set('Cache-Control', 'no-store, max-age=0')
+      return redirectResponse
+    }
+  }
+
   const rewriteUrl = isPathBased
     ? new URL(path, req.url)
     : new URL(`/${resolvedTenantId}${path === "/" ? "" : path}`, req.url)
@@ -74,31 +120,10 @@ export default async function proxy(req: NextRequest) {
     },
   })
 
-  // 3. Prevent Edge CDN Cross-Tenant Cache Leakage
+  // 5. Prevent Edge CDN Cross-Tenant Cache Leakage & enforce security headers
   response.headers.set('Vary', 'Host, x-tenant-id')
   response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate')
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
-
-  // 4. Tenant Session JWT Cookie
-  const jwtSecret = process.env.SESSION_SECRET || process.env.SUPABASE_JWT_SECRET || 'clinic-os-secure-tenant-session-secret'
-  const secret = new TextEncoder().encode(jwtSecret)
-  const token = await new SignJWT({ 
-      role: 'authenticated', 
-      tenant_id: resolvedTenantId 
-    })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('1h')
-    .sign(secret)
-
-  response.cookies.set({
-    name: 'tenant_session',
-    value: token,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 3600
-  })
 
   return response
 }
