@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
 
 const DEFAULT_DOCTORS = [
   { id: "1", name: "Dr. Anoop Raina", specialty: "Endodontist & Cosmetic Dentist", degrees: "BDS, MDS (Endodontics)", regNo: "882507", timings: "Mon - Sat: 9:00 AM - 7:00 PM", charge: 200 },
@@ -62,7 +63,17 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   // Dynamic Doctors List State
   const [doctors, setDoctors] = useState<any[]>(DEFAULT_DOCTORS)
 
-  // Sub-dialog state for Add/Edit Doctor
+  // Sub-dialog state for Add/Edit Doctor & Operatory Schedule
+  const DEFAULT_WEEKLY_SCHEDULE = [
+    { day: "Monday", isClosed: false, startTime: "09:00 AM", endTime: "05:00 PM" },
+    { day: "Tuesday", isClosed: false, startTime: "09:00 AM", endTime: "05:00 PM" },
+    { day: "Wednesday", isClosed: false, startTime: "09:00 AM", endTime: "05:00 PM" },
+    { day: "Thursday", isClosed: false, startTime: "09:00 AM", endTime: "05:00 PM" },
+    { day: "Friday", isClosed: false, startTime: "09:00 AM", endTime: "05:00 PM" },
+    { day: "Saturday", isClosed: false, startTime: "09:00 AM", endTime: "02:00 PM" },
+    { day: "Sunday", isClosed: true, startTime: "09:00 AM", endTime: "05:00 PM" }
+  ]
+
   const [isDoctorFormOpen, setIsDoctorFormOpen] = useState(false)
   const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null)
   const [docName, setDocName] = useState("")
@@ -71,6 +82,12 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   const [docRegNo, setDocRegNo] = useState("")
   const [docTimings, setDocTimings] = useState("")
   const [docCharge, setDocCharge] = useState("")
+  const [docWeeklySchedule, setDocWeeklySchedule] = useState<any[]>(DEFAULT_WEEKLY_SCHEDULE)
+
+  const buildTimingsSummary = (sched: any[]) => {
+    const parts = sched.map(s => s.isClosed ? `${s.day.slice(0, 3)}: CLOSED` : `${s.day.slice(0, 3)}: ${s.startTime}-${s.endTime}`)
+    return parts.join(" • ")
+  }
 
   // Load saved settings & doctors list
   useEffect(() => {
@@ -185,7 +202,8 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
     setDocSpecialty("")
     setDocDegrees("")
     setDocRegNo("")
-    setDocTimings("Mon - Sat: 9:00 AM - 5:00 PM")
+    setDocWeeklySchedule(DEFAULT_WEEKLY_SCHEDULE)
+    setDocTimings(buildTimingsSummary(DEFAULT_WEEKLY_SCHEDULE))
     setDocCharge("150")
     setIsDoctorFormOpen(true)
   }
@@ -196,13 +214,25 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
     setDocSpecialty(doc.specialty || "")
     setDocDegrees(doc.degrees || "")
     setDocRegNo(doc.regNo || "")
-    setDocTimings(doc.timings || "Mon - Sat: 9:00 AM - 5:00 PM")
+    const sched = Array.isArray(doc.weeklySchedule) && doc.weeklySchedule.length === 7 ? doc.weeklySchedule : DEFAULT_WEEKLY_SCHEDULE
+    setDocWeeklySchedule(sched)
+    setDocTimings(doc.timings || buildTimingsSummary(sched))
     setDocCharge(doc.charge ? String(doc.charge) : "150")
     setIsDoctorFormOpen(true)
   }
 
+  const updateDaySchedule = (index: number, key: string, val: any) => {
+    setDocWeeklySchedule(prev => {
+      const updated = prev.map((item, idx) => idx === index ? { ...item, [key]: val } : item)
+      setDocTimings(buildTimingsSummary(updated))
+      return updated
+    })
+  }
+
   const handleSaveDoctor = () => {
     if (!docName.trim()) return
+
+    const finalTimings = buildTimingsSummary(docWeeklySchedule)
 
     setDoctors((prev) => {
       let updated: any[]
@@ -215,7 +245,8 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
                 specialty: docSpecialty.trim(),
                 degrees: docDegrees.trim(),
                 regNo: docRegNo.trim(),
-                timings: docTimings.trim(),
+                timings: finalTimings,
+                weeklySchedule: docWeeklySchedule,
                 charge: Number(docCharge) || 150
               }
             : d
@@ -227,7 +258,8 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
           specialty: docSpecialty.trim() || "General Practitioner",
           degrees: docDegrees.trim() || "BDS",
           regNo: docRegNo.trim() || "100200",
-          timings: docTimings.trim() || "Mon - Sat: 9:00 AM - 5:00 PM",
+          timings: finalTimings,
+          weeklySchedule: docWeeklySchedule,
           charge: Number(docCharge) || 150
         }
         updated = [...prev, newDoc]
@@ -559,25 +591,70 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="grid gap-1">
-                        <Label htmlFor="subdoc-timings">Timings</Label>
-                        <Input 
-                          id="subdoc-timings" 
-                          placeholder="e.g. Mon - Fri: 10am - 5pm" 
-                          value={docTimings} 
-                          onChange={(e) => setDocTimings(e.target.value)}
-                        />
+                    <div className="grid gap-1">
+                      <Label htmlFor="subdoc-charge">Consult Fee (₹)</Label>
+                      <Input 
+                        id="subdoc-charge" 
+                        type="number"
+                        placeholder="e.g. 150" 
+                        value={docCharge} 
+                        onChange={(e) => setDocCharge(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Day-by-Day Operatory Schedule Configurator */}
+                    <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                      <div className="flex items-center justify-between">
+                        <Label className="font-bold text-xs text-foreground">Weekly Day-by-Day Schedule</Label>
+                        <span className="text-[10px] text-primary font-mono font-semibold">Editable per day</span>
                       </div>
-                      <div className="grid gap-1">
-                        <Label htmlFor="subdoc-charge">Consult Fee (₹)</Label>
-                        <Input 
-                          id="subdoc-charge" 
-                          type="number"
-                          placeholder="e.g. 150" 
-                          value={docCharge} 
-                          onChange={(e) => setDocCharge(e.target.value)}
-                        />
+
+                      <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                        {docWeeklySchedule.map((item, index) => (
+                          <div 
+                            key={item.day} 
+                            className={cn(
+                              "p-2 rounded-xl border flex items-center justify-between text-xs transition-colors",
+                              item.isClosed 
+                                ? "bg-destructive/5 border-destructive/20 text-muted-foreground" 
+                                : "glass-panel border-black/5 dark:border-white/10 text-foreground"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 w-24">
+                              <span className="font-bold w-12">{item.day.slice(0, 3)}</span>
+                              <Switch 
+                                checked={!item.isClosed}
+                                onCheckedChange={(open) => updateDaySchedule(index, "isClosed", !open)}
+                              />
+                            </div>
+
+                            {item.isClosed ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20">
+                                CLOSED
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <Input 
+                                  className="h-7 text-[11px] w-20 px-1.5 text-center font-mono" 
+                                  value={item.startTime}
+                                  onChange={(e) => updateDaySchedule(index, "startTime", e.target.value)}
+                                  placeholder="09:00 AM"
+                                />
+                                <span className="text-muted-foreground text-[10px]">to</span>
+                                <Input 
+                                  className="h-7 text-[11px] w-20 px-1.5 text-center font-mono" 
+                                  value={item.endTime}
+                                  onChange={(e) => updateDaySchedule(index, "endTime", e.target.value)}
+                                  placeholder="05:00 PM"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="text-[10px] text-muted-foreground font-mono bg-muted/30 p-2 rounded-xl truncate">
+                        Summary: {docTimings}
                       </div>
                     </div>
                   </div>

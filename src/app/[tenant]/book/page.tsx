@@ -34,7 +34,7 @@ export default function PublicBookingPage() {
   })
 
   // Doctors list (merges customized doctor dynamically)
-  const [doctorsList, setDoctorsList] = useState([
+  const [doctorsList, setDoctorsList] = useState<any[]>([
     { id: "1", name: "Dr. Sarah Jenkins", specialty: "Periodontics & Implants (Mon - Fri: 10:00 AM - 5:00 PM)" },
     { id: "2", name: "Dr. Michael Chen", specialty: "Cosmetic Dentistry (Mon - Fri: 9:00 AM - 6:00 PM)" },
     { id: "3", name: "Dr. Emily Rodriguez", specialty: "Orthodontics (Mon, Wed, Fri: 11:00 AM - 4:00 PM)" }
@@ -89,7 +89,9 @@ export default function PublicBookingPage() {
           setDoctorsList(parsed.map((d: any) => ({
             id: d.id,
             name: d.name,
-            specialty: `${d.specialty || d.degrees || "General Dentistry"} (${d.timings || "Mon - Fri"})`
+            specialty: `${d.specialty || d.degrees || "General Dentistry"} (${d.timings || "Mon - Fri"})`,
+            timings: d.timings,
+            weeklySchedule: d.weeklySchedule
           })))
         }
       } catch (e) {
@@ -336,6 +338,29 @@ export default function PublicBookingPage() {
                   />
                 </div>
               </div>
+
+              {(() => {
+                if (!date) return null
+                const parsedDateObj = new Date(date)
+                const dayName = isNaN(parsedDateObj.getTime()) ? "" : parsedDateObj.toLocaleDateString("en-US", { weekday: "long" })
+                const selDocObj = doctorsList.find((d: any) => d.name === selectedDocId)
+                const daySched = selDocObj?.weeklySchedule?.find((s: any) => s.day === dayName)
+                const isClosed = daySched ? daySched.isClosed : (dayName === "Sunday" && (!selDocObj?.specialty || selDocObj?.specialty.includes("CLOSED")))
+
+                if (isClosed) {
+                  return (
+                    <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold flex items-center gap-2 animate-in fade-in-50">
+                      <ShieldCheck className="size-5 shrink-0" />
+                      <div>
+                        <div>{selectedDocId} is CLOSED on {dayName}s.</div>
+                        <div className="text-[11px] font-normal text-muted-foreground mt-0.5">Please choose an open operating day to schedule your consultation.</div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                return null
+              })()}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">

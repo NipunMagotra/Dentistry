@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react"
+import { CalendarIcon, Check, ChevronsUpDown, AlertCircle } from "lucide-react"
 import {
   Command,
   CommandEmpty,
@@ -371,26 +371,52 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Available Slots</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {timeSlots.map((slot) => (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => setSelectedTime(slot)}
-                      className={cn(
-                        "py-2 px-3 text-xs font-semibold rounded-full border transition-all cursor-pointer",
-                        selectedTime === slot 
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm" 
-                          : "glass-panel text-muted-foreground hover:text-foreground border-black/5 dark:border-white/10"
+              {(() => {
+                const selDocObj = doctorsList.find(d => d.id === selectedDoctor || d.name === selectedDoctor)
+                const dayName = date ? format(date, "EEEE") : ""
+                const daySched = selDocObj?.weeklySchedule?.find((s: any) => s.day === dayName)
+                const isClosed = daySched ? daySched.isClosed : (dayName === "Sunday" && (!selDocObj?.timings || selDocObj?.timings.includes("Sun: CLOSED")))
+
+                if (date && isClosed) {
+                  return (
+                    <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold flex items-center gap-2 animate-in fade-in-50">
+                      <AlertCircle className="size-5 shrink-0" />
+                      <div>
+                        <div>{selDocObj?.name || "Practitioner"} is CLOSED on {dayName}s.</div>
+                        <div className="text-[11px] font-normal text-muted-foreground mt-0.5">Please choose an open operating day to proceed.</div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Available Slots</Label>
+                      {daySched && !daySched.isClosed && (
+                        <span className="text-[10px] font-mono text-primary font-bold">Hours: {daySched.startTime} - {daySched.endTime}</span>
                       )}
-                    >
-                      {slot}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {timeSlots.map((slot) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => setSelectedTime(slot)}
+                          className={cn(
+                            "py-2 px-3 text-xs font-semibold rounded-full border transition-all cursor-pointer",
+                            selectedTime === slot 
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                              : "glass-panel text-muted-foreground hover:text-foreground border-black/5 dark:border-white/10"
+                          )}
+                        >
+                          {slot}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
         </div>
