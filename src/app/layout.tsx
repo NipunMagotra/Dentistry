@@ -49,7 +49,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col relative bg-background text-foreground transition-colors duration-300">
+      <body className="min-h-full flex flex-col relative bg-background text-foreground">
         <OfflineSyncBanner />
         {children}
         <div className="fixed bottom-2 right-2 text-[10px] text-muted-foreground/60 font-mono select-none pointer-events-none z-50 print:hidden">
