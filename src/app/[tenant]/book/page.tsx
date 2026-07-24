@@ -62,7 +62,7 @@ export default function PublicBookingPage() {
 
   // Load clinic settings & dynamic doctors list
   useEffect(() => {
-    const saved = localStorage.getItem("clinic_profile_settings")
+    const saved = localStorage.getItem(`clinic_profile_settings_${tenant}`) || localStorage.getItem("clinic_profile_settings")
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
@@ -81,7 +81,7 @@ export default function PublicBookingPage() {
       }
     }
 
-    const savedDocs = localStorage.getItem("clinic_doctors_list")
+    const savedDocs = localStorage.getItem(`clinic_doctors_list_${tenant}`) || localStorage.getItem("clinic_doctors_list")
     if (savedDocs) {
       try {
         const parsed = JSON.parse(savedDocs)
@@ -96,7 +96,7 @@ export default function PublicBookingPage() {
         console.error("Error loading doctors list on booking page", e)
       }
     }
-  }, [])
+  }, [tenant])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

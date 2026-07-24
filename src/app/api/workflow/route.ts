@@ -1,4 +1,5 @@
 import { serve } from "@upstash/workflow/nextjs"
+import { sendWhatsAppMessage } from "@/lib/whatsapp"
 
 interface BookingPayload {
   patientPhone: string
@@ -84,14 +85,18 @@ export const { POST } = serve<BookingPayload>(
     const cleanDoctorName = doctorName.replace(/[\r\n]/g, ' ').slice(0, 100)
 
     // --------------------------------------------------------------------------
-    // 2. STEP 1: IMMEDIATE CONFIRMATION (SURVIVES RETRIES)
+    // 2. STEP 1: IMMEDIATE CONFIRMATION (SMS + WHATSAPP)
     // --------------------------------------------------------------------------
     await context.run("send-immediate-confirmation", async () => {
       const msg = `Hello ${cleanPatientName}, your appointment with ${cleanDoctorName} is confirmed for ${parsedDate.toLocaleDateString()} at ${appointmentTime}.`
-      await sendTwilioMessage(cleanPhone, msg)
+      
+      await Promise.allSettled([
+        sendTwilioMessage(cleanPhone, msg),
+        sendWhatsAppMessage(cleanPhone, msg)
+      ])
       
       console.log("===============================================================")
-      console.log(`[Twilio SMS] -> Sent CONFIRMATION to ${cleanPhone}`)
+      console.log(`[Notification Pipeline] -> Sent CONFIRMATION to ${cleanPhone}`)
       console.log("===============================================================")
     })
 
@@ -106,14 +111,18 @@ export const { POST } = serve<BookingPayload>(
     }
 
     // --------------------------------------------------------------------------
-    // 4. STEP 3: DAY-OF-TREATMENT REMINDER
+    // 4. STEP 3: DAY-OF-TREATMENT REMINDER (SMS + WHATSAPP)
     // --------------------------------------------------------------------------
     await context.run("send-day-of-reminder", async () => {
       const msg = `Reminder: You have a dental appointment today at ${appointmentTime} with ${cleanDoctorName}.`
-      await sendTwilioMessage(cleanPhone, msg)
+      
+      await Promise.allSettled([
+        sendTwilioMessage(cleanPhone, msg),
+        sendWhatsAppMessage(cleanPhone, msg)
+      ])
       
       console.log("===============================================================")
-      console.log(`[Twilio SMS] -> Sent REMINDER to ${cleanPhone}`)
+      console.log(`[Notification Pipeline] -> Sent REMINDER to ${cleanPhone}`)
       console.log("===============================================================")
     })
   },

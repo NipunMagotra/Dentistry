@@ -400,12 +400,16 @@ export async function getClinicStats() {
     })
 
     // 3. Revenue Today & Completed Today
-    const todayStr = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
-    const todayAptsSnap = await appointmentsRef.where('appointment_date', '==', todayStr).get()
+    const todayIso = new Date().toISOString().split('T')[0]
+    const todayLocale = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+    
+    const todayAptsSnap = await appointmentsRef.get()
 
     let completedTodayCount = 0
     todayAptsSnap.docs.forEach(doc => {
-      if (doc.data().status === 'Completed') {
+      const d = doc.data()
+      const aptDate = d.appointment_date
+      if ((aptDate === todayIso || aptDate === todayLocale) && d.status === 'Completed') {
         completedTodayCount++
       }
     })

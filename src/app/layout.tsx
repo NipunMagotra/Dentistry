@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import packageJson from "../../package.json";
@@ -13,7 +13,10 @@ export const metadata: Metadata = {
   title: "Clinic OS - Multi-Tenant Medical Platform",
   description: "Manage your entire clinic offline & online from one place.",
   manifest: "/manifest.json",
-  themeColor: "#0284c7"
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0284c7",
 };
 
 export default function RootLayout({
