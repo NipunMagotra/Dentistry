@@ -1,6 +1,6 @@
 # Clinic OS — Comprehensive Documentation
 
-This document serves as the absolute source of truth for the Clinic OS platform (v1.4.3). It covers the technology stack, application architecture, routing structure, data persistence models, messaging pipeline, and core asynchronous workflows.
+This document serves as the absolute source of truth for the Clinic OS platform (v1.4.4). It covers the technology stack, application architecture, routing structure, data persistence models, messaging pipeline, and core asynchronous workflows.
 
 ---
 
