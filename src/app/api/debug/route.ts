@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   const results: Record<string, any> = {
+    version: '1.5.3',
     timestamp: new Date().toISOString(),
     checks: {},
   }
