@@ -3,22 +3,27 @@ import { getFirestore } from 'firebase-admin/firestore'
 import { headers } from 'next/headers'
 import { getSession } from './auth'
 
+function sanitizePrivateKey(rawKey: string): string {
+  let key = rawKey.trim()
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1)
+  }
+  return key.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n')
+}
+
 function getAdminApp() {
   const apps = getApps()
   if (apps.length > 0) {
     return apps[0]!
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
+  const projectId = process.env.FIREBASE_PROJECT_ID?.trim()
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim()
   let rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY
 
   if (projectId && clientEmail && rawPrivateKey) {
     try {
-      let formattedKey = rawPrivateKey.replace(/\\n/g, '\n')
-      if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
-        formattedKey = formattedKey.slice(1, -1)
-      }
+      const formattedKey = sanitizePrivateKey(rawPrivateKey)
       return initializeApp({
         credential: cert({
           projectId,
