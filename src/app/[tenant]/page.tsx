@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useTransition } from "react"
 import { useParams } from "next/navigation"
 import { getAppointments, getPendingRequests, updateAppointmentStatus, updateAppointmentDetails, getClinicStats } from "@/app/actions"
