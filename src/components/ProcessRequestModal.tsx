@@ -126,72 +126,74 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove, onDec
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px] max-w-[95vw] glass-panel p-0 overflow-hidden rounded-3xl border border-white/40 dark:border-white/10">
-        <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-black/5 dark:border-white/5">
-          <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
-            <CheckCircle2 className="size-5 text-primary" /> Process Appointment Request
+      <DialogContent className="sm:max-w-[640px] max-w-[95vw] glass-panel p-0 overflow-hidden rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
+        <DialogHeader className="p-6 pb-4 border-b border-black/5 dark:border-white/5 shrink-0">
+          <DialogTitle className="text-xl sm:text-2xl font-extrabold text-foreground flex items-center gap-2.5">
+            <CheckCircle2 className="size-6 text-primary shrink-0" /> Process Appointment Request
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
+          <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
             Verify patient information, fill in missing intake details, and confirm the slot.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] px-5 sm:px-6">
-          <div className="py-4 space-y-4">
+        <ScrollArea className="flex-1 max-h-[62vh] sm:max-h-[68vh] px-6 py-2">
+          <div className="py-4 space-y-5">
             {/* Reason for Visit banner */}
-            <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20 flex items-start gap-2.5 text-xs text-primary">
-              <AlertCircle className="size-4 shrink-0 text-primary mt-0.5" />
+            <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 flex items-start gap-3 text-xs sm:text-sm text-primary">
+              <AlertCircle className="size-5 shrink-0 text-primary mt-0.5" />
               <div>
-                <span className="font-bold">Patient Note: </span>
-                {request.reason}
+                <span className="font-bold">Patient Note / Reason: </span>
+                <span className="font-medium text-foreground/90">{request.reason || "General Consultation"}</span>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="req-name" className={isNameInvalid ? "text-destructive font-semibold" : ""}>
+            <div className="space-y-2">
+              <Label htmlFor="req-name" className={cn("text-xs sm:text-sm font-semibold", isNameInvalid ? "text-destructive" : "")}>
                 Patient Full Name
               </Label>
               <div className="relative">
-                <User className="absolute left-3.5 top-3 size-4 text-muted-foreground" />
+                <User className="absolute left-4 top-3.5 size-4 text-muted-foreground" />
                 <Input
                   id="req-name"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  className={cn("pl-10", isNameInvalid ? "border-destructive" : "")}
+                  className={cn("pl-11 h-11 text-sm rounded-2xl", isNameInvalid ? "border-destructive focus-visible:ring-destructive/20" : "")}
+                  placeholder="Enter full name"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="req-phone" className={isPhoneInvalid ? "text-destructive font-semibold" : ""}>
+            <div className="space-y-2">
+              <Label htmlFor="req-phone" className={cn("text-xs sm:text-sm font-semibold", isPhoneInvalid ? "text-destructive" : "")}>
                 Phone / WhatsApp Number
               </Label>
               <div className="relative">
-                <Phone className="absolute left-3.5 top-3 size-4 text-muted-foreground" />
+                <Phone className="absolute left-4 top-3.5 size-4 text-muted-foreground" />
                 <Input
                   id="req-phone"
                   value={patientPhone}
                   onChange={(e) => setPatientPhone(e.target.value.replace(/[^0-9\s+\-()]/g, ""))}
-                  className={cn("pl-10", isPhoneInvalid ? "border-destructive" : "")}
+                  className={cn("pl-11 h-11 text-sm rounded-2xl", isPhoneInvalid ? "border-destructive focus-visible:ring-destructive/20" : "")}
+                  placeholder="e.g. +1 (555) 123-4567"
                   required
                 />
               </div>
             </div>
 
-            {/* Required Intake Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl glass-panel border border-amber-500/20 bg-amber-500/5">
-              <div className="sm:col-span-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                <AlertCircle className="size-3.5" /> Required Intake Details
+            {/* Required Intake Details Container */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl glass-panel border border-amber-500/25 bg-amber-500/5">
+              <div className="sm:col-span-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5 pb-1">
+                <AlertCircle className="size-4" /> Required Intake Details
               </div>
               
-              <div className="space-y-1.5">
-                <Label className={isNationalityMissing ? "text-destructive font-semibold" : ""}>
+              <div className="space-y-2">
+                <Label className={cn("text-xs sm:text-sm font-semibold", isNationalityMissing ? "text-destructive" : "")}>
                   Nationality {isNationalityMissing && "*"}
                 </Label>
                 <Select value={nationality} onValueChange={(val) => setNationality(val || "")}>
-                  <SelectTrigger className="rounded-full h-10 px-4">
-                    <SelectValue placeholder="Select" />
+                  <SelectTrigger className="rounded-2xl h-11 px-4 text-sm bg-white/70 dark:bg-zinc-900/60">
+                    <SelectValue placeholder="Select Nationality" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl glass-panel">
                     {NATIONALITIES.map((nat) => (
@@ -201,13 +203,13 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove, onDec
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className={isGenderMissing ? "text-destructive font-semibold" : ""}>
+              <div className="space-y-2">
+                <Label className={cn("text-xs sm:text-sm font-semibold", isGenderMissing ? "text-destructive" : "")}>
                   Gender {isGenderMissing && "*"}
                 </Label>
                 <Select value={gender} onValueChange={(val) => setGender(val || "")}>
-                  <SelectTrigger className="rounded-full h-10 px-4">
-                    <SelectValue placeholder="Select" />
+                  <SelectTrigger className="rounded-2xl h-11 px-4 text-sm bg-white/70 dark:bg-zinc-900/60">
+                    <SelectValue placeholder="Select Gender" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl glass-panel">
                     <SelectItem value="Male">Male</SelectItem>
@@ -219,10 +221,10 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove, onDec
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Assigned Doctor</Label>
+              <div className="space-y-2">
+                <Label className="text-xs sm:text-sm font-semibold">Assigned Doctor</Label>
                 <Select value={doctor} onValueChange={(val) => setDoctor(val || "")}>
-                  <SelectTrigger className="rounded-full h-10 px-4">
+                  <SelectTrigger className="rounded-2xl h-11 px-4 text-sm bg-white/70 dark:bg-zinc-900/60">
                     <SelectValue placeholder="Select Doctor" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl glass-panel">
@@ -233,10 +235,10 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove, onDec
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Time Slot</Label>
+              <div className="space-y-2">
+                <Label className="text-xs sm:text-sm font-semibold">Time Slot</Label>
                 <Select value={time} onValueChange={(val) => setTime(val || "")}>
-                  <SelectTrigger className="rounded-full h-10 px-4">
+                  <SelectTrigger className="rounded-2xl h-11 px-4 text-sm bg-white/70 dark:bg-zinc-900/60">
                     <SelectValue placeholder="Select Slot" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl glass-panel">
@@ -250,7 +252,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove, onDec
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-4 bg-muted/40 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row gap-2 justify-between items-center">
+        <DialogFooter className="p-5 sm:p-6 bg-muted/40 border-t border-black/5 dark:border-white/5 flex flex-col-reverse sm:flex-row gap-3 justify-between items-center shrink-0">
           {onDecline && request?.id ? (
             <Button 
               type="button" 
@@ -259,7 +261,7 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove, onDec
                 onDecline(request.id)
                 onClose()
               }} 
-              className="rounded-full w-full sm:w-auto font-semibold bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground border border-destructive/20"
+              className="rounded-full h-11 px-5 text-xs sm:text-sm w-full sm:w-auto font-semibold bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground border border-destructive/20 transition-all"
             >
               Decline & Erase Request
             </Button>
@@ -267,11 +269,18 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove, onDec
             <div />
           )}
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button variant="outline" onClick={onClose} className="rounded-full w-full sm:w-auto font-semibold">
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto justify-end">
+            <Button 
+              variant="outline" 
+              onClick={onClose} 
+              className="rounded-full h-11 px-5 text-xs sm:text-sm w-full sm:w-auto font-semibold"
+            >
               Cancel
             </Button>
-            <Button onClick={handleConfirm} className="rounded-full w-full sm:w-auto bg-primary text-primary-foreground font-bold shadow-md">
+            <Button 
+              onClick={handleConfirm} 
+              className="rounded-full h-11 px-6 text-xs sm:text-sm w-full sm:w-auto bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/25 transition-all"
+            >
               Confirm & Approve
             </Button>
           </div>
