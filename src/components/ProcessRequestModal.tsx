@@ -44,9 +44,10 @@ interface ProcessRequestModalProps {
     gender: string
     status: string
   }) => void
+  onDecline?: (id: string) => void
 }
 
-export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: ProcessRequestModalProps) {
+export function ProcessRequestModal({ isOpen, onClose, request, onApprove, onDecline }: ProcessRequestModalProps) {
   const [patientName, setPatientName] = useState("")
   const [patientPhone, setPatientPhone] = useState("")
   const [doctor, setDoctor] = useState("")
@@ -249,13 +250,31 @@ export function ProcessRequestModal({ isOpen, onClose, request, onApprove }: Pro
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-4 bg-muted/40 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row gap-2 justify-end">
-          <Button variant="outline" onClick={onClose} className="rounded-full w-full sm:w-auto font-semibold">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm} className="rounded-full w-full sm:w-auto bg-primary text-primary-foreground font-bold shadow-md">
-            Confirm & Approve
-          </Button>
+        <DialogFooter className="p-4 bg-muted/40 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row gap-2 justify-between items-center">
+          {onDecline && request?.id ? (
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                onDecline(request.id)
+                onClose()
+              }} 
+              className="rounded-full w-full sm:w-auto font-semibold bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground border border-destructive/20"
+            >
+              Decline & Erase Request
+            </Button>
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button variant="outline" onClick={onClose} className="rounded-full w-full sm:w-auto font-semibold">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirm} className="rounded-full w-full sm:w-auto bg-primary text-primary-foreground font-bold shadow-md">
+              Confirm & Approve
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

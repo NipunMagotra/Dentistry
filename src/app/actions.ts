@@ -435,6 +435,21 @@ export async function updateAppointmentDetails(id: string, data: any) {
   }
 }
 
+export async function deleteAppointment(id: string, overrideTenantId?: string) {
+  try {
+    const session = await requireAuth()
+    const tenantId = overrideTenantId || session?.tenantId
+    const { appointmentsRef } = await getTenantDb(tenantId)
+    await appointmentsRef.doc(id).delete()
+
+    revalidatePath('/[tenant]', 'page')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to delete appointment:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
 export async function getDoctors() {
   try {
     await requireAuth()

@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useTransition } from "react"
 import { useParams } from "next/navigation"
-import { getAppointments, getPendingRequests, updateAppointmentStatus, updateAppointmentDetails, getClinicStats } from "@/app/actions"
+import { getAppointments, getPendingRequests, updateAppointmentStatus, updateAppointmentDetails, deleteAppointment, getClinicStats } from "@/app/actions"
 import { queueOfflineAction, isOnline } from "@/lib/offlineSync"
 import { BookingWizard } from "@/components/BookingWizard"
 import { EPrescriptionForm } from "@/components/EPrescriptionForm"
@@ -226,6 +226,18 @@ export default function Dashboard() {
       return
     }
 
+    // Clean up local storage cache if present
+    try {
+      const localPending = localStorage.getItem("pending_appointments")
+      if (localPending) {
+        const parsed = JSON.parse(localPending)
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter((item: any) => item.id !== selectedRequest.id)
+          localStorage.setItem("pending_appointments", JSON.stringify(filtered))
+        }
+      }
+    } catch (e) {}
+
     startTransition(() => {
       loadAppointments()
     })
@@ -251,7 +263,22 @@ export default function Dashboard() {
 
   const handleDeclineRequest = async (id: string) => {
     setPendingRequests(prev => prev.filter(req => req.id !== id))
-    await updateAppointmentStatus(id, "Declined")
+    
+    // Clean up local storage cache
+    try {
+      const localPending = localStorage.getItem("pending_appointments")
+      if (localPending) {
+        const parsed = JSON.parse(localPending)
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter((item: any) => item.id !== id)
+          localStorage.setItem("pending_appointments", JSON.stringify(filtered))
+        }
+      }
+    } catch (e) {}
+
+    // Completely erase document from Firestore
+    await deleteAppointment(id, tenant)
+    showToast("Booking request declined and completely erased")
     startTransition(() => {
       loadAppointments()
     })
@@ -809,6 +836,7 @@ export default function Dashboard() {
             }}
             request={selectedRequest}
             onApprove={handleApproveRequest}
+            onDecline={handleDeclineRequest}
           />
         )}
 
