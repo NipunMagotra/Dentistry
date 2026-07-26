@@ -104,6 +104,15 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
     e.preventDefault()
     setIsLoading(true)
 
+    // Extract current path tenant slug if present (e.g., /nipun -> nipun)
+    let currentTenantSlug = ""
+    if (typeof window !== "undefined") {
+      const pathSegments = window.location.pathname.split("/").filter(Boolean)
+      if (pathSegments.length > 0 && pathSegments[0] !== "home") {
+        currentTenantSlug = pathSegments[0].toLowerCase()
+      }
+    }
+
     let activeClinicName = "apollo-dental"
     if (email) {
       localStorage.setItem("clinic_account_email", email)
@@ -120,14 +129,14 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
       } catch (err) {}
     }
 
-    const res = await loginUser({ email, clinicName: activeClinicName })
+    const targetTenantId = currentTenantSlug || activeClinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
+    const res = await loginUser({ email, clinicName: activeClinicName, tenantId: targetTenantId })
     setIsLoading(false)
     setIsOpen(false)
     if (res.success && res.tenantId) {
       router.push(`/${res.tenantId}`)
     } else {
-      const tenantId = activeClinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
-      router.push(`/${tenantId}`)
+      router.push(`/${targetTenantId}`)
     }
   }
 

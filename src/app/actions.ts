@@ -7,11 +7,11 @@ import { setSessionCookie, clearSessionCookie, getSession, requireAuth } from '@
 import { NotificationService } from '@/lib/notifications'
 import { Timestamp } from 'firebase-admin/firestore'
 
-export async function loginUser(data: { email: string; clinicName?: string }) {
+export async function loginUser(data: { email: string; clinicName?: string; tenantId?: string }) {
   try {
     const email = data.email.trim()
     const clinicName = data.clinicName || "My Dental Clinic"
-    const tenantId = clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
+    const tenantId = data.tenantId?.toLowerCase().trim() || clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
 
     await setSessionCookie({
       email,
