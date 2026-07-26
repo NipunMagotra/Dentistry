@@ -112,9 +112,17 @@ export default function PublicBookingPage() {
     try {
       const selectedDoc = doctorsList.find(d => d.name === selectedDocId)?.name || "Doctor"
       
+      let targetTenant = tenant
+      if ((!targetTenant || targetTenant === "default-clinic") && typeof window !== "undefined") {
+        const segs = window.location.pathname.split("/").filter(Boolean)
+        if (segs.length > 0 && segs[0] !== "home" && segs[0] !== "api") {
+          targetTenant = segs[0]
+        }
+      }
+
       // Submit booking to backend database & notification pipeline
       await submitPublicBookingRequest({
-        tenantId: tenant,
+        tenantId: targetTenant,
         patientName: name,
         patientPhone: phone,
         doctorName: selectedDoc,

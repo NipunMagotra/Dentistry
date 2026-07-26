@@ -250,7 +250,22 @@ export async function submitPublicBookingRequest(data: {
   reason?: string
 }) {
   try {
-    const tenantId = data.tenantId || "default-clinic"
+    let resolvedTenantId = data.tenantId
+    if (!resolvedTenantId || resolvedTenantId === "default-clinic") {
+      try {
+        const headersList = await headers()
+        const referer = headersList.get('referer')
+        if (referer) {
+          const url = new URL(referer)
+          const segs = url.pathname.split('/').filter(Boolean)
+          if (segs.length > 0 && segs[0] !== 'home' && segs[0] !== 'api') {
+            resolvedTenantId = segs[0].toLowerCase()
+          }
+        }
+      } catch {}
+    }
+
+    const tenantId = resolvedTenantId || "default-clinic"
     const { appointmentsRef, patientsRef, clinicRef } = await getTenantDb(tenantId)
 
     let patientId = ""
@@ -286,17 +301,21 @@ export async function submitPublicBookingRequest(data: {
     const clinicPhone = clinicData.phone || clinicData.clinicPhone || ''
     const clinicAddress = clinicData.address || clinicData.clinicAddress || ''
 
-    // Dispatch notification to patient/clinic
-    await NotificationService.sendAppointmentReminder({
-      patientName: data.patientName,
-      patientPhone: data.patientPhone,
-      clinicName,
-      doctorName: data.doctorName,
-      appointmentDate: data.appointmentDate,
-      appointmentTime: data.appointmentTime,
-      clinicPhone,
-      clinicAddress
-    })
+    // Dispatch notification safely
+    try {
+      await NotificationService.sendAppointmentReminder({
+        patientName: data.patientName,
+        patientPhone: data.patientPhone,
+        clinicName,
+        doctorName: data.doctorName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        clinicPhone,
+        clinicAddress
+      })
+    } catch (notifErr) {
+      console.warn('Notification dispatch failed during public booking (non-fatal):', notifErr)
+    }
 
     revalidatePath('/[tenant]', 'page')
     return { success: true, id: docRef.id }
