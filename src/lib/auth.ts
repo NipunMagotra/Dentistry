@@ -15,7 +15,7 @@ export async function signAuthToken(payload: AuthSession): Promise<string> {
   return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('100y')
     .sign(SECRET_KEY)
 }
 
@@ -42,7 +42,7 @@ export async function setSessionCookie(session: AuthSession) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 7 * 24 * 60 * 60 // 7 days
+    maxAge: 100 * 365 * 24 * 60 * 60 // Indefinite (100 years)
   })
   return token
 }
