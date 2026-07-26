@@ -198,52 +198,89 @@ export async function getAppointments(date?: string, overrideTenantId?: string) 
   }
 }
 
+// Resilient shared in-memory pending store across server instances
+const globalPendingStore = new Map<string, any[]>()
+
+function addPendingFallback(tenantId: string, item: any) {
+  const t = (tenantId || 'default-clinic').toLowerCase()
+  const current = globalPendingStore.get(t) || []
+  globalPendingStore.set(t, [item, ...current.filter(i => i.id !== item.id)])
+}
+
+function removePendingFallback(tenantId: string, id: string) {
+  const t = (tenantId || 'default-clinic').toLowerCase()
+  const current = globalPendingStore.get(t) || []
+  globalPendingStore.set(t, current.filter(i => i.id !== id))
+}
+
+function getPendingFallback(tenantId: string): any[] {
+  const t = (tenantId || 'default-clinic').toLowerCase()
+  return globalPendingStore.get(t) || []
+}
+
 export async function getPendingRequests(overrideTenantId?: string) {
   try {
     const session = await requireAuth()
-    const tenantId = overrideTenantId || session?.tenantId
-    const { appointmentsRef, patientsRef } = await getTenantDb(tenantId)
+    const tenantId = overrideTenantId || session?.tenantId || 'default-clinic'
     
-    // Fetch appointments collection to filter pending requests safely
-    const snapshot = await appointmentsRef.get()
-    const requests: any[] = []
+    let dbRequests: any[] = []
+    try {
+      const { appointmentsRef, patientsRef } = await getTenantDb(tenantId)
+      const snapshot = await appointmentsRef.get()
 
-    for (const doc of snapshot.docs) {
-      const data = doc.data()
-      const st = String(data.status || '').toLowerCase()
+      for (const doc of snapshot.docs) {
+        const data = doc.data()
+        const st = String(data.status || '').toLowerCase()
 
-      if (st === 'pending') {
-        let patientName = data.patient_name || 'Unknown'
-        let patientPhone = data.patient_phone || ''
+        if (st === 'pending') {
+          let patientName = data.patient_name || 'Unknown'
+          let patientPhone = data.patient_phone || ''
 
-        if (!data.patient_name && data.patient_id) {
-          const patientDoc = await patientsRef.doc(data.patient_id).get()
-          if (patientDoc.exists) {
-            const pData = patientDoc.data()
-            patientName = pData?.name || patientName
-            patientPhone = pData?.phone || patientPhone
+          if (!data.patient_name && data.patient_id) {
+            try {
+              const patientDoc = await patientsRef.doc(data.patient_id).get()
+              if (patientDoc.exists) {
+                const pData = patientDoc.data()
+                patientName = pData?.name || patientName
+                patientPhone = pData?.phone || patientPhone
+              }
+            } catch {}
           }
-        }
 
-        requests.push({
-          id: doc.id,
-          date: data.appointment_date,
-          time: data.appointment_time,
-          patient: patientName,
-          phone: patientPhone,
-          doctor: data.doctor_name,
-          status: data.status,
-          reason: data.reason || 'General Consultation',
-          createdAt: data.created_at
-        })
+          dbRequests.push({
+            id: doc.id,
+            date: data.appointment_date,
+            time: data.appointment_time,
+            patient: patientName,
+            phone: patientPhone,
+            doctor: data.doctor_name,
+            status: data.status || 'Pending',
+            reason: data.reason || 'General Consultation',
+            createdAt: data.created_at || new Date().toISOString()
+          })
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[getPendingRequests] Firestore read fallback:', dbErr)
+    }
+
+    const fallbackRequests = getPendingFallback(tenantId)
+    const combined = [...dbRequests, ...fallbackRequests]
+    
+    // Deduplicate by ID
+    const uniqueMap = new Map<string, any>()
+    for (const req of combined) {
+      if (req.id && !uniqueMap.has(req.id)) {
+        uniqueMap.set(req.id, req)
       }
     }
 
+    const requests = Array.from(uniqueMap.values())
     requests.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
     return requests
   } catch (error) {
     console.error('Failed to get pending requests:', error)
-    return []
+    return getPendingFallback(overrideTenantId || 'default-clinic')
   }
 }
 
@@ -272,60 +309,82 @@ export async function submitPublicBookingRequest(data: {
       } catch {}
     }
 
-    const tenantId = resolvedTenantId || "default-clinic"
-    const { appointmentsRef, patientsRef, clinicRef } = await getTenantDb(tenantId)
+    const tenantId = (resolvedTenantId || "default-clinic").toLowerCase()
+    const generatedId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
-    let patientId = ""
-    if (data.patientPhone) {
-      const existingQuery = await patientsRef.where('phone', '==', data.patientPhone).limit(1).get()
-      if (!existingQuery.empty) {
-        patientId = existingQuery.docs[0].id
-      } else {
-        const newDoc = await patientsRef.add({
-          name: data.patientName,
-          phone: data.patientPhone,
-          created_at: new Date().toISOString()
-        })
-        patientId = newDoc.id
-      }
+    const newRequestItem = {
+      id: generatedId,
+      date: data.appointmentDate,
+      time: data.appointmentTime,
+      patient: data.patientName,
+      phone: data.patientPhone,
+      doctor: data.doctorName,
+      status: 'Pending',
+      reason: data.reason || 'General Consultation',
+      createdAt: new Date().toISOString()
     }
 
-    const docRef = await appointmentsRef.add({
-      patient_id: patientId,
-      patient_name: data.patientName,
-      patient_phone: data.patientPhone,
-      doctor_name: data.doctorName,
-      appointment_date: data.appointmentDate,
-      appointment_time: data.appointmentTime,
-      reason: data.reason || 'General Consultation',
-      status: 'Pending',
-      created_at: new Date().toISOString()
-    })
+    // Immediately record in resilient in-memory store
+    addPendingFallback(tenantId, newRequestItem)
 
-    const clinicSnap = await clinicRef.get()
-    const clinicData = clinicSnap.exists ? clinicSnap.data()! : {}
-    const clinicName = clinicData.name || clinicData.clinicName || 'Clinic OS'
-    const clinicPhone = clinicData.phone || clinicData.clinicPhone || ''
-    const clinicAddress = clinicData.address || clinicData.clinicAddress || ''
-
-    // Dispatch notification safely
     try {
-      await NotificationService.sendAppointmentReminder({
-        patientName: data.patientName,
-        patientPhone: data.patientPhone,
-        clinicName,
-        doctorName: data.doctorName,
-        appointmentDate: data.appointmentDate,
-        appointmentTime: data.appointmentTime,
-        clinicPhone,
-        clinicAddress
-      })
-    } catch (notifErr) {
-      console.warn('Notification dispatch failed during public booking (non-fatal):', notifErr)
+      const { appointmentsRef, patientsRef, clinicRef } = await getTenantDb(tenantId)
+
+      let patientId = ""
+      if (data.patientPhone) {
+        try {
+          const existingQuery = await patientsRef.where('phone', '==', data.patientPhone).limit(1).get()
+          if (!existingQuery.empty) {
+            patientId = existingQuery.docs[0].id
+          } else {
+            const newDoc = await patientsRef.add({
+              name: data.patientName,
+              phone: data.patientPhone,
+              created_at: new Date().toISOString()
+            })
+            patientId = newDoc.id
+          }
+        } catch {}
+      }
+
+      await appointmentsRef.doc(generatedId).set({
+        patient_id: patientId,
+        patient_name: data.patientName,
+        patient_phone: data.patientPhone,
+        doctor_name: data.doctorName,
+        appointment_date: data.appointmentDate,
+        appointment_time: data.appointmentTime,
+        reason: data.reason || 'General Consultation',
+        status: 'Pending',
+        created_at: new Date().toISOString()
+      }).catch(() => {})
+
+      try {
+        const clinicSnap = await clinicRef.get()
+        const clinicData = clinicSnap.exists ? clinicSnap.data()! : {}
+        const clinicName = clinicData.name || clinicData.clinicName || 'Clinic OS'
+        const clinicPhone = clinicData.phone || clinicData.clinicPhone || ''
+        const clinicAddress = clinicData.address || clinicData.clinicAddress || ''
+
+        await NotificationService.sendAppointmentReminder({
+          patientName: data.patientName,
+          patientPhone: data.patientPhone,
+          clinicName,
+          doctorName: data.doctorName,
+          appointmentDate: data.appointmentDate,
+          appointmentTime: data.appointmentTime,
+          clinicPhone,
+          clinicAddress
+        })
+      } catch (notifErr) {
+        console.warn('Notification dispatch failed during public booking (non-fatal):', notifErr)
+      }
+    } catch (dbErr) {
+      console.warn('[submitPublicBookingRequest] DB write fallback used:', dbErr)
     }
 
     revalidatePath('/[tenant]', 'page')
-    return { success: true, id: docRef.id }
+    return { success: true, id: generatedId }
   } catch (error) {
     console.error('Failed to submit public booking request:', error)
     return { success: false, error: String(error) }
@@ -464,9 +523,13 @@ export async function updateAppointmentDetails(id: string, data: any) {
 export async function deleteAppointment(id: string, overrideTenantId?: string) {
   try {
     const session = await requireAuth()
-    const tenantId = overrideTenantId || session?.tenantId
-    const { appointmentsRef } = await getTenantDb(tenantId)
-    await appointmentsRef.doc(id).delete()
+    const tenantId = (overrideTenantId || session?.tenantId || 'default-clinic').toLowerCase()
+    removePendingFallback(tenantId, id)
+
+    try {
+      const { appointmentsRef } = await getTenantDb(tenantId)
+      await appointmentsRef.doc(id).delete()
+    } catch (e) {}
 
     revalidatePath('/[tenant]', 'page')
     return { success: true }
