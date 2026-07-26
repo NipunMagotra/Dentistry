@@ -10,16 +10,24 @@ function getAdminApp() {
 
   const projectId = process.env.FIREBASE_PROJECT_ID
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  let rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY
 
-  if (projectId && clientEmail && privateKey) {
-    return initializeApp({
-      credential: cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      }),
-    })
+  if (projectId && clientEmail && rawPrivateKey) {
+    try {
+      let formattedKey = rawPrivateKey.replace(/\\n/g, '\n')
+      if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
+        formattedKey = formattedKey.slice(1, -1)
+      }
+      return initializeApp({
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey: formattedKey,
+        }),
+      })
+    } catch (err) {
+      console.error('[Firebase Admin] Warning: Failed to parse private key from env, falling back to default app init:', err)
+    }
   }
 
   // Fallback for dev / mock build environment when env vars are not set yet

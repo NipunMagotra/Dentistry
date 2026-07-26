@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 interface AuthModalProps {
   triggerText: string
   triggerVariant?: "default" | "outline" | "ghost"
@@ -29,10 +31,40 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
   const [password, setPassword] = useState("")
   const [clinicName, setClinicName] = useState("")
 
-  // Step 2 states (Clinic Operational Info)
+  // Step 2 states (Clinic Operational Info & Operating Hours Selector)
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
-  const [hours, setHours] = useState("Mon - Sat: 9:00 AM - 7:00 PM")
+  const [workDays, setWorkDays] = useState("Mon - Sat")
+  const [startTime, setStartTime] = useState("09:00 AM")
+  const [endTime, setEndTime] = useState("07:00 PM")
+  const [customHours, setCustomHours] = useState("")
+  const [hours, setHours] = useState("Mon - Sat: 09:00 AM - 07:00 PM")
+
+  const handleWorkDaysChange = (val: string | null) => {
+    const v = val || "Mon - Sat"
+    setWorkDays(v)
+    if (v === "Custom") {
+      setHours(customHours || "Mon - Sat: 09:00 AM - 07:00 PM")
+    } else {
+      setHours(`${v}: ${startTime} - ${endTime}`)
+    }
+  }
+
+  const handleStartTimeChange = (val: string | null) => {
+    const v = val || "09:00 AM"
+    setStartTime(v)
+    if (workDays !== "Custom") {
+      setHours(`${workDays}: ${v} - ${endTime}`)
+    }
+  }
+
+  const handleEndTimeChange = (val: string | null) => {
+    const v = val || "07:00 PM"
+    setEndTime(v)
+    if (workDays !== "Custom") {
+      setHours(`${workDays}: ${startTime} - ${v}`)
+    }
+  }
 
   // Step 3 states (Doctor Credentials)
   const [doctorName, setDoctorName] = useState("")
@@ -348,18 +380,77 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="signup-hours">Operating Hours</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3.5 top-3 size-4 text-muted-foreground" />
-                    <Input 
-                      id="signup-hours" 
-                      placeholder="e.g. Mon - Sat: 9:00 AM - 7:00 PM" 
-                      className="pl-10" 
-                      value={hours}
-                      onChange={(e) => setHours(e.target.value)}
-                      required 
-                    />
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <Clock className="size-4 text-primary shrink-0" /> Operating Hours & Schedule
+                  </Label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <span className="text-[11px] text-muted-foreground font-medium">Working Days</span>
+                      <Select value={workDays} onValueChange={handleWorkDaysChange}>
+                        <SelectTrigger className="rounded-2xl h-10 px-3 text-xs bg-background/80">
+                          <SelectValue placeholder="Select Days" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl glass-panel">
+                          <SelectItem value="Mon - Sat">Mon - Sat (6 Days)</SelectItem>
+                          <SelectItem value="Mon - Fri">Mon - Fri (5 Days)</SelectItem>
+                          <SelectItem value="All 7 Days">All 7 Days (Everyday)</SelectItem>
+                          <SelectItem value="Mon, Wed, Fri">Mon, Wed, Fri</SelectItem>
+                          <SelectItem value="Custom">Custom Text</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {workDays !== "Custom" ? (
+                      <>
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-muted-foreground font-medium">Opening Time</span>
+                          <Select value={startTime} onValueChange={handleStartTimeChange}>
+                            <SelectTrigger className="rounded-2xl h-10 px-3 text-xs bg-background/80">
+                              <SelectValue placeholder="Start Time" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl glass-panel">
+                              {["07:00 AM", "08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM"].map(t => (
+                                <SelectItem key={t} value={t}>{t}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-muted-foreground font-medium">Closing Time</span>
+                          <Select value={endTime} onValueChange={handleEndTimeChange}>
+                            <SelectTrigger className="rounded-2xl h-10 px-3 text-xs bg-background/80">
+                              <SelectValue placeholder="End Time" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl glass-panel">
+                              {["04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM", "09:00 PM", "10:00 PM"].map(t => (
+                                <SelectItem key={t} value={t}>{t}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="sm:col-span-2 space-y-1">
+                        <span className="text-[11px] text-muted-foreground font-medium">Custom Operating Schedule</span>
+                        <Input 
+                          placeholder="e.g. Mon-Fri: 9-5, Sat: 9-1" 
+                          value={customHours} 
+                          onChange={(e) => {
+                            setCustomHours(e.target.value)
+                            setHours(e.target.value)
+                          }}
+                          className="rounded-2xl h-10 text-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="px-3 py-1.5 bg-primary/5 rounded-xl border border-primary/10 text-xs text-primary font-medium flex items-center justify-between">
+                    <span className="text-muted-foreground text-[11px]">Selected Schedule:</span>
+                    <span className="font-bold">{hours}</span>
                   </div>
                 </div>
 
