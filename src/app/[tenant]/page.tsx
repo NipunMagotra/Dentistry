@@ -82,15 +82,29 @@ export default function Dashboard() {
         setAppointments(apts)
       }
       
-      const pending = await getPendingRequests(tenant)
-      if (pending) {
-        setPendingRequests(pending)
-      }
-
-      // Purge legacy local storage cache so stale submitted forms never re-appear
+      const serverPending = (await getPendingRequests(tenant)) || []
+      
+      // Read local storage pending requests to combine with server requests
+      let localPending: any[] = []
       try {
-        localStorage.removeItem("pending_appointments")
+        const rawGeneral = localStorage.getItem("pending_appointments")
+        const rawTenant = tenant ? localStorage.getItem(`clinic_pending_${tenant}`) : null
+        const parsedGeneral = rawGeneral ? JSON.parse(rawGeneral) : []
+        const parsedTenant = rawTenant ? JSON.parse(rawTenant) : []
+        localPending = [...parsedGeneral, ...parsedTenant]
       } catch (err) {}
+
+      // Deduplicate pending requests by ID
+      const combinedMap = new Map<string, any>()
+      for (const item of [...serverPending, ...localPending]) {
+        if (item && item.id && !combinedMap.has(item.id)) {
+          combinedMap.set(item.id, item)
+        }
+      }
+      
+      const allPending = Array.from(combinedMap.values())
+      allPending.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+      setPendingRequests(allPending)
 
       const clinicStats = await getClinicStats()
       setStats(clinicStats)

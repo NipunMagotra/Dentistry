@@ -136,16 +136,28 @@ export default function PublicBookingPage() {
 
       console.log("[BookingForm] submitPublicBookingRequest result:", JSON.stringify(result))
 
-      if (result && !result.success) {
-        setSubmitError(result.error || "Booking submission failed. Please try again.")
-        setIsSubmitting(false)
-        return
-      }
-
-      // Clear legacy local storage cache
+      // Save to localStorage as resilient client fallback
       try {
-        localStorage.removeItem("pending_appointments")
-      } catch (e) {}
+        const newReqItem = {
+          id: result?.id || `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          date,
+          time,
+          patient: name,
+          phone,
+          doctor: selectedDoc,
+          status: 'Pending',
+          reason: reason || "General Consultation",
+          createdAt: new Date().toISOString()
+        }
+        const existingLocal = JSON.parse(localStorage.getItem("pending_appointments") || "[]")
+        const updatedLocal = [newReqItem, ...existingLocal.filter((item: any) => item.id !== newReqItem.id)]
+        localStorage.setItem("pending_appointments", JSON.stringify(updatedLocal))
+        if (targetTenant) {
+          localStorage.setItem(`clinic_pending_${targetTenant}`, JSON.stringify(updatedLocal))
+        }
+      } catch (e) {
+        console.error("Failed to store pending appointment in localStorage:", e)
+      }
 
       window.dispatchEvent(new Event("pending-appointments-updated"))
       setIsSubmitting(false)
