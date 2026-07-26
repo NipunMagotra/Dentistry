@@ -12,6 +12,8 @@ function sanitizePrivateKey(rawKey: string): string {
 }
 
 export function hasFirebaseCredentials(): boolean {
+  const jsonKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT
+  if (jsonKey) return true
   const projectId = process.env.FIREBASE_PROJECT_ID?.trim()
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim()
   const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY?.trim()
@@ -24,6 +26,26 @@ function getAdminApp() {
     return apps[0]!
   }
 
+  // 1. Support single JSON key string (e.g. pasted directly from GCP Service Account JSON)
+  const jsonKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT
+  if (jsonKey) {
+    try {
+      const parsed = typeof jsonKey === 'string' ? JSON.parse(jsonKey) : jsonKey
+      if (parsed.private_key) {
+        parsed.private_key = sanitizePrivateKey(parsed.private_key)
+      }
+      console.log('[Firebase Admin] Initializing with FIREBASE_SERVICE_ACCOUNT_KEY JSON string.')
+      const app = initializeApp({
+        credential: cert(parsed),
+      })
+      console.log('[Firebase Admin] ✅ Successfully initialized with JSON service account credentials')
+      return app
+    } catch (err) {
+      console.error('[Firebase Admin] ❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', err)
+    }
+  }
+
+  // 2. Support individual env vars
   const projectId = process.env.FIREBASE_PROJECT_ID?.trim()
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim()
   let rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY
