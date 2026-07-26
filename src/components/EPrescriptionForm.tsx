@@ -60,16 +60,16 @@ export function EPrescriptionForm() {
   const [patients, setPatients] = useState<any[]>([])
 
   const [doctorsList, setDoctorsList] = useState<any[]>(DEFAULT_DOCTORS)
-  const [selectedDoctorId, setSelectedDoctorId] = useState(DEFAULT_DOCTORS[0].name)
+  const [selectedDoctorId, setSelectedDoctorId] = useState(DEFAULT_DOCTORS[0]?.name || "")
 
   // Clinic profile settings
   const [profile, setProfile] = useState({
-    clinicName: "Raina Dentistry",
-    clinicAddress: "Raina Dentistry, Main Medical Square",
-    clinicPhone: "+91 88250 70547",
-    doctorName: "Dr. Anoop Raina",
-    doctorDegrees: "BDS, MDS (Endodontics)",
-    doctorRegNo: "882507"
+    clinicName: "My Dental Clinic",
+    clinicAddress: "Medical Square",
+    clinicPhone: "",
+    doctorName: "Lead Doctor",
+    doctorDegrees: "BDS",
+    doctorRegNo: "100200"
   })
 
   // Preview / Generation states
