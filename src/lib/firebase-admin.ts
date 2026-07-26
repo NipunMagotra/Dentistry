@@ -33,12 +33,15 @@ export function getFirestoreDb() {
   return getFirestore(app)
 }
 
-export async function getTenantDb() {
-  const headersList = await headers()
-  const tenantId = headersList.get('x-tenant-id')
-
+export async function getTenantDb(overrideTenantId?: string) {
+  let tenantId = overrideTenantId
   if (!tenantId) {
-    throw new Error('No tenant ID found in headers. Ensure middleware is passing x-tenant-id.')
+    try {
+      const headersList = await headers()
+      tenantId = headersList.get('x-tenant-id') || 'default-clinic'
+    } catch {
+      tenantId = 'default-clinic'
+    }
   }
 
   const db = getFirestoreDb()

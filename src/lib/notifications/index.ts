@@ -1,5 +1,6 @@
 import { NotificationProvider, AppointmentReminderData, NotificationResult } from './types'
 import { ResendProvider } from './providers/resend'
+import { WhatsAppProvider } from './providers/whatsapp'
 
 /**
  * Central Notification Service Facade.
@@ -9,8 +10,9 @@ class NotificationServiceFacade {
   private providers: NotificationProvider[] = []
 
   constructor() {
-    // Register Resend email provider by default
+    // Register Resend email and WhatsApp providers by default
     this.registerProvider(new ResendProvider())
+    this.registerProvider(new WhatsAppProvider())
   }
 
   /**

@@ -161,6 +161,72 @@ export async function getPendingRequests() {
   }
 }
 
+export async function submitPublicBookingRequest(data: {
+  tenantId?: string
+  patientName: string
+  patientPhone: string
+  doctorName: string
+  appointmentDate: string
+  appointmentTime: string
+  reason?: string
+}) {
+  try {
+    const tenantId = data.tenantId || "default-clinic"
+    const { appointmentsRef, patientsRef, clinicRef } = await getTenantDb(tenantId)
+
+    let patientId = ""
+    if (data.patientPhone) {
+      const existingQuery = await patientsRef.where('phone', '==', data.patientPhone).limit(1).get()
+      if (!existingQuery.empty) {
+        patientId = existingQuery.docs[0].id
+      } else {
+        const newDoc = await patientsRef.add({
+          name: data.patientName,
+          phone: data.patientPhone,
+          created_at: new Date().toISOString()
+        })
+        patientId = newDoc.id
+      }
+    }
+
+    const docRef = await appointmentsRef.add({
+      patient_id: patientId,
+      patient_name: data.patientName,
+      patient_phone: data.patientPhone,
+      doctor_name: data.doctorName,
+      appointment_date: data.appointmentDate,
+      appointment_time: data.appointmentTime,
+      reason: data.reason || 'General Consultation',
+      status: 'Pending',
+      created_at: new Date().toISOString()
+    })
+
+    const clinicSnap = await clinicRef.get()
+    const clinicData = clinicSnap.exists ? clinicSnap.data()! : {}
+    const clinicName = clinicData.name || clinicData.clinicName || 'Clinic OS'
+    const clinicPhone = clinicData.phone || clinicData.clinicPhone || ''
+    const clinicAddress = clinicData.address || clinicData.clinicAddress || ''
+
+    // Dispatch notification to patient/clinic
+    await NotificationService.sendAppointmentReminder({
+      patientName: data.patientName,
+      patientPhone: data.patientPhone,
+      clinicName,
+      doctorName: data.doctorName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      clinicPhone,
+      clinicAddress
+    })
+
+    revalidatePath('/[tenant]', 'page')
+    return { success: true, id: docRef.id }
+  } catch (error) {
+    console.error('Failed to submit public booking request:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
 export async function createAppointment(data: any) {
   try {
     await requireAuth()
@@ -209,7 +275,7 @@ export async function createAppointment(data: any) {
     }
 
     // 3. Create Appointment Document
-    await appointmentsRef.add({
+    const newAptRef = await appointmentsRef.add({
       patient_id: patientId,
       patient_name: patientName,
       patient_phone: patientPhone,
@@ -221,8 +287,18 @@ export async function createAppointment(data: any) {
       created_at: new Date().toISOString()
     })
 
+    // Send confirmation notification
+    await NotificationService.sendAppointmentReminder({
+      patientName,
+      patientPhone,
+      clinicName: 'Clinic OS',
+      doctorName: data.doctorName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime
+    })
+
     revalidatePath('/[tenant]', 'page')
-    return { success: true }
+    return { success: true, id: newAptRef.id }
   } catch (error) {
     console.error('Failed to create appointment:', error)
     return { success: false, error: String(error) }
@@ -233,10 +309,24 @@ export async function updateAppointmentStatus(id: string, status: string) {
   try {
     await requireAuth()
     const { appointmentsRef } = await getTenantDb()
+    const aptDoc = await appointmentsRef.doc(id).get()
+    
     await appointmentsRef.doc(id).update({
       status,
       updated_at: new Date().toISOString()
     })
+
+    if (aptDoc.exists && status === 'Scheduled') {
+      const d = aptDoc.data()!
+      await NotificationService.sendAppointmentReminder({
+        patientName: d.patient_name || 'Patient',
+        patientPhone: d.patient_phone || '',
+        clinicName: 'Clinic OS',
+        doctorName: d.doctor_name || 'Doctor',
+        appointmentDate: d.appointment_date,
+        appointmentTime: d.appointment_time
+      })
+    }
 
     revalidatePath('/[tenant]', 'page')
     return { success: true }

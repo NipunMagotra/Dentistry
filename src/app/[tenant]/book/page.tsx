@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { cn } from "@/lib/utils"
 
+import { submitPublicBookingRequest } from "@/app/actions"
+
 const TIME_SLOTS = [
   "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM",
   "02:00 PM", "02:30 PM", "05:30 PM", "06:00 PM", "06:30 PM"
@@ -100,18 +102,30 @@ export default function PublicBookingPage() {
     }
   }, [tenant])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setNameTouched(true)
-    phoneTouched && setPhoneTouched(true)
+    setPhoneTouched(true)
     
     if (!isFormValid) return
 
     setIsSubmitting(true)
 
-    setTimeout(() => {
+    try {
       const selectedDoc = doctorsList.find(d => d.name === selectedDocId)?.name || "Doctor"
       
+      // Submit booking to backend database & notification pipeline
+      await submitPublicBookingRequest({
+        tenantId: tenant,
+        patientName: name,
+        patientPhone: phone,
+        doctorName: selectedDoc,
+        appointmentDate: date,
+        appointmentTime: time,
+        reason: reason || "General Consultation"
+      })
+
+      // Also update local storage for offline fallback
       const newRequest = {
         id: Date.now().toString(),
         patient: name,
@@ -123,24 +137,21 @@ export default function PublicBookingPage() {
         status: "Pending",
         createdAt: new Date().toISOString()
       }
-
       const existing = localStorage.getItem("pending_appointments")
       let list = []
       if (existing) {
-        try {
-          list = JSON.parse(existing)
-        } catch (e) {
-          console.error(e)
-        }
+        try { list = JSON.parse(existing) } catch (e) { console.error(e) }
       }
       list.push(newRequest)
       localStorage.setItem("pending_appointments", JSON.stringify(list))
 
       window.dispatchEvent(new Event("pending-appointments-updated"))
-
+    } catch (err) {
+      console.error("Booking error:", err)
+    } finally {
       setIsSubmitting(false)
       setIsSubmitted(true)
-    }, 800)
+    }
   }
 
   if (isSubmitted) {
