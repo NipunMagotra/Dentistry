@@ -140,10 +140,11 @@ export async function getAuthSession() {
   }
 }
 
-export async function getAppointments(date?: string) {
+export async function getAppointments(date?: string, overrideTenantId?: string) {
   try {
-    await requireAuth()
-    const { appointmentsRef, patientsRef } = await getTenantDb()
+    const session = await requireAuth()
+    const tenantId = overrideTenantId || session?.tenantId
+    const { appointmentsRef, patientsRef } = await getTenantDb(tenantId)
     
     let query = appointmentsRef.where('status', '!=', 'Pending')
     if (date) {
@@ -196,10 +197,11 @@ export async function getAppointments(date?: string) {
   }
 }
 
-export async function getPendingRequests() {
+export async function getPendingRequests(overrideTenantId?: string) {
   try {
-    await requireAuth()
-    const { appointmentsRef, patientsRef } = await getTenantDb()
+    const session = await requireAuth()
+    const tenantId = overrideTenantId || session?.tenantId
+    const { appointmentsRef, patientsRef } = await getTenantDb(tenantId)
     const snapshot = await appointmentsRef.where('status', '==', 'Pending').get()
     const requests: any[] = []
 

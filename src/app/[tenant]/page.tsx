@@ -77,16 +77,31 @@ export default function Dashboard() {
 
   const loadAppointments = async () => {
     try {
-      const apts = await getAppointments()
-      if (apts && apts.length > 0) {
+      const apts = await getAppointments(undefined, tenant)
+      if (apts) {
         setAppointments(apts)
       }
       
-      const pending = await getPendingRequests()
-      if (pending && pending.length > 0) {
+      const pending = await getPendingRequests(tenant)
+      if (pending) {
         setPendingRequests(pending)
       }
-      
+
+      // Merge local pending requests if present
+      try {
+        const localPending = localStorage.getItem("pending_appointments")
+        if (localPending) {
+          const parsed = JSON.parse(localPending)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPendingRequests(prev => {
+              const combined = [...parsed, ...prev]
+              const unique = Array.from(new Map(combined.map(item => [item.id || `${item.patient}_${item.date}_${item.time}`, item])).values())
+              return unique
+            })
+          }
+        }
+      } catch (err) {}
+
       const clinicStats = await getClinicStats()
       setStats(clinicStats)
     } catch (e) {
@@ -94,12 +109,16 @@ export default function Dashboard() {
     }
   }
 
-  // Load active appointments from DB
+  // Load active appointments from DB & listen for local updates
   useEffect(() => {
     startTransition(() => {
       loadAppointments()
     })
-  }, [])
+
+    const handleLocalUpdates = () => loadAppointments()
+    window.addEventListener("pending-appointments-updated", handleLocalUpdates)
+    return () => window.removeEventListener("pending-appointments-updated", handleLocalUpdates)
+  }, [tenant])
 
   const [stats, setStats] = useState({
     totalPatients: 0,

@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 import { headers } from 'next/headers'
+import { getSession } from './auth'
 
 function getAdminApp() {
   const apps = getApps()
@@ -45,9 +46,33 @@ export async function getTenantDb(overrideTenantId?: string) {
   let tenantId = overrideTenantId
   if (!tenantId) {
     try {
-      const headersList = await headers()
-      tenantId = headersList.get('x-tenant-id') || 'default-clinic'
-    } catch {
+      const session = await getSession()
+      if (session?.tenantId) {
+        tenantId = session.tenantId
+      }
+    } catch {}
+
+    if (!tenantId) {
+      try {
+        const headersList = await headers()
+        const headerTenant = headersList.get('x-tenant-id')
+        const referer = headersList.get('referer')
+        
+        if (headerTenant) {
+          tenantId = headerTenant
+        } else if (referer) {
+          try {
+            const url = new URL(referer)
+            const segs = url.pathname.split('/').filter(Boolean)
+            if (segs.length > 0 && segs[0] !== 'home' && segs[0] !== 'api') {
+              tenantId = segs[0].toLowerCase()
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+
+    if (!tenantId) {
       tenantId = 'default-clinic'
     }
   }
