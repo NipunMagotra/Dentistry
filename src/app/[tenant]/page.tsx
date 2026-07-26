@@ -99,15 +99,23 @@ export default function Dashboard() {
     }
   }
 
-  // Load active appointments from DB & listen for local updates
+  // Load active appointments from DB & poll every 5 seconds for real-time mobile bookings
   useEffect(() => {
     startTransition(() => {
       loadAppointments()
     })
 
+    const interval = setInterval(() => {
+      loadAppointments()
+    }, 5000)
+
     const handleLocalUpdates = () => loadAppointments()
     window.addEventListener("pending-appointments-updated", handleLocalUpdates)
-    return () => window.removeEventListener("pending-appointments-updated", handleLocalUpdates)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("pending-appointments-updated", handleLocalUpdates)
+    }
   }, [tenant])
 
   const [stats, setStats] = useState({

@@ -3,6 +3,7 @@
 import { getTenantDb, getFirestoreDb } from '@/lib/firebase-admin'
 import { encryptNotes, decryptNotes, hashPassword, verifyPassword } from '@/lib/encryption'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { setSessionCookie, clearSessionCookie, getSession, requireAuth } from '@/lib/auth'
 import { NotificationService } from '@/lib/notifications'
 import { Timestamp } from 'firebase-admin/firestore'
@@ -202,34 +203,40 @@ export async function getPendingRequests(overrideTenantId?: string) {
     const session = await requireAuth()
     const tenantId = overrideTenantId || session?.tenantId
     const { appointmentsRef, patientsRef } = await getTenantDb(tenantId)
-    const snapshot = await appointmentsRef.where('status', '==', 'Pending').get()
+    
+    // Fetch appointments collection to filter pending requests safely
+    const snapshot = await appointmentsRef.get()
     const requests: any[] = []
 
     for (const doc of snapshot.docs) {
       const data = doc.data()
-      let patientName = data.patient_name || 'Unknown'
-      let patientPhone = data.patient_phone || ''
+      const st = String(data.status || '').toLowerCase()
 
-      if (!data.patient_name && data.patient_id) {
-        const patientDoc = await patientsRef.doc(data.patient_id).get()
-        if (patientDoc.exists) {
-          const pData = patientDoc.data()
-          patientName = pData?.name || patientName
-          patientPhone = pData?.phone || patientPhone
+      if (st === 'pending') {
+        let patientName = data.patient_name || 'Unknown'
+        let patientPhone = data.patient_phone || ''
+
+        if (!data.patient_name && data.patient_id) {
+          const patientDoc = await patientsRef.doc(data.patient_id).get()
+          if (patientDoc.exists) {
+            const pData = patientDoc.data()
+            patientName = pData?.name || patientName
+            patientPhone = pData?.phone || patientPhone
+          }
         }
-      }
 
-      requests.push({
-        id: doc.id,
-        date: data.appointment_date,
-        time: data.appointment_time,
-        patient: patientName,
-        phone: patientPhone,
-        doctor: data.doctor_name,
-        status: data.status,
-        reason: data.reason || 'General Consultation',
-        createdAt: data.created_at
-      })
+        requests.push({
+          id: doc.id,
+          date: data.appointment_date,
+          time: data.appointment_time,
+          patient: patientName,
+          phone: patientPhone,
+          doctor: data.doctor_name,
+          status: data.status,
+          reason: data.reason || 'General Consultation',
+          createdAt: data.created_at
+        })
+      }
     }
 
     requests.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
