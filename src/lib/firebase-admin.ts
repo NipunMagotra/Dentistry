@@ -11,6 +11,13 @@ function sanitizePrivateKey(rawKey: string): string {
   return key.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r/g, '')
 }
 
+export function hasFirebaseCredentials(): boolean {
+  const projectId = process.env.FIREBASE_PROJECT_ID?.trim()
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim()
+  const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY?.trim()
+  return !!(projectId && clientEmail && rawPrivateKey)
+}
+
 function getAdminApp() {
   const apps = getApps()
   if (apps.length > 0) {

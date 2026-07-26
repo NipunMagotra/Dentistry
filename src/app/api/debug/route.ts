@@ -20,7 +20,16 @@ export async function GET(request: Request) {
 
   // 2. Test Firebase Admin SDK initialization
   try {
-    const { getFirestoreDb } = await import('@/lib/firebase-admin')
+    const { getFirestoreDb, hasFirebaseCredentials } = await import('@/lib/firebase-admin')
+    const hasCreds = hasFirebaseCredentials()
+    
+    if (!hasCreds) {
+      results.checks.firebaseInit = 'WARNING: Firebase environment variables missing or incomplete'
+      results.checks.firestoreWrite = 'SKIPPED: Missing FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, or FIREBASE_PRIVATE_KEY'
+      results.checks.firestoreRead = 'SKIPPED: Missing Firebase credentials'
+      return NextResponse.json(results, { status: 200 })
+    }
+
     const db = getFirestoreDb()
     results.checks.firebaseInit = 'SUCCESS'
 
