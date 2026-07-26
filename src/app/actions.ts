@@ -543,9 +543,15 @@ export async function updateAppointmentDetails(id: string, data: any) {
 
 export async function deleteAppointment(id: string, overrideTenantId?: string) {
   try {
-    const session = await requireAuth()
-    const tenantId = (overrideTenantId || session?.tenantId || 'default-clinic').toLowerCase()
+    let tenantId = (overrideTenantId || 'default-clinic').toLowerCase()
+    try {
+      const session = await getSession()
+      if (session?.tenantId) tenantId = session.tenantId.toLowerCase()
+    } catch (e) {}
+
+    // Always remove from server in-memory fallback stores
     removePendingFallback(tenantId, id)
+    removePendingFallback('default-clinic', id)
 
     try {
       const { appointmentsRef } = await getTenantDb(tenantId)

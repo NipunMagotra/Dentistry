@@ -238,17 +238,8 @@ export default function Dashboard() {
       return
     }
 
-    // Clean up local storage cache if present
-    try {
-      const localPending = localStorage.getItem("pending_appointments")
-      if (localPending) {
-        const parsed = JSON.parse(localPending)
-        if (Array.isArray(parsed)) {
-          const filtered = parsed.filter((item: any) => item.id !== selectedRequest.id)
-          localStorage.setItem("pending_appointments", JSON.stringify(filtered))
-        }
-      }
-    } catch (e) {}
+    // Clean up local storage cache across all key variations
+    purgePendingRequestCache(selectedRequest.id)
 
     startTransition(() => {
       loadAppointments()
@@ -273,22 +264,29 @@ export default function Dashboard() {
     })
   }
 
-  const handleDeclineRequest = async (id: string) => {
-    setPendingRequests(prev => prev.filter(req => req.id !== id))
-    
-    // Clean up local storage cache
+  const purgePendingRequestCache = (id: string) => {
     try {
-      const localPending = localStorage.getItem("pending_appointments")
-      if (localPending) {
-        const parsed = JSON.parse(localPending)
-        if (Array.isArray(parsed)) {
-          const filtered = parsed.filter((item: any) => item.id !== id)
-          localStorage.setItem("pending_appointments", JSON.stringify(filtered))
+      const keys = ["pending_appointments", `clinic_pending_${tenant}`, `clinic_pending_requests_${tenant}`]
+      for (const k of keys) {
+        const raw = localStorage.getItem(k)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter((item: any) => item?.id !== id)
+            localStorage.setItem(k, JSON.stringify(filtered))
+          }
         }
       }
     } catch (e) {}
+  }
 
-    // Completely erase document from Firestore
+  const handleDeclineRequest = async (id: string) => {
+    setPendingRequests(prev => prev.filter(req => req.id !== id))
+    
+    // Clean up local storage cache across all key variations
+    purgePendingRequestCache(id)
+
+    // Completely erase document from Firestore & server fallback store
     await deleteAppointment(id, tenant)
     showToast("Booking request declined and completely erased")
     startTransition(() => {
