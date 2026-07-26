@@ -43,3 +43,7 @@ next-env.d.ts
 # whatsapp gateway auth
 baileys_auth_info
 
+# firebase cloud functions build & dependencies
+functions/node_modules/
+functions/lib/
+
