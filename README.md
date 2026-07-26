@@ -1,4 +1,4 @@
-# Clinic OS — Multi-Tenant Medical Platform (v1.3.0)
+# Clinic OS — Multi-Tenant Medical Platform (v1.4.0)
 
 Clinic OS is a modern, ultra-fast, intuitive clinic management platform built specifically for dental and medical practices. It prioritizes simplicity, minimal clicks, and a clean interface, while packing powerful features under the hood like multi-tenant routing, serverless background messaging (SMS + Free WhatsApp Gateway), and native print generation.
 

@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-outfit);
+  --font-sans: var(--font-plus-jakarta), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -138,6 +138,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    font-size: 16.5px;
+    line-height: 1.6;
+    letter-spacing: -0.011em;
+    @apply font-sans scroll-smooth;
+  }
   body {
     @apply bg-background text-foreground selection:bg-primary/20 selection:text-primary;
     background-image: 
@@ -145,9 +151,6 @@
       radial-gradient(at 85% 85%, oklch(0.68 0.16 150 / 0.05) 0px, transparent 50%),
       radial-gradient(at 50% 10%, oklch(0.65 0.18 300 / 0.04) 0px, transparent 50%);
     background-attachment: fixed;
-  }
-  html {
-    @apply font-sans scroll-smooth;
   }
 }
 

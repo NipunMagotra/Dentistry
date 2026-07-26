@@ -1,6 +1,6 @@
 # Clinic OS — Comprehensive Documentation
 
-This document serves as the absolute source of truth for the Clinic OS platform (v1.3.0). It covers the technology stack, application architecture, routing structure, data persistence models, messaging pipeline, and core asynchronous workflows.
+This document serves as the absolute source of truth for the Clinic OS platform (v1.4.0). It covers the technology stack, application architecture, routing structure, data persistence models, messaging pipeline, and core asynchronous workflows.
 
 ---
 
@@ -18,7 +18,7 @@ Clinic OS is a modern, client-side-heavy single-page application (SPA) built on 
 - **Styling Engine:** Tailwind CSS v4
 - **Component Library:** [Shadcn UI](https://ui.shadcn.com/) (Headless accessible components via Radix/Base UI)
 - **Icons:** Lucide React
-- **Typography:** Google Fonts (Outfit)
+- **Typography:** Google Fonts (Plus Jakarta Sans)
 
 ### Specialized Utilities
 - **Workflow & Queues:** [@upstash/workflow](https://upstash.com/docs/workflow/getstarted) (Durable execution for SMS/WhatsApp)
