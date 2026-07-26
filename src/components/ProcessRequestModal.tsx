@@ -16,11 +16,7 @@ const TIME_SLOTS = [
   "02:00 PM", "02:30 PM", "05:30 PM", "06:00 PM", "06:30 PM"
 ]
 
-const DEFAULT_DOCTORS = [
-  "Dr. Sarah Jenkins",
-  "Dr. Michael Chen",
-  "Dr. Emily Rodriguez"
-]
+const DEFAULT_DOCTORS: string[] = []
 
 const NATIONALITIES = [
   "Indian", "Emirati", "American", "British", "Saudi", "Omani", "Qatari", "Kuwaiti", "Bahraini", "Filipino", "Pakistani", "Egyptian", "Other"

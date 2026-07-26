@@ -36,11 +36,7 @@ import {
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
-const DEFAULT_DOCTORS = [
-  { id: "1", name: "Dr. Anoop Raina", charge: 200 },
-  { id: "2", name: "Dr. Michael Chen", charge: 200 },
-  { id: "3", name: "Dr. Emily Rodriguez", charge: 180 },
-]
+const DEFAULT_DOCTORS: any[] = []
 
 const timeSlots = [
   "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM",

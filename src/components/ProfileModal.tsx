@@ -12,11 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
-const DEFAULT_DOCTORS = [
-  { id: "1", name: "Dr. Anoop Raina", specialty: "Endodontist & Cosmetic Dentist", degrees: "BDS, MDS (Endodontics)", regNo: "882507", timings: "Mon - Sat: 9:00 AM - 7:00 PM", charge: 200 },
-  { id: "2", name: "Dr. Michael Chen", specialty: "Prosthodontics", degrees: "DDS, MS (Prosthodontics)", regNo: "732910", timings: "Mon - Fri: 10:00 AM - 6:00 PM", charge: 200 },
-  { id: "3", name: "Dr. Emily Rodriguez", specialty: "Pediatric Dentistry", degrees: "DDS, MSD (Pedodontics)", regNo: "918273", timings: "Tue - Sun: 9:00 AM - 4:00 PM", charge: 180 }
-]
+const DEFAULT_DOCTORS: any[] = []
 
 interface ProfileModalProps {
   tenant: string
@@ -35,11 +31,7 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
     }
     try {
       await logoutUser()
-      localStorage.removeItem("clinic_account_email")
-      localStorage.removeItem("clinic_profile_settings")
-      localStorage.removeItem("clinic_doctors_list")
-      localStorage.removeItem("patient_directory_list")
-      localStorage.removeItem("clinic_account_avatar")
+      localStorage.clear()
       window.dispatchEvent(new Event("clinic-profile-updated"))
     } catch (e) {
       console.error(e)
@@ -50,19 +42,19 @@ export function ProfileModal({ tenant }: ProfileModalProps) {
   
   // Profile settings state
   const [settings, setSettings] = useState({
-    clinicName: "Raina Dentistry",
-    doctorName: "Dr. Anoop Raina",
-    clinicPhone: "+91 88250 70547",
-    clinicAddress: "Raina Dentistry, Main Medical Square",
+    clinicName: "My Dental Practice",
+    doctorName: "Dr. Practitioner",
+    clinicPhone: "",
+    clinicAddress: "",
     clinicHours: "Mon - Sat: 9:00 AM - 7:00 PM",
-    clinicBio: "Premier dental care center led by Dr. Anoop Raina specializing in painless root canal treatments, implants, and cosmetic smile designs.",
-    whatsappEnabled: true,
+    clinicBio: "Modern clinic management platform.",
+    whatsappEnabled: false,
     twilioSid: "",
     twilioToken: "",
   })
 
   // Dynamic Doctors List State
-  const [doctors, setDoctors] = useState<any[]>(DEFAULT_DOCTORS)
+  const [doctors, setDoctors] = useState<any[]>([])
 
   // Sub-dialog state for Add/Edit Doctor & Operatory Schedule
   const DEFAULT_WEEKLY_SCHEDULE = [

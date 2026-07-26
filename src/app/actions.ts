@@ -365,23 +365,14 @@ export async function getDoctors() {
     if (!snapshot.empty) {
       return snapshot.docs.map(doc => ({
         id: doc.id,
-        name: doc.data().name || `Dr. ${doc.data().first_name} ${doc.data().last_name}`
+        name: doc.data().name || `Dr. ${doc.data().first_name || ''} ${doc.data().last_name || ''}`.trim()
       }))
     }
 
-    // Default doctors registry fallback if empty
-    return [
-      { id: 'doc-1', name: 'Dr. Sarah Jenkins' },
-      { id: 'doc-2', name: 'Dr. Michael Chen' },
-      { id: 'doc-3', name: 'Dr. Emily Vance' }
-    ]
+    return []
   } catch (error) {
     console.error('Failed to get doctors:', error)
-    return [
-      { id: 'doc-1', name: 'Dr. Sarah Jenkins' },
-      { id: 'doc-2', name: 'Dr. Michael Chen' },
-      { id: 'doc-3', name: 'Dr. Emily Vance' }
-    ]
+    return []
   }
 }
 

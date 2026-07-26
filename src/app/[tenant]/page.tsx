@@ -39,8 +39,8 @@ export default function Dashboard() {
   const tenant = params?.tenant as string || "default-clinic"
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [profile, setProfile] = useState({
-    clinicName: "Raina Dentistry",
-    doctorName: "Dr. Anoop Raina"
+    clinicName: "My Dental Clinic",
+    doctorName: "Lead Doctor"
   })
 
   // Navigation tab state for mobile/desktop sync

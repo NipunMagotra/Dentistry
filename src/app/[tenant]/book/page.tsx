@@ -25,22 +25,18 @@ export default function PublicBookingPage() {
 
   // State for clinic bio
   const [profile, setProfile] = useState({
-    clinicName: "City Dental Clinic",
-    clinicAddress: "123 Health Avenue, Medical District",
-    clinicPhone: "+1 (555) 123-4567",
-    clinicBio: "Welcome to our patient booking portal. Schedule a consultation, dental check-up, or specialized treatment with our dental professionals in just a few clicks.",
+    clinicName: "Dental Clinic",
+    clinicAddress: "Medical Square",
+    clinicPhone: "",
+    clinicBio: "Welcome to our patient booking portal. Schedule a consultation or specialized treatment in just a few clicks.",
     clinicHours: "Mon - Sat: 9:00 AM - 7:00 PM",
     doctorHours: "Mon - Fri: 10:00 AM - 5:00 PM",
-    doctorName: "Dr. Sarah Jenkins",
-    doctorDegrees: "BDS, MDS (Periodontics)"
+    doctorName: "Lead Doctor",
+    doctorDegrees: "BDS"
   })
 
   // Doctors list (merges customized doctor dynamically)
-  const [doctorsList, setDoctorsList] = useState<any[]>([
-    { id: "1", name: "Dr. Sarah Jenkins", specialty: "Periodontics & Implants (Mon - Fri: 10:00 AM - 5:00 PM)" },
-    { id: "2", name: "Dr. Michael Chen", specialty: "Cosmetic Dentistry (Mon - Fri: 9:00 AM - 6:00 PM)" },
-    { id: "3", name: "Dr. Emily Rodriguez", specialty: "Orthodontics (Mon, Wed, Fri: 11:00 AM - 4:00 PM)" }
-  ])
+  const [doctorsList, setDoctorsList] = useState<any[]>([])
 
   // Form State
   const [name, setName] = useState("")

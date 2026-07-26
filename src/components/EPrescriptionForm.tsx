@@ -38,11 +38,7 @@ const COMMON_DRUGS = [
 
 const FREQUENCIES = ["1-0-0", "1-0-1", "1-1-1", "0-1-0", "0-0-1", "SOS"]
 
-const DEFAULT_DOCTORS = [
-  { id: "1", name: "Dr. Anoop Raina", specialty: "Endodontist & Cosmetic Dentist", degrees: "BDS, MDS (Endodontics)", regNo: "882507", charge: 200 },
-  { id: "2", name: "Dr. Michael Chen", specialty: "Prosthodontics", degrees: "DDS, MS (Prosthodontics)", regNo: "732910", charge: 200 },
-  { id: "3", name: "Dr. Emily Rodriguez", specialty: "Pediatric Dentistry", degrees: "DDS, MSD (Pedodontics)", regNo: "918273", charge: 180 }
-]
+const DEFAULT_DOCTORS: any[] = []
 
 type SelectedDrug = {
   id: string
