@@ -70,3 +70,19 @@ export function decryptNotes(encryptedPayload: string): string {
     return '[Encrypted Notes - Integrity Verification Failed]'
   }
 }
+
+export function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
+  const s = salt || crypto.randomBytes(16).toString('hex')
+  const hash = crypto.pbkdf2Sync(password, s, 1000, 64, 'sha512').toString('hex')
+  return { hash, salt: s }
+}
+
+export function verifyPassword(password: string, hash: string, salt: string): boolean {
+  if (!password || !hash || !salt) return false
+  try {
+    const { hash: computedHash } = hashPassword(password, salt)
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(computedHash, 'hex'))
+  } catch (e) {
+    return false
+  }
+}

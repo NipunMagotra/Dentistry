@@ -22,6 +22,7 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
   const [signupStep, setSignupStep] = useState<1 | 2 | 3>(1)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [authError, setAuthError] = useState("")
   
   // Login / Step 1 states
   const [email, setEmail] = useState("")
@@ -43,6 +44,7 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
 
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault()
+    setAuthError("")
     if (signupStep === 1) {
       if (!email || !password || !clinicName) return
       setSignupStep(2)
@@ -55,6 +57,7 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
   const handleFinalSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setAuthError("")
 
     // Save full clinic profile & doctor credentials to local storage
     const profileSettings = {
@@ -89,20 +92,20 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
       console.error("Failed to save onboarding credentials", err)
     }
 
-    const res = await signupUser({ email, clinicName })
+    const res = await signupUser({ email, password, clinicName })
     setIsLoading(false)
-    setIsOpen(false)
     if (res.success && res.tenantId) {
+      setIsOpen(false)
       router.push(`/${res.tenantId}`)
     } else {
-      const tenantId = clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "my-clinic"
-      router.push(`/${tenantId}`)
+      setAuthError(res.error || "Failed to create account.")
     }
   }
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setAuthError("")
 
     // Extract current path tenant slug if present (e.g., /nipun -> nipun)
     let currentTenantSlug = ""
@@ -130,20 +133,23 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
     }
 
     const targetTenantId = currentTenantSlug || activeClinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
-    const res = await loginUser({ email, clinicName: activeClinicName, tenantId: targetTenantId })
+    const res = await loginUser({ email, password, clinicName: activeClinicName, tenantId: targetTenantId })
     setIsLoading(false)
-    setIsOpen(false)
     if (res.success && res.tenantId) {
+      setIsOpen(false)
       router.push(`/${res.tenantId}`)
     } else {
-      router.push(`/${targetTenantId}`)
+      setAuthError(res.error || "Invalid email or password.")
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       setIsOpen(open)
-      if (!open) setSignupStep(1)
+      if (!open) {
+        setSignupStep(1)
+        setAuthError("")
+      }
     }}>
       <DialogTrigger render={<Button variant={triggerVariant} className={triggerVariant === "default" ? "bg-primary text-primary-foreground font-semibold rounded-full shadow-md" : "rounded-full"} />}>
         {triggerText}
@@ -177,6 +183,12 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
                   ? "Step 2 of 3: Contact and operational hours." 
                   : "Step 3 of 3: Lead doctor qualifications & fees."}
           </DialogDescription>
+
+          {authError && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-2xl text-destructive text-xs font-semibold text-center animate-in fade-in-50 mt-2">
+              {authError}
+            </div>
+          )}
         </DialogHeader>
 
         {/* --- LOGIN FORM --- */}

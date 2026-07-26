@@ -1,36 +1,99 @@
 'use server'
 
-import { getTenantDb } from '@/lib/firebase-admin'
-import { encryptNotes, decryptNotes } from '@/lib/encryption'
+import { getTenantDb, getFirestoreDb } from '@/lib/firebase-admin'
+import { encryptNotes, decryptNotes, hashPassword, verifyPassword } from '@/lib/encryption'
 import { revalidatePath } from 'next/cache'
 import { setSessionCookie, clearSessionCookie, getSession, requireAuth } from '@/lib/auth'
 import { NotificationService } from '@/lib/notifications'
 import { Timestamp } from 'firebase-admin/firestore'
 
-export async function loginUser(data: { email: string; clinicName?: string; tenantId?: string }) {
+export async function loginUser(data: { email: string; password?: string; clinicName?: string; tenantId?: string }) {
   try {
-    const email = data.email.trim()
+    const email = data.email.trim().toLowerCase()
+    const password = data.password || ""
     const clinicName = data.clinicName || "My Dental Clinic"
-    const tenantId = data.tenantId?.toLowerCase().trim() || clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
+    const targetTenantId = data.tenantId?.toLowerCase().trim() || clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "apollo-dental"
+
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required.' }
+    }
+
+    const db = getFirestoreDb()
+    const accountRef = db.collection('accounts').doc(email)
+    const accountDoc = await accountRef.get()
+
+    if (!accountDoc.exists) {
+      // Auto-register initial account doc on first sign in
+      const { hash, salt } = hashPassword(password)
+      await accountRef.set({
+        email,
+        tenantId: targetTenantId,
+        clinicName,
+        passwordHash: hash,
+        salt,
+        created_at: new Date().toISOString()
+      })
+
+      await setSessionCookie({
+        email,
+        tenantId: targetTenantId,
+        role: 'authenticated'
+      })
+
+      return { success: true, tenantId: targetTenantId }
+    }
+
+    const accountData = accountDoc.data()!
+    const isValid = verifyPassword(password, accountData.passwordHash, accountData.salt)
+
+    if (!isValid) {
+      return { success: false, error: 'Invalid password. Please enter the correct password.' }
+    }
+
+    const activeTenantId = accountData.tenantId || targetTenantId
 
     await setSessionCookie({
       email,
-      tenantId,
+      tenantId: activeTenantId,
       role: 'authenticated'
     })
 
-    return { success: true, tenantId }
+    return { success: true, tenantId: activeTenantId }
   } catch (error) {
     console.error('Failed to login:', error)
     return { success: false, error: String(error) }
   }
 }
 
-export async function signupUser(data: { email: string; clinicName: string }) {
+export async function signupUser(data: { email: string; password?: string; clinicName: string }) {
   try {
-    const email = data.email.trim()
+    const email = data.email.trim().toLowerCase()
+    const password = data.password || ""
     const clinicName = data.clinicName.trim()
     const tenantId = clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "my-clinic"
+
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required.' }
+    }
+
+    const db = getFirestoreDb()
+    const accountRef = db.collection('accounts').doc(email)
+    const accountDoc = await accountRef.get()
+
+    if (accountDoc.exists) {
+      return { success: false, error: 'An account with this email address already exists. Please log in.' }
+    }
+
+    const { hash, salt } = hashPassword(password)
+
+    await accountRef.set({
+      email,
+      tenantId,
+      clinicName,
+      passwordHash: hash,
+      salt,
+      created_at: new Date().toISOString()
+    })
 
     await setSessionCookie({
       email,
