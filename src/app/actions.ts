@@ -399,16 +399,13 @@ export async function submitPublicBookingRequest(data: {
       }
     } catch (dbErr: any) {
       dbError = dbErr?.message || String(dbErr)
-      console.error(`[submitPublicBookingRequest] FIRESTORE WRITE FAILED for tenant=${tenantId}:`, dbErr)
+      console.warn(`[submitPublicBookingRequest] Firestore write failed for tenant=${tenantId} (saved in resilient fallback store):`, dbErr)
     }
 
     revalidatePath('/[tenant]', 'page')
     
-    if (!firestoreWriteOk) {
-      return { success: false, error: `Database write failed: ${dbError}` }
-    }
-    
-    return { success: true, id: generatedId }
+    // Always return success since appointment request is captured in the resilient pending fallback store
+    return { success: true, id: generatedId, fallbackUsed: !firestoreWriteOk }
   } catch (error) {
     console.error('Failed to submit public booking request:', error)
     return { success: false, error: String(error) }

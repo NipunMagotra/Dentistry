@@ -8,7 +8,7 @@ function sanitizePrivateKey(rawKey: string): string {
   if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
     key = key.slice(1, -1)
   }
-  return key.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n')
+  return key.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r/g, '')
 }
 
 function getAdminApp() {
