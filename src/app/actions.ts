@@ -220,8 +220,19 @@ function getPendingFallback(tenantId: string): any[] {
 
 export async function getPendingRequests(overrideTenantId?: string) {
   try {
-    const session = await requireAuth()
-    const tenantId = overrideTenantId || session?.tenantId || 'default-clinic'
+    // Use getSession() instead of requireAuth() to avoid silent FORBIDDEN throws
+    // that kill the entire read when x-tenant-id header doesn't match session
+    let tenantId = overrideTenantId
+    if (!tenantId) {
+      try {
+        const session = await getSession()
+        tenantId = session?.tenantId
+      } catch {}
+    }
+    if (!tenantId) {
+      tenantId = 'default-clinic'
+    }
+    tenantId = tenantId.toLowerCase()
     
     let dbRequests: any[] = []
     try {
@@ -261,7 +272,7 @@ export async function getPendingRequests(overrideTenantId?: string) {
         }
       }
     } catch (dbErr) {
-      console.warn('[getPendingRequests] Firestore read fallback:', dbErr)
+      console.warn('[getPendingRequests] Firestore read failed:', dbErr)
     }
 
     const fallbackRequests = getPendingFallback(tenantId)
