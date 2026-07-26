@@ -87,19 +87,9 @@ export default function Dashboard() {
         setPendingRequests(pending)
       }
 
-      // Merge local pending requests if present
+      // Purge legacy local storage cache so stale submitted forms never re-appear
       try {
-        const localPending = localStorage.getItem("pending_appointments")
-        if (localPending) {
-          const parsed = JSON.parse(localPending)
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setPendingRequests(prev => {
-              const combined = [...parsed, ...prev]
-              const unique = Array.from(new Map(combined.map(item => [item.id || `${item.patient}_${item.date}_${item.time}`, item])).values())
-              return unique
-            })
-          }
-        }
+        localStorage.removeItem("pending_appointments")
       } catch (err) {}
 
       const clinicStats = await getClinicStats()

@@ -123,25 +123,10 @@ export default function PublicBookingPage() {
         reason: reason || "General Consultation"
       })
 
-      // Also update local storage for offline fallback
-      const newRequest = {
-        id: Date.now().toString(),
-        patient: name,
-        phone: phone,
-        doctor: selectedDoc,
-        date: date,
-        time: time,
-        reason: reason || "General Consultation",
-        status: "Pending",
-        createdAt: new Date().toISOString()
-      }
-      const existing = localStorage.getItem("pending_appointments")
-      let list = []
-      if (existing) {
-        try { list = JSON.parse(existing) } catch (e) { console.error(e) }
-      }
-      list.push(newRequest)
-      localStorage.setItem("pending_appointments", JSON.stringify(list))
+      // Clear legacy local storage cache
+      try {
+        localStorage.removeItem("pending_appointments")
+      } catch (e) {}
 
       window.dispatchEvent(new Event("pending-appointments-updated"))
     } catch (err) {
