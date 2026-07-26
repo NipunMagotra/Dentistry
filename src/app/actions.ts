@@ -338,6 +338,9 @@ export async function submitPublicBookingRequest(data: {
     // Immediately record in resilient in-memory store
     addPendingFallback(tenantId, newRequestItem)
 
+    // Write to Firestore - this MUST succeed for the booking to be real
+    let firestoreWriteOk = false
+    let dbError = ''
     try {
       const { appointmentsRef, patientsRef, clinicRef } = await getTenantDb(tenantId)
 
@@ -358,6 +361,7 @@ export async function submitPublicBookingRequest(data: {
         } catch {}
       }
 
+      // THIS is the critical write - do NOT swallow errors here
       await appointmentsRef.doc(generatedId).set({
         patient_id: patientId,
         patient_name: data.patientName,
@@ -368,7 +372,10 @@ export async function submitPublicBookingRequest(data: {
         reason: data.reason || 'General Consultation',
         status: 'Pending',
         created_at: new Date().toISOString()
-      }).catch(() => {})
+      })
+      
+      firestoreWriteOk = true
+      console.log(`[submitPublicBookingRequest] SUCCESS: Written doc ${generatedId} to clinics/${tenantId}/appointments`)
 
       try {
         const clinicSnap = await clinicRef.get()
@@ -390,11 +397,17 @@ export async function submitPublicBookingRequest(data: {
       } catch (notifErr) {
         console.warn('Notification dispatch failed during public booking (non-fatal):', notifErr)
       }
-    } catch (dbErr) {
-      console.warn('[submitPublicBookingRequest] DB write fallback used:', dbErr)
+    } catch (dbErr: any) {
+      dbError = dbErr?.message || String(dbErr)
+      console.error(`[submitPublicBookingRequest] FIRESTORE WRITE FAILED for tenant=${tenantId}:`, dbErr)
     }
 
     revalidatePath('/[tenant]', 'page')
+    
+    if (!firestoreWriteOk) {
+      return { success: false, error: `Database write failed: ${dbError}` }
+    }
+    
     return { success: true, id: generatedId }
   } catch (error) {
     console.error('Failed to submit public booking request:', error)

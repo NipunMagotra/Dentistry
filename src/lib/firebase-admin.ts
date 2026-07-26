@@ -24,19 +24,25 @@ function getAdminApp() {
   if (projectId && clientEmail && rawPrivateKey) {
     try {
       const formattedKey = sanitizePrivateKey(rawPrivateKey)
-      return initializeApp({
+      console.log(`[Firebase Admin] Initializing with SERVICE ACCOUNT credentials. Project: ${projectId}, Email: ${clientEmail.substring(0, 20)}..., Key length: ${formattedKey.length}`)
+      const app = initializeApp({
         credential: cert({
           projectId,
           clientEmail,
           privateKey: formattedKey,
         }),
       })
+      console.log('[Firebase Admin] ✅ Successfully initialized with service account credentials')
+      return app
     } catch (err) {
-      console.error('[Firebase Admin] Warning: Failed to parse private key from env, falling back to default app init:', err)
+      console.error('[Firebase Admin] ❌ CRITICAL: Failed to initialize with service account credentials. Firestore writes WILL FAIL:', err)
     }
+  } else {
+    console.warn(`[Firebase Admin] ⚠️ Missing env vars - projectId: ${!!projectId}, clientEmail: ${!!clientEmail}, privateKey: ${!!rawPrivateKey}`)
   }
 
   // Fallback for dev / mock build environment when env vars are not set yet
+  console.warn('[Firebase Admin] ⚠️ Using NO-CREDENTIAL fallback (projectId only). Firestore operations will likely fail!')
   return initializeApp({
     projectId: projectId || 'clinic-os-dev',
   })

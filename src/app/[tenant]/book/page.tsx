@@ -100,10 +100,13 @@ export default function PublicBookingPage() {
     }
   }, [tenant])
 
+  const [submitError, setSubmitError] = useState("")
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setNameTouched(true)
     setPhoneTouched(true)
+    setSubmitError("")
     
     if (!isFormValid) return
 
@@ -121,7 +124,7 @@ export default function PublicBookingPage() {
       }
 
       // Submit booking to backend database & notification pipeline
-      await submitPublicBookingRequest({
+      const result = await submitPublicBookingRequest({
         tenantId: targetTenant,
         patientName: name,
         patientPhone: phone,
@@ -131,17 +134,26 @@ export default function PublicBookingPage() {
         reason: reason || "General Consultation"
       })
 
+      console.log("[BookingForm] submitPublicBookingRequest result:", JSON.stringify(result))
+
+      if (result && !result.success) {
+        setSubmitError(result.error || "Booking submission failed. Please try again.")
+        setIsSubmitting(false)
+        return
+      }
+
       // Clear legacy local storage cache
       try {
         localStorage.removeItem("pending_appointments")
       } catch (e) {}
 
       window.dispatchEvent(new Event("pending-appointments-updated"))
-    } catch (err) {
-      console.error("Booking error:", err)
-    } finally {
       setIsSubmitting(false)
       setIsSubmitted(true)
+    } catch (err: any) {
+      console.error("Booking error:", err)
+      setSubmitError(err?.message || "An unexpected error occurred. Please try again.")
+      setIsSubmitting(false)
     }
   }
 
@@ -393,6 +405,12 @@ export default function PublicBookingPage() {
               </div>
 
               <div className="pt-4">
+                {submitError && (
+                  <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
+                    ⚠️ {submitError}
+                  </div>
+                )}
+
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || !isFormValid}
