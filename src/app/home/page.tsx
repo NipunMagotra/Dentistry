@@ -1,6 +1,6 @@
 "use client"
 
-import { Building2, CheckCircle2, ShieldCheck, Zap, Stethoscope, Printer, MessageSquare } from "lucide-react"
+import { Building2, CheckCircle2, ShieldCheck, Zap, Stethoscope, Printer, MessageSquare, BookOpen, Calendar, UserCheck, FilePlus, Smartphone, HelpCircle } from "lucide-react"
 import { AuthModal } from "@/components/AuthModal"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import Image from "next/image"
@@ -26,8 +26,7 @@ export default function HomePage() {
         </div>
         <nav className="hidden md:flex gap-8 text-sm font-medium text-muted-foreground">
           <a href="#features" className="hover:text-primary transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-primary transition-colors">Pricing</a>
-          <a href="#testimonials" className="hover:text-primary transition-colors">Testimonials</a>
+          <a href="#guide" className="hover:text-primary transition-colors">User Guide</a>
         </nav>
         <div className="flex items-center gap-3">
           <ThemeToggle />
@@ -39,13 +38,13 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="px-6 lg:px-12 py-20 md:py-32 flex flex-col items-center text-center space-y-8 bg-background">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-bold border border-primary/20">
-          <Zap className="size-4" /> Now with No-Typing E-Prescriptions
+          <Zap className="size-4" /> Now with No-Typing E-Prescriptions & X-Ray Uploads
         </div>
         <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-foreground max-w-4xl leading-tight">
           Run your clinic without the <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-400">chaos.</span>
         </h1>
         <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-          The ultra-fast, intuitive clinic management platform. Book appointments, generate prescriptions, and send WhatsApp reminders in 3 clicks.
+          The ultra-fast, intuitive clinic management platform. Book appointments, attach X-rays, generate prescriptions, and send WhatsApp reminders in 3 clicks.
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
           {BETA_MODE ? (
@@ -80,7 +79,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="px-6 lg:px-12 py-24 bg-background">
+      <section id="features" className="px-6 lg:px-12 py-24 bg-background border-b border-black/5 dark:border-white/5">
         <div className="max-w-6xl mx-auto space-y-16">
           <div className="text-center space-y-4">
             <h2 className="text-3xl md:text-5xl font-extrabold text-foreground">Everything you need. Nothing you don't.</h2>
@@ -115,46 +114,98 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="px-6 lg:px-12 py-24 bg-background">
-        <div className="max-w-4xl mx-auto text-center space-y-12">
-          <div className="space-y-4">
-            <h2 className="text-3xl md:text-5xl font-extrabold text-foreground">Simple, transparent pricing.</h2>
-            <p className="text-lg sm:text-xl text-muted-foreground">One flat monthly fee. Unlimited patients, unlimited doctors.</p>
-          </div>
-          
-          <div className="glass-panel rounded-3xl p-8 md:p-12 border border-black/10 dark:border-white/10 max-w-lg mx-auto flex flex-col items-center space-y-8 shadow-2xl">
-            <div className="space-y-2">
-              <h3 className="text-2xl font-extrabold text-foreground">Pro Clinic Plan</h3>
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-5xl font-extrabold text-primary">₹999</span>
-                <span className="text-muted-foreground font-medium">/month</span>
-              </div>
+      {/* Simple User Guide / Documentation Section */}
+      <section id="guide" className="px-6 lg:px-12 py-24 bg-background">
+        <div className="max-w-5xl mx-auto space-y-16">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+              <BookOpen className="size-3.5" /> Simple User Documentation
             </div>
-            
-            <ul className="space-y-3 text-left w-full text-sm font-semibold text-foreground">
-              <li className="flex items-center gap-3">
-                <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
-                <span>Unlimited Appointments & Patient Records</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
-                <span>E-Prescription Pad + Image Downloads</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
-                <span>1-Click WhatsApp Booking Notifications</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
-                <span>Multi-Doctor Calendar Support</span>
-              </li>
-            </ul>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-foreground">How to Use Clinic OS</h2>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+              Follow these simple step-by-step instructions to manage your practice smoothly.
+            </p>
+          </div>
 
-            {BETA_MODE
-              ? <AuthModal triggerText="Sign In" triggerVariant="default" defaultTab="login" />
-              : <AuthModal triggerText="Get Started Now" triggerVariant="default" defaultTab="signup" />
-            }
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Step 1 */}
+            <div className="p-8 rounded-3xl glass-panel border border-black/10 dark:border-white/10 space-y-4 relative overflow-hidden">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-2xl bg-primary text-primary-foreground font-extrabold flex items-center justify-center text-lg shadow-md shrink-0">
+                  1
+                </div>
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <UserCheck className="size-5 text-primary" /> Sign In to Your Clinic
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed pl-14">
+                Click the <strong>Sign In</strong> button on the top right. Enter your administrator email and password to access your dedicated clinic dashboard.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="p-8 rounded-3xl glass-panel border border-black/10 dark:border-white/10 space-y-4 relative overflow-hidden">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-2xl bg-primary text-primary-foreground font-extrabold flex items-center justify-center text-lg shadow-md shrink-0">
+                  2
+                </div>
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Calendar className="size-5 text-primary" /> Book Appointments & X-Rays
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed pl-14">
+                Click <strong>+ Book New Consultation</strong>. Fill in patient info, pick a doctor, choose date & time, and optionally attach patient X-rays or diagnostic reports before confirming.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="p-8 rounded-3xl glass-panel border border-black/10 dark:border-white/10 space-y-4 relative overflow-hidden">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-2xl bg-primary text-primary-foreground font-extrabold flex items-center justify-center text-lg shadow-md shrink-0">
+                  3
+                </div>
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Stethoscope className="size-5 text-primary" /> Manage Patient Directory
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed pl-14">
+                Go to the <strong>Patient Directory</strong> tab to search any patient by name or phone. View their past visits, visual dental chart (odontogram), and drag & drop new X-Ray scans anytime.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="p-8 rounded-3xl glass-panel border border-black/10 dark:border-white/10 space-y-4 relative overflow-hidden">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-2xl bg-primary text-primary-foreground font-extrabold flex items-center justify-center text-lg shadow-md shrink-0">
+                  4
+                </div>
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <FilePlus className="size-5 text-primary" /> Issue Fast E-Prescriptions
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed pl-14">
+                In the <strong>E-Prescription Pad</strong> tab, select common medications with simple checkboxes. The system auto-calculates dosages. Instantly download or print the digital prescription card.
+              </p>
+            </div>
+
+            {/* Step 5 */}
+            <div className="p-8 rounded-3xl glass-panel border border-black/10 dark:border-white/10 space-y-4 md:col-span-2 relative overflow-hidden">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-2xl bg-emerald-500 text-white font-extrabold flex items-center justify-center text-lg shadow-md shrink-0">
+                  5
+                </div>
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Smartphone className="size-5 text-emerald-500" /> WhatsApp Reminders & Contacting
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed pl-14">
+                Reach out to patients instantly with 1-click WhatsApp messaging directly from their profile or send manual appointment reminder notifications to keep patient attendance high.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center pt-6">
+            <AuthModal triggerText="Sign In to Get Started" triggerVariant="default" defaultTab="login" />
           </div>
         </div>
       </section>
