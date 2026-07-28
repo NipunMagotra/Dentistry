@@ -30,8 +30,8 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
   const [authError, setAuthError] = useState("")
   
   // Login / Step 1 states
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("admin@clinic.com")
+  const [password, setPassword] = useState("admin123")
   const [clinicName, setClinicName] = useState("")
 
   // Step 2 states (Clinic Operational Info & Operating Hours Selector)
@@ -231,6 +231,10 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
         {/* --- LOGIN FORM --- */}
         {tab === "login" ? (
           <form onSubmit={handleLoginSubmit} className="space-y-4 py-2">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-700 dark:text-amber-300 text-xs text-center font-medium">
+              🔒 <strong>Test Mode Active:</strong> Only single test login allowed.<br />
+              Email: <code className="bg-amber-500/20 px-1.5 py-0.5 rounded font-mono font-bold">admin@clinic.com</code> | Password: <code className="bg-amber-500/20 px-1.5 py-0.5 rounded font-mono font-bold">admin123</code>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="login-email">Email Address</Label>
               <div className="relative">

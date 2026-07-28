@@ -10,10 +10,14 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore'
 import { deleteMedicalMedia } from '@/lib/firebase-storage'
 export type { MedicalMedia } from '@/lib/firebase-storage'
 
-// Beta Phase Mode: disables new account registration when true
+// Beta Phase Mode flag
 const BETA_MODE = process.env.BETA_MODE === 'true' || true
 
-export async function loginUser(data: { email: string; password?: string; clinicName?: string; tenantId?: string }) {
+// Testing Mode Single Credentials (Overridable via process.env)
+const TEST_LOGIN_EMAIL = (process.env.TEST_LOGIN_EMAIL || 'admin@clinic.com').trim().toLowerCase()
+const TEST_LOGIN_PASSWORD = process.env.TEST_LOGIN_PASSWORD || 'admin123'
+
+export async function loginUser(data: { email: string; password?: string; clinicName?: string; tenantId?: string }): Promise<{ success: boolean; tenantId?: string; error?: string }> {
   try {
     const email = data.email.trim().toLowerCase()
     const password = data.password || ""
@@ -24,118 +28,26 @@ export async function loginUser(data: { email: string; password?: string; clinic
       return { success: false, error: 'Email and password are required.' }
     }
 
-    try {
-      const db = getFirestoreDb()
-      const accountRef = db.collection('accounts').doc(email)
-      const accountDoc = await accountRef.get()
-
-      if (!accountDoc.exists) {
-        // Beta Mode: block auto-registration of new accounts on login
-        if (BETA_MODE) {
-          return { success: false, error: 'Account not found. Registration is disabled during the beta phase.' }
-        }
-
-        // Auto-register initial account doc on first sign in
-        const { hash, salt } = hashPassword(password)
-        await accountRef.set({
-          email,
-          tenantId: targetTenantId,
-          clinicName,
-          passwordHash: hash,
-          salt,
-          created_at: new Date().toISOString()
-        }).catch(() => {})
-
-        await setSessionCookie({
-          email,
-          tenantId: targetTenantId,
-          role: 'authenticated'
-        })
-
-        return { success: true, tenantId: targetTenantId }
-      }
-
-      const accountData = accountDoc.data()!
-      const isValid = verifyPassword(password, accountData.passwordHash, accountData.salt)
-
-      if (!isValid) {
-        return { success: false, error: 'Invalid password. Please enter the correct password.' }
-      }
-
-      const activeTenantId = accountData.tenantId || targetTenantId
-
-      await setSessionCookie({
-        email,
-        tenantId: activeTenantId,
-        role: 'authenticated'
-      })
-
-      return { success: true, tenantId: activeTenantId }
-    } catch (dbErr) {
-      console.warn('[Login] DB connection fallback, setting session cookie directly:', dbErr)
-      await setSessionCookie({
-        email,
-        tenantId: targetTenantId,
-        role: 'authenticated'
-      })
-      return { success: true, tenantId: targetTenantId }
+    // STRICT TEST AUTH: Only allow the single designated test email & password
+    if (email !== TEST_LOGIN_EMAIL || password !== TEST_LOGIN_PASSWORD) {
+      return { success: false, error: `Invalid credentials. Access is restricted to the test account (${TEST_LOGIN_EMAIL}) only.` }
     }
+
+    await setSessionCookie({
+      email: TEST_LOGIN_EMAIL,
+      tenantId: targetTenantId,
+      role: 'authenticated'
+    })
+
+    return { success: true, tenantId: targetTenantId }
   } catch (error) {
     console.error('Failed to login:', error)
     return { success: false, error: String(error) }
   }
 }
 
-export async function signupUser(data: { email: string; password?: string; clinicName: string }) {
-  try {
-    // Beta Mode: block all new registrations
-    if (BETA_MODE) {
-      return { success: false, error: 'Registration is currently disabled during the beta phase. Please sign in with an existing account.' }
-    }
-
-    const email = data.email.trim().toLowerCase()
-    const password = data.password || ""
-    const clinicName = data.clinicName.trim()
-    const tenantId = clinicName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-") || "my-clinic"
-
-    if (!email || !password) {
-      return { success: false, error: 'Email and password are required.' }
-    }
-
-    try {
-      const db = getFirestoreDb()
-      const accountRef = db.collection('accounts').doc(email)
-      const accountDoc = await accountRef.get()
-
-      if (accountDoc.exists) {
-        return { success: false, error: 'An account with this email address already exists. Please log in.' }
-      }
-
-      const { hash, salt } = hashPassword(password)
-
-      await accountRef.set({
-        email,
-        tenantId,
-        clinicName,
-        passwordHash: hash,
-        salt,
-        created_at: new Date().toISOString()
-      })
-    } catch (dbErr) {
-      console.warn('[Signup] DB write fallback, setting session cookie directly:', dbErr)
-    }
-
-    await setSessionCookie({
-      email,
-      tenantId,
-      role: 'authenticated'
-    })
-
-    return { success: true, tenantId }
-  } catch (error) {
-    console.error('Failed to signup:', error)
-    return { success: false, error: String(error) }
-  }
+export async function signupUser(data: { email: string; password?: string; clinicName: string }): Promise<{ success: boolean; tenantId?: string; error?: string }> {
+  return { success: false, error: 'Account registration is disabled for testing. Only the single test login is active.' }
 }
 
 export async function logoutUser() {
