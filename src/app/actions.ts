@@ -6,7 +6,12 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { setSessionCookie, clearSessionCookie, getSession, requireAuth } from '@/lib/auth'
 import { NotificationService } from '@/lib/notifications'
-import { Timestamp } from 'firebase-admin/firestore'
+import { Timestamp, FieldValue } from 'firebase-admin/firestore'
+import { deleteMedicalMedia } from '@/lib/firebase-storage'
+export type { MedicalMedia } from '@/lib/firebase-storage'
+
+// Beta Phase Mode: disables new account registration when true
+const BETA_MODE = process.env.BETA_MODE === 'true' || true
 
 export async function loginUser(data: { email: string; password?: string; clinicName?: string; tenantId?: string }) {
   try {
@@ -25,6 +30,11 @@ export async function loginUser(data: { email: string; password?: string; clinic
       const accountDoc = await accountRef.get()
 
       if (!accountDoc.exists) {
+        // Beta Mode: block auto-registration of new accounts on login
+        if (BETA_MODE) {
+          return { success: false, error: 'Account not found. Registration is disabled during the beta phase.' }
+        }
+
         // Auto-register initial account doc on first sign in
         const { hash, salt } = hashPassword(password)
         await accountRef.set({
@@ -78,6 +88,11 @@ export async function loginUser(data: { email: string; password?: string; clinic
 
 export async function signupUser(data: { email: string; password?: string; clinicName: string }) {
   try {
+    // Beta Mode: block all new registrations
+    if (BETA_MODE) {
+      return { success: false, error: 'Registration is currently disabled during the beta phase. Please sign in with an existing account.' }
+    }
+
     const email = data.email.trim().toLowerCase()
     const password = data.password || ""
     const clinicName = data.clinicName.trim()
@@ -649,7 +664,8 @@ export async function searchPatients(query: string = '', filter: string = 'All')
         created_at: pData.created_at,
         appointments,
         prescriptions,
-        dental_chart: pData.dental_chart || {}
+        dental_chart: pData.dental_chart || {},
+        medical_media: pData.medical_media || []
       })
     }
 
@@ -889,3 +905,53 @@ export async function sendManualAppointmentReminder(appointmentId: string) {
   }
 }
 
+export async function deletePatientMedia(patientId: string, mediaId: string, storagePath: string) {
+  try {
+    await requireAuth()
+    const { patientsRef } = await getTenantDb()
+
+    // 1. Remove from Firebase Storage
+    try {
+      await deleteMedicalMedia(storagePath)
+    } catch (storageErr) {
+      console.warn('[deletePatientMedia] Storage deletion failed (continuing with Firestore cleanup):', storageErr)
+    }
+
+    // 2. Remove from Firestore patient document
+    const patientDoc = await patientsRef.doc(patientId).get()
+    if (patientDoc.exists) {
+      const currentMedia = patientDoc.data()?.medical_media || []
+      const updatedMedia = currentMedia.filter((m: any) => m.id !== mediaId)
+      await patientsRef.doc(patientId).update({
+        medical_media: updatedMedia,
+        updated_at: new Date().toISOString()
+      })
+    }
+
+    revalidatePath('/[tenant]', 'page')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to delete patient media:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+export async function getPatientMedia(patientId: string) {
+  try {
+    await requireAuth()
+    const { patientsRef } = await getTenantDb()
+    const patientDoc = await patientsRef.doc(patientId).get()
+    if (!patientDoc.exists) {
+      return []
+    }
+    return patientDoc.data()?.medical_media || []
+  } catch (error) {
+    console.error('Failed to get patient media:', error)
+    return []
+  }
+}
+
+// Re-export BETA_MODE for client components to read at build time
+export async function getBetaMode() {
+  return BETA_MODE
+}

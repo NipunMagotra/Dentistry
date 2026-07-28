@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef, useTransition } from "react"
-import { searchPatients, deletePatient } from "@/app/actions"
+import { searchPatients, deletePatient, deletePatientMedia } from "@/app/actions"
 import { queueOfflineAction, isOnline } from "@/lib/offlineSync"
-import { Search, User, Clock, Pill, FileText, AlertTriangle, Download, Paperclip, Upload, Trash2, Activity } from "lucide-react"
+import { Search, User, Clock, Pill, FileText, AlertTriangle, Download, Paperclip, Upload, Trash2, Activity, X, Image as ImageIcon, FileUp, Tag } from "lucide-react"
 import { VisualOdontogram } from "@/components/VisualOdontogram"
 import { toPng } from "html-to-image"
 import { Input } from "@/components/ui/input"
@@ -20,10 +20,14 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
-const MOCK_XRAY = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='100%' height='100%' fill='%230f172a'/><text x='50%' y='40%' font-family='sans-serif' font-size='20' font-weight='bold' fill='%233b82f6' text-anchor='middle'>DENTAL X-RAY SCAN</text><path d='M80,180 Q100,100 120,180 T160,180 T200,180 T240,180 T280,180 T320,180' stroke='%2338bdf8' stroke-width='4' fill='none' opacity='0.7'/><circle cx='200' cy='160' r='6' fill='%23ef4444'/><text x='50%' y='80%' font-family='sans-serif' font-size='12' fill='%2364748b' text-anchor='middle'>Panoramic Scan - Target region shaded red</text></svg>"
-
 // Empty initial state for real accounts
 const MOCK_PATIENTS: any[] = []
+
+const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
+  xray: { label: "X-Ray", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+  lab_report: { label: "Lab Report", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+  other: { label: "Other", color: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20" },
+}
 
 export function PatientDirectory() {
   const [search, setSearch] = useState("")
@@ -46,91 +50,150 @@ export function PatientDirectory() {
   // Dynamic Doctors List State
   const [doctorsList, setDoctorsList] = useState<any[]>([])
 
+  // Upload state
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadCategory, setUploadCategory] = useState<'xray' | 'lab_report' | 'other'>('xray')
+  const [uploadCaption, setUploadCaption] = useState("")
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [uploadError, setUploadError] = useState("")
+
+  // Lightbox state
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+
+  // Delete media confirmation
+  const [deletingMedia, setDeletingMedia] = useState<any | null>(null)
+
   const getLastVisited = (patient: any) => {
     if (!patient.appointments || patient.appointments.length === 0) return "Never"
     return patient.appointments[0].appointment_date || patient.appointments[0].date || "Recently"
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !selectedPatient) return
+  const handleFirebaseUpload = async (files: FileList | File[]) => {
+    if (!selectedPatient || !files || files.length === 0) return
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string
-      if (!dataUrl) return
+    setUploadError("")
+    setIsUploading(true)
+    setUploadProgress(10)
 
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement("canvas")
-        let width = img.width
-        let height = img.height
-        const maxDim = 800
+    const formData = new FormData()
+    formData.append("patientId", selectedPatient.id)
+    formData.append("category", uploadCategory)
+    formData.append("caption", uploadCaption.trim())
 
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width)
-            width = maxDim
-          } else {
-            width = Math.round((width * maxDim) / height)
-            height = maxDim
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext("2d")
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height)
-          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7)
-          
-          const newAttachment = {
-            id: `att_${Date.now()}`,
-            name: file.name,
-            url: compressedDataUrl,
-            date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
-          }
-
-          const updatedPatient = {
-            ...selectedPatient,
-            attachments: [...(selectedPatient.attachments || []), newAttachment]
-          }
-
-          setSelectedPatient(updatedPatient)
-          setPatients(prev => {
-            const updatedList = prev.map(p => p.id === selectedPatient.id ? updatedPatient : p)
-            try {
-              localStorage.setItem("patient_directory_list", JSON.stringify(updatedList))
-            } catch (e) {
-              console.error("[Storage] Failed to save attachment", e)
-            }
-            return updatedList
-          })
-          window.dispatchEvent(new Event("patient-directory-updated"))
-        }
+    let validCount = 0
+    for (const file of Array.from(files)) {
+      // Client-side validation
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+      if (!allowedTypes.includes(file.type)) {
+        setUploadError(`"${file.name}" is not a supported format. Use JPEG, PNG, WebP, or PDF.`)
+        setIsUploading(false)
+        setUploadProgress(0)
+        return
       }
-      img.src = dataUrl
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError(`"${file.name}" exceeds the 10 MB limit.`)
+        setIsUploading(false)
+        setUploadProgress(0)
+        return
+      }
+      formData.append("files", file)
+      validCount++
     }
-    reader.readAsDataURL(file)
+
+    if (validCount === 0) {
+      setIsUploading(false)
+      setUploadProgress(0)
+      return
+    }
+
+    if (validCount > 5) {
+      setUploadError("Maximum 5 files per upload.")
+      setIsUploading(false)
+      setUploadProgress(0)
+      return
+    }
+
+    setUploadProgress(30)
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      setUploadProgress(80)
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setUploadError(result.error || "Upload failed. Please try again.")
+        setIsUploading(false)
+        setUploadProgress(0)
+        return
+      }
+
+      if (result.errors && result.errors.length > 0) {
+        setUploadError(result.errors.join(". "))
+      }
+
+      // Update local state with new media
+      if (result.uploaded && result.uploaded.length > 0) {
+        const currentMedia = selectedPatient.medical_media || []
+        const updatedMedia = [...currentMedia, ...result.uploaded]
+        const updatedPatient = { ...selectedPatient, medical_media: updatedMedia }
+        setSelectedPatient(updatedPatient)
+        setPatients(prev => prev.map(p => p.id === selectedPatient.id ? updatedPatient : p))
+      }
+
+      setUploadProgress(100)
+      setTimeout(() => {
+        setIsUploading(false)
+        setUploadProgress(0)
+        setUploadCaption("")
+      }, 500)
+    } catch (err: any) {
+      console.error("[PatientDirectory] Upload failed:", err)
+      setUploadError(err?.message || "Upload failed. Check your connection.")
+      setIsUploading(false)
+      setUploadProgress(0)
+    }
   }
 
-  const handleRemoveAttachment = (attachmentId: string) => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files) handleFirebaseUpload(files)
+    // Reset input so same file can be re-uploaded
+    e.target.value = ""
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const files = e.dataTransfer.files
+    if (files.length > 0) handleFirebaseUpload(files)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = () => setIsDragOver(false)
+
+  const handleDeleteMedia = async (media: any) => {
     if (!selectedPatient) return
+    setDeletingMedia(null)
 
-    const updatedPatient = {
-      ...selectedPatient,
-      attachments: (selectedPatient.attachments || []).filter((a: any) => a.id !== attachmentId)
+    const result = await deletePatientMedia(selectedPatient.id, media.id, media.storagePath)
+    if (result.success) {
+      const updatedMedia = (selectedPatient.medical_media || []).filter((m: any) => m.id !== media.id)
+      const updatedPatient = { ...selectedPatient, medical_media: updatedMedia }
+      setSelectedPatient(updatedPatient)
+      setPatients(prev => prev.map(p => p.id === selectedPatient.id ? updatedPatient : p))
+    } else {
+      console.error("Failed to delete media:", result.error)
     }
-
-    setSelectedPatient(updatedPatient)
-    const updatedList = patients.map(p => p.id === selectedPatient.id ? updatedPatient : p)
-    setPatients(updatedList)
-    try {
-      localStorage.setItem("patient_directory_list", JSON.stringify(updatedList))
-    } catch (e) {
-      console.error("[Storage] Failed to save after attachment removal", e)
-    }
-    window.dispatchEvent(new Event("patient-directory-updated"))
   }
 
   // Load clinic profile settings & doctors list
@@ -198,6 +261,10 @@ export function PatientDirectory() {
   const handleDialogClose = () => {
     setSelectedPatient(null)
     setShowConfirmDelete(false)
+    setUploadError("")
+    setUploadCaption("")
+    setLightboxUrl(null)
+    setDeletingMedia(null)
   }
 
   const handleDeletePatient = async (id: string) => {
@@ -238,6 +305,7 @@ export function PatientDirectory() {
   }, [search])
 
   const filteredPatients = patients
+  const mediaList = selectedPatient?.medical_media || []
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto w-full">
@@ -325,6 +393,11 @@ export function PatientDirectory() {
                           <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-full", isNever ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary")}>
                             Last Visited: {lastVisited}
                           </span>
+                          {(patient.medical_media?.length || 0) > 0 && (
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                              📎 {patient.medical_media.length} file{patient.medical_media.length > 1 ? "s" : ""}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -463,44 +536,179 @@ export function PatientDirectory() {
                   )}
                 </div>
 
-                {/* Patient Attachments / Clinical X-Rays */}
+                {/* Patient Medical Media / X-Rays — Firebase Storage Backed */}
                 <div className="space-y-3 pt-2">
                   <h3 className="text-base font-bold text-foreground flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2">
                     <div className="flex items-center gap-2">
-                      <Paperclip className="size-4 text-primary" /> Diagnostic X-Rays
-                    </div>
-                    <div>
-                      <label className="cursor-pointer bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-wide py-1 px-3 rounded-full transition-colors flex items-center gap-1 shadow-xs hover:bg-primary/90">
-                        <Upload className="size-3" /> Upload File
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={handleImageUpload} 
-                        />
-                      </label>
+                      <Paperclip className="size-4 text-primary" /> Diagnostic Media & X-Rays
+                      {mediaList.length > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          {mediaList.length}
+                        </span>
+                      )}
                     </div>
                   </h3>
 
-                  {selectedPatient?.attachments && selectedPatient.attachments.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {selectedPatient.attachments.map((file: any) => (
-                        <div key={file.id} className="relative group border rounded-2xl overflow-hidden glass-panel border-black/5 dark:border-white/5 shadow-xs">
-                          <img src={file.url} alt={file.name} className="w-full h-24 object-cover" />
-                          <div className="p-2 bg-background/90 text-[10px] font-semibold text-foreground flex justify-between items-center">
-                            <span className="truncate max-w-[80px]">{file.name}</span>
-                            <button 
-                              onClick={() => handleRemoveAttachment(file.id)}
-                              className="text-destructive hover:opacity-80 p-0.5"
-                            >
-                              <Trash2 className="size-3" />
-                            </button>
-                          </div>
+                  {/* Upload Zone */}
+                  <div 
+                    className={cn(
+                      "rounded-2xl border-2 border-dashed transition-all p-4",
+                      isDragOver 
+                        ? "border-primary bg-primary/5 scale-[1.01]" 
+                        : "border-black/10 dark:border-white/10 hover:border-primary/40",
+                      isUploading && "opacity-60 pointer-events-none"
+                    )}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                  >
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <div className="flex items-center gap-2 flex-1 w-full">
+                        <Select value={uploadCategory} onValueChange={(val: any) => setUploadCategory(val || 'xray')}>
+                          <SelectTrigger className="w-[120px] h-8 rounded-full text-[11px] font-bold">
+                            <Tag className="size-3 mr-1" />
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl glass-panel">
+                            <SelectItem value="xray">X-Ray</SelectItem>
+                            <SelectItem value="lab_report">Lab Report</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          placeholder="Caption (optional)"
+                          value={uploadCaption}
+                          onChange={(e) => setUploadCaption(e.target.value)}
+                          className="h-8 text-xs flex-1"
+                        />
+                      </div>
+                      <label className="cursor-pointer bg-primary text-primary-foreground font-bold text-[11px] uppercase tracking-wide py-2 px-4 rounded-full transition-all flex items-center gap-1.5 shadow-sm hover:bg-primary/90 hover:shadow-md whitespace-nowrap">
+                        <FileUp className="size-3.5" /> Upload Files
+                        <input 
+                          type="file" 
+                          accept="image/jpeg,image/png,image/webp,application/pdf" 
+                          multiple
+                          className="hidden" 
+                          onChange={handleFileInputChange} 
+                        />
+                      </label>
+                    </div>
+
+                    {isDragOver && (
+                      <div className="mt-3 text-center text-xs font-bold text-primary animate-pulse">
+                        Drop files here to upload
+                      </div>
+                    )}
+
+                    {!isDragOver && !isUploading && (
+                      <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                        Drag & drop or click to upload. JPEG, PNG, WebP, PDF — max 10 MB per file, 5 files per batch.
+                      </p>
+                    )}
+
+                    {/* Upload Progress */}
+                    {isUploading && (
+                      <div className="mt-3 space-y-1.5">
+                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
                         </div>
-                      ))}
+                        <p className="text-[10px] font-bold text-primary text-center">
+                          Uploading to Firebase Storage... {uploadProgress}%
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Upload Error */}
+                    {uploadError && (
+                      <div className="mt-2 p-2 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-semibold flex items-center gap-2">
+                        <AlertTriangle className="size-3.5 shrink-0" />
+                        {uploadError}
+                        <button onClick={() => setUploadError("")} className="ml-auto">
+                          <X className="size-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Media Grid */}
+                  {mediaList.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {mediaList.map((media: any) => {
+                        const catInfo = CATEGORY_LABELS[media.category] || CATEGORY_LABELS.other
+                        const isPdf = media.storagePath?.endsWith('.pdf') || media.url?.includes('.pdf')
+                        const uploadDate = media.uploadedAt 
+                          ? new Date(media.uploadedAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+                          : ""
+
+                        return (
+                          <div 
+                            key={media.id} 
+                            className="relative group rounded-2xl overflow-hidden glass-panel border border-black/5 dark:border-white/5 shadow-xs hover:shadow-md transition-all"
+                          >
+                            {/* Thumbnail */}
+                            <div 
+                              className="w-full h-28 cursor-pointer relative overflow-hidden bg-muted/30"
+                              onClick={() => !isPdf && setLightboxUrl(media.url)}
+                            >
+                              {isPdf ? (
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground">
+                                  <FileText className="size-8 text-primary/60" />
+                                  <span className="text-[10px] font-bold">PDF Document</span>
+                                </div>
+                              ) : (
+                                <img 
+                                  src={media.url} 
+                                  alt={media.caption || "Medical scan"} 
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                  loading="lazy"
+                                />
+                              )}
+                              {/* Category Badge */}
+                              <div className={cn("absolute top-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border", catInfo.color)}>
+                                {catInfo.label}
+                              </div>
+                            </div>
+
+                            {/* Info Bar */}
+                            <div className="p-2 bg-background/90 flex flex-col gap-0.5">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-semibold text-foreground truncate max-w-[100px]">
+                                  {media.caption || media.storagePath?.split("/").pop()?.substring(0, 20) || "Scan"}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  {isPdf && (
+                                    <a 
+                                      href={media.url} 
+                                      target="_blank" 
+                                      rel="noreferrer"
+                                      className="text-primary hover:opacity-80 p-0.5"
+                                      title="Open PDF"
+                                    >
+                                      <Download className="size-3" />
+                                    </a>
+                                  )}
+                                  <button 
+                                    onClick={() => setDeletingMedia(media)}
+                                    className="text-destructive hover:opacity-80 p-0.5"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="size-3" />
+                                  </button>
+                                </div>
+                              </div>
+                              {uploadDate && (
+                                <span className="text-[9px] text-muted-foreground">{uploadDate}</span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-xs italic">No X-rays uploaded yet.</p>
+                    <p className="text-muted-foreground text-xs italic">No diagnostic media uploaded yet. Use the upload zone above to attach X-rays, lab reports, or other files.</p>
                   )}
                 </div>
               </div>
@@ -538,6 +746,41 @@ export function PatientDirectory() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={(open) => !open && setLightboxUrl(null)}>
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] p-2 rounded-2xl bg-black/95 border-white/10">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Image Preview</DialogTitle>
+            <DialogDescription>Full-size preview of diagnostic scan</DialogDescription>
+          </DialogHeader>
+          {lightboxUrl && (
+            <img 
+              src={lightboxUrl} 
+              alt="Full-size diagnostic scan" 
+              className="w-full h-auto max-h-[85vh] object-contain rounded-xl"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Media Confirmation Dialog */}
+      <Dialog open={!!deletingMedia} onOpenChange={(open) => !open && setDeletingMedia(null)}>
+        <DialogContent className="max-w-sm glass-panel rounded-2xl p-6 border border-white/40 dark:border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-destructive flex items-center gap-2">
+              <Trash2 className="size-5" /> Delete this file?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              This will permanently remove the file from Firebase Storage and the patient's record.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setDeletingMedia(null)} className="rounded-full">Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={() => handleDeleteMedia(deletingMedia)} className="rounded-full font-bold">Delete File</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

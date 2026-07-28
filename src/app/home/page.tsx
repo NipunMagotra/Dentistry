@@ -5,6 +5,9 @@ import { AuthModal } from "@/components/AuthModal"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import Image from "next/image"
 
+// Beta Phase Mode — matches server-side BETA_MODE flag
+const BETA_MODE = true
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-300">
@@ -29,7 +32,7 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <AuthModal triggerText="Sign In" triggerVariant="outline" defaultTab="login" />
-          <AuthModal triggerText="Start Free Trial" triggerVariant="default" defaultTab="signup" />
+          {!BETA_MODE && <AuthModal triggerText="Start Free Trial" triggerVariant="default" defaultTab="signup" />}
         </div>
       </header>
 
@@ -45,8 +48,19 @@ export default function HomePage() {
           The ultra-fast, intuitive clinic management platform. Book appointments, generate prescriptions, and send WhatsApp reminders in 3 clicks.
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-          <AuthModal triggerText="Start your 14-day free trial" triggerVariant="default" defaultTab="signup" />
-          <p className="text-xs sm:text-sm text-muted-foreground">No credit card required.</p>
+          {BETA_MODE ? (
+            <>
+              <AuthModal triggerText="Sign In to Dashboard" triggerVariant="default" defaultTab="login" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs">
+                🔒 Beta Phase — Invite Only
+              </div>
+            </>
+          ) : (
+            <>
+              <AuthModal triggerText="Start your 14-day free trial" triggerVariant="default" defaultTab="signup" />
+              <p className="text-xs sm:text-sm text-muted-foreground">No credit card required.</p>
+            </>
+          )}
         </div>
         
         {/* Mock Dashboard Preview */}
@@ -137,7 +151,10 @@ export default function HomePage() {
               </li>
             </ul>
 
-            <AuthModal triggerText="Get Started Now" triggerVariant="default" defaultTab="signup" />
+            {BETA_MODE
+              ? <AuthModal triggerText="Sign In" triggerVariant="default" defaultTab="login" />
+              : <AuthModal triggerText="Get Started Now" triggerVariant="default" defaultTab="signup" />
+            }
           </div>
         </div>
       </section>

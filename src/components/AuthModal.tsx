@@ -18,9 +18,12 @@ interface AuthModalProps {
   defaultTab?: "login" | "signup"
 }
 
+// Beta Phase Mode — matches server-side BETA_MODE flag
+const BETA_MODE = true
+
 export function AuthModal({ triggerText, triggerVariant = "default", defaultTab = "login" }: AuthModalProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [tab, setTab] = useState<"login" | "signup">(defaultTab)
+  const [tab, setTab] = useState<"login" | "signup">(BETA_MODE ? "login" : defaultTab)
   const [signupStep, setSignupStep] = useState<1 | 2 | 3>(1)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -208,7 +211,9 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
           </DialogTitle>
           <DialogDescription className="text-center text-xs text-muted-foreground">
             {tab === "login" 
-              ? "Enter your credentials to access your clinic dashboard." 
+              ? BETA_MODE
+                ? "Beta Phase — Sign in with your existing credentials."
+                : "Enter your credentials to access your clinic dashboard." 
               : signupStep === 1 
                 ? "Step 1 of 3: Account login details and clinic name." 
                 : signupStep === 2 
@@ -536,23 +541,31 @@ export function AuthModal({ triggerText, triggerVariant = "default", defaultTab 
           </div>
         )}
 
-        <div className="text-center text-xs text-muted-foreground border-t border-black/5 dark:border-white/5 pt-4">
-          {tab === "login" ? (
-            <p>
-              Don't have an account?{" "}
-              <button type="button" onClick={() => { setTab("signup"); setSignupStep(1); }} className="text-primary font-bold hover:underline">
-                Sign up
-              </button>
-            </p>
-          ) : (
-            <p>
-              Already have an account?{" "}
-              <button type="button" onClick={() => { setTab("login"); setSignupStep(1); }} className="text-primary font-bold hover:underline">
-                Sign in
-              </button>
-            </p>
-          )}
-        </div>
+        {BETA_MODE ? (
+          <div className="text-center text-xs text-muted-foreground border-t border-black/5 dark:border-white/5 pt-4">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-[11px]">
+              🔒 Beta Phase — Invite Only
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-xs text-muted-foreground border-t border-black/5 dark:border-white/5 pt-4">
+            {tab === "login" ? (
+              <p>
+                Don't have an account?{" "}
+                <button type="button" onClick={() => { setTab("signup"); setSignupStep(1); }} className="text-primary font-bold hover:underline">
+                  Sign up
+                </button>
+              </p>
+            ) : (
+              <p>
+                Already have an account?{" "}
+                <button type="button" onClick={() => { setTab("login"); setSignupStep(1); }} className="text-primary font-bold hover:underline">
+                  Sign in
+                </button>
+              </p>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

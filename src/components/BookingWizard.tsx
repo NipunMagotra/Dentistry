@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Check, ChevronsUpDown, AlertCircle } from "lucide-react"
+import { CalendarIcon, Check, ChevronsUpDown, AlertCircle, FileUp, X, Paperclip, Tag } from "lucide-react"
 import {
   Command,
   CommandEmpty,
@@ -110,6 +110,28 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
 
   const doctorCharge = doctorsList.find(d => d.name === selectedDoctor || d.id === selectedDoctor)?.charge
 
+  // Step 4: Media attachment state
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+  const [uploadCategory, setUploadCategory] = useState<'xray' | 'lab_report' | 'other'>('xray')
+  const [uploadCaption, setUploadCaption] = useState("")
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
+  const [mediaUploadError, setMediaUploadError] = useState("")
+
+  const handleAddFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    
+    const newFiles = Array.from(files)
+    const combined = [...attachedFiles, ...newFiles].slice(0, 3) // Max 3 files
+    setAttachedFiles(combined)
+    setMediaUploadError("")
+    e.target.value = ""
+  }
+
+  const handleRemoveFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleNext = () => {
     setNameTouched(true)
     setPhoneTouched(true)
@@ -119,12 +141,47 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
     if (step === 1 && (!isNameValid || !isPhoneValid || !isNationalityValid || !isGenderValid)) {
       return
     }
-    setStep((s) => Math.min(s + 1, 3))
+    setStep((s) => Math.min(s + 1, 4))
   }
   
   const handleBack = () => setStep((s) => Math.max(s - 1, 1))
   
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const uploadAttachedMedia = async (patientPhone: string) => {
+    if (attachedFiles.length === 0) return
+
+    setIsUploadingMedia(true)
+    try {
+      // We need a patient ID — find or create via the phone number
+      // The appointment creation already handles patient creation, so we use the phone as lookup
+      const formData = new FormData()
+      // We'll pass patientId as "pending" — the API will need to look up by phone
+      // For now, we upload to a temporary holding area
+      formData.append("patientId", "pending_" + patientPhone.replace(/[^0-9]/g, ""))
+      formData.append("category", uploadCategory)
+      formData.append("caption", uploadCaption.trim())
+      
+      for (const file of attachedFiles) {
+        formData.append("files", file)
+      }
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        setMediaUploadError(data.error || "Upload failed")
+      }
+    } catch (err: any) {
+      console.error("[BookingWizard] Media upload failed:", err)
+      setMediaUploadError("File upload failed. The appointment was booked successfully.")
+    } finally {
+      setIsUploadingMedia(false)
+    }
+  }
 
   const handleComplete = async () => {
     setIsSubmitting(true)
@@ -149,6 +206,11 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
         }
         console.error("Failed to create appointment", result.error)
       }
+
+      // Upload attached media if any
+      if (attachedFiles.length > 0) {
+        await uploadAttachedMedia(payload.patientPhone)
+      }
     } else {
       queueOfflineAction("BOOK_APPOINTMENT", payload)
     }
@@ -167,6 +229,9 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
     setOpen(false)
     setStep(1)
     setIsSubmitting(false)
+    setAttachedFiles([])
+    setUploadCaption("")
+    setMediaUploadError("")
 
     if (isOnline()) {
       fetch("/api/workflow", {
@@ -199,6 +264,9 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
       setPhoneTouched(false)
       setNationalityTouched(false)
       setGenderTouched(false)
+      setAttachedFiles([])
+      setUploadCaption("")
+      setMediaUploadError("")
     }
     setOpen(newOpen)
   }
@@ -219,11 +287,12 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
         </DialogHeader>
 
         <div className="py-2">
-          {/* M3 Segmented Progress Line */}
+          {/* M3 Segmented Progress Line — 4 steps now */}
           <div className="flex items-center gap-2 mb-6">
             <div className={cn("h-1.5 flex-1 rounded-full transition-all duration-300", step >= 1 ? "bg-primary" : "bg-primary/20")} />
             <div className={cn("h-1.5 flex-1 rounded-full transition-all duration-300", step >= 2 ? "bg-primary" : "bg-primary/20")} />
             <div className={cn("h-1.5 flex-1 rounded-full transition-all duration-300", step >= 3 ? "bg-primary" : "bg-primary/20")} />
+            <div className={cn("h-1.5 flex-1 rounded-full transition-all duration-300", step >= 4 ? "bg-primary" : "bg-primary/20")} />
           </div>
 
           {step === 1 && (
@@ -415,6 +484,77 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
               })()}
             </div>
           )}
+
+          {/* Step 4: Optional Media Attachment */}
+          {step === 4 && (
+            <div className="grid gap-4 animate-in fade-in-50 duration-200">
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg text-foreground">Attach X-Rays or Reports</h3>
+                <p className="text-xs text-muted-foreground">Optionally attach up to 3 diagnostic files. You can skip this step.</p>
+              </div>
+
+              {/* Category & Caption */}
+              <div className="flex items-center gap-2">
+                <Select value={uploadCategory} onValueChange={(val: any) => setUploadCategory(val || 'xray')}>
+                  <SelectTrigger className="w-[120px] h-9 rounded-full text-xs font-bold">
+                    <Tag className="size-3 mr-1" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl glass-panel">
+                    <SelectItem value="xray">X-Ray</SelectItem>
+                    <SelectItem value="lab_report">Lab Report</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Caption (optional)"
+                  value={uploadCaption}
+                  onChange={(e) => setUploadCaption(e.target.value)}
+                  className="h-9 text-xs flex-1"
+                />
+              </div>
+
+              {/* File Picker */}
+              <label className="cursor-pointer rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 hover:border-primary/40 p-6 flex flex-col items-center gap-2 transition-all">
+                <FileUp className="size-8 text-primary/60" />
+                <span className="text-xs font-bold text-muted-foreground">Click to select files</span>
+                <span className="text-[10px] text-muted-foreground">JPEG, PNG, WebP, PDF — max 10 MB each</span>
+                <input 
+                  type="file" 
+                  accept="image/jpeg,image/png,image/webp,application/pdf" 
+                  multiple
+                  className="hidden" 
+                  onChange={handleAddFiles} 
+                />
+              </label>
+
+              {/* Attached Files List */}
+              {attachedFiles.length > 0 && (
+                <div className="space-y-2">
+                  {attachedFiles.map((file, i) => (
+                    <div key={i} className="flex items-center justify-between p-2.5 rounded-xl glass-panel border border-black/5 dark:border-white/5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Paperclip className="size-3.5 text-primary shrink-0" />
+                        <span className="text-xs font-semibold text-foreground truncate">{file.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {(file.size / 1024 / 1024).toFixed(1)} MB
+                        </span>
+                      </div>
+                      <button onClick={() => handleRemoveFile(i)} className="text-destructive hover:opacity-80 p-1">
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {mediaUploadError && (
+                <div className="p-2 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-semibold">
+                  {mediaUploadError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="mt-4 flex sm:justify-between items-center gap-2 border-t border-black/5 dark:border-white/5 pt-4">
@@ -426,14 +566,38 @@ export function BookingWizard({ onBookAppointment }: BookingWizardProps) {
 
           {step < 3 ? (
             <Button onClick={handleNext} className="rounded-full font-semibold px-6">Continue</Button>
+          ) : step === 3 ? (
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => setStep(4)} 
+                disabled={!date || !selectedTime}
+                variant="outline"
+                className="rounded-full font-semibold px-4 text-xs"
+              >
+                <Paperclip className="size-3.5 mr-1" /> Attach Files
+              </Button>
+              <Button 
+                onClick={handleComplete} 
+                disabled={isSubmitting || !date || !selectedTime}
+                className="rounded-full font-semibold px-6 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+              >
+                {isSubmitting ? "Booking..." : "Confirm & Save"}
+              </Button>
+            </div>
           ) : (
-            <Button 
-              onClick={handleComplete} 
-              disabled={isSubmitting || !date || !selectedTime}
-              className="rounded-full font-semibold px-6 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
-            >
-              {isSubmitting ? "Booking..." : "Confirm & Save"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={handleComplete} 
+                disabled={isSubmitting || isUploadingMedia}
+                className="rounded-full font-semibold px-6 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+              >
+                {isSubmitting || isUploadingMedia 
+                  ? "Saving..." 
+                  : attachedFiles.length > 0 
+                    ? `Confirm with ${attachedFiles.length} file${attachedFiles.length > 1 ? "s" : ""}`
+                    : "Skip & Confirm"}
+              </Button>
+            </div>
           )}
         </DialogFooter>
       </DialogContent>
